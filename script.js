@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log("App DOMContentLoaded: Initializing...");
-    
+
     // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
     const views = document.querySelectorAll('.view-section');
@@ -64,10 +64,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterBuildingNameInput = document.getElementById('filterBuildingName');
     const filterRoomIdentifierInput = document.getElementById('filterRoomIdentifier');
     const filterRoomPurposeSelect = document.getElementById('filterRoomPurpose');
+    const filterRoomPurposeOther = document.getElementById('filterRoomPurposeOther'); // New
     const filterLightFixtureTypeSelect = document.getElementById('filterLightFixtureType');
+    const filterLightFixtureTypeOther = document.getElementById('filterLightFixtureTypeOther'); // New
     const filterOverallConditionSelect = document.getElementById('filterOverallCondition');
     const filterHasAsbestosCeilingSelect = document.getElementById('filterHasAsbestosCeiling');
     const filterFloorTypeSelect = document.getElementById('filterFloorType');
+    const filterFloorTypeOther = document.getElementById('filterFloorTypeOther'); // New
     // const applyFilterBtn = document.getElementById('applyFilterBtn'); // Already captured by filterForm submit
     const clearFilterBtn = document.getElementById('clearFilterBtn');
     const filterResultsContainer = document.getElementById('filterResultsContainer');
@@ -139,25 +142,32 @@ document.addEventListener('DOMContentLoaded', function () {
         const buildings = getStoredBuildings();
         const lastUsed = getLastUsedBuilding();
 
+        // Add filterBuildingNameInput to the list of selects to update
         const selectsToUpdate = [
             { el: buildingNameSelect, defaultOpt: "-- Select Building --", selectedVal: selectedBuildingForForm || lastUsed },
             { el: massUpdateOldBuildingNameSelect, defaultOpt: "-- Select Building to Reassign From --" },
             { el: renameOldBuildingNameSelect, defaultOpt: "-- Select Building to Rename --" },
+            { el: filterBuildingNameInput, defaultOpt: "-- Any Building --" } // Added for filter
         ];
 
         selectsToUpdate.forEach(item => {
             if (!item.el) return;
             const currentSelect = item.el;
-            const previouslySelectedValue = currentSelect.value; 
-            currentSelect.innerHTML = `<option value="">${item.defaultOpt}</option>`; 
+            const previouslySelectedValue = currentSelect.value;
+            currentSelect.innerHTML = `<option value="">${item.defaultOpt}</option>`;
 
             let optionsHtml = "";
-            const sortedBuildings = [...buildings]; 
+            const sortedBuildings = [...buildings]; // Create a mutable copy for sorting
 
             let valueToSelect = item.selectedVal;
-            if (!valueToSelect && previouslySelectedValue && buildings.includes(previouslySelectedValue)) {
-                 valueToSelect = previouslySelectedValue; 
+
+            // Preserve selection for filter dropdown if it's not the main form dropdown
+            if (item.el.id === 'filterBuildingName' && previouslySelectedValue && buildings.includes(previouslySelectedValue)) {
+                valueToSelect = previouslySelectedValue;
+            } else if (!valueToSelect && previouslySelectedValue && buildings.includes(previouslySelectedValue) && item.el.id !== 'filterBuildingName') {
+                 valueToSelect = previouslySelectedValue;
             }
+
 
             if (valueToSelect && sortedBuildings.includes(valueToSelect)) {
                 optionsHtml += `<option value="${escapeHtml(valueToSelect)}" selected>${escapeHtml(valueToSelect)}</option>`;
@@ -166,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     sortedBuildings.splice(index, 1);
                 }
             }
-            
+
             sortedBuildings.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
             sortedBuildings.forEach(bName => {
                 optionsHtml += `<option value="${escapeHtml(bName)}">${escapeHtml(bName)}</option>`;
@@ -178,28 +188,28 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Navigation and View Management ---
     function setActiveView(targetViewId) {
         views.forEach(view => view.classList.remove('active-view'));
-        const targetElement = document.getElementById(targetViewId); 
-        
+        const targetElement = document.getElementById(targetViewId);
+
         if (targetElement) {
             targetElement.classList.add('active-view');
-            targetElement.scrollTop = 0; 
+            targetElement.scrollTop = 0;
         } else {
              console.error(`[setActiveView] CRITICAL: Target element with ID '${targetViewId}' NOT FOUND.`);
-            return; 
+            return;
         }
-    
+
         navLinks.forEach(link => {
             link.classList.remove('active-link');
             if (link.id === `nav${targetViewId.replace('View', '')}`) {
                 link.classList.add('active-link');
             }
         });
-    
+
         if (targetViewId === 'ViewRoomsView') {
             renderRoomList();
         } else if (targetViewId === 'DataView') {
             displayFullJsonForExport();
-            populateBuildingDropdowns();
+            populateBuildingDropdowns(); // Also populates filterBuildingNameInput
             if(importFeedback) {importFeedback.textContent = ''; importFeedback.className = 'feedback';}
             if(exportFeedback) {exportFeedback.textContent = ''; exportFeedback.className = 'feedback';}
             if(massUpdateFeedback) {massUpdateFeedback.textContent = ''; massUpdateFeedback.className = 'feedback';}
@@ -209,14 +219,18 @@ document.addEventListener('DOMContentLoaded', function () {
             if(massUpdateNewBuildingNameInput) massUpdateNewBuildingNameInput.value = '';
             if(newBuildingNameInput) newBuildingNameInput.value = '';
             if(renameNewBuildingNameInput) renameNewBuildingNameInput.value = '';
-        } else if (targetViewId === 'AddRoomView') { 
-            if (!editingRoomIdInput.value) { 
+        } else if (targetViewId === 'AddRoomView') {
+            if (!editingRoomIdInput.value) {
                 resetRoomFormToDefault();
             }
         } else if (targetViewId === 'FilterView') {
             if(filterForm) filterForm.reset();
+            if(filterRoomPurposeOther) { filterRoomPurposeOther.style.display = 'none'; filterRoomPurposeOther.value = ''; }
+            if(filterLightFixtureTypeOther) { filterLightFixtureTypeOther.style.display = 'none'; filterLightFixtureTypeOther.value = ''; }
+            if(filterFloorTypeOther) { filterFloorTypeOther.style.display = 'none'; filterFloorTypeOther.value = ''; }
             if(filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
             if(filterFeedback) {filterFeedback.textContent = ''; filterFeedback.className = 'feedback';}
+            populateBuildingDropdowns(); // Ensure filter building dropdown is also populated
         }
     }
 
@@ -224,13 +238,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!roomForm) return;
         clearFormAndDynamicElements(roomForm);
         editingRoomIdInput.value = '';
-        
+
         const roomPurposeSelect = roomForm.querySelector('#roomPurpose');
-        if (roomPurposeSelect) roomPurposeSelect.value = 'Lab'; 
+        if (roomPurposeSelect) roomPurposeSelect.value = 'Lab';
         const roomPurposeOtherInput = roomForm.querySelector('#roomPurposeOther');
         if (roomPurposeOtherInput) roomPurposeOtherInput.value = '';
-        
-        populateBuildingDropdowns(); 
+
+        populateBuildingDropdowns();
         if(addEditRoomTitle) addEditRoomTitle.innerHTML = '<i class="fas fa-pencil-alt"></i> Add New Room Information';
         if(saveRoomBtn) saveRoomBtn.innerHTML = '<i class="fas fa-save"></i> Save Room Information';
         if(cancelEditBtn) cancelEditBtn.style.display = 'none';
@@ -244,22 +258,22 @@ document.addEventListener('DOMContentLoaded', function () {
         const overallConditionSelect = document.getElementById('overallCondition');
         if (overallConditionSelect) overallConditionSelect.value = '';
 
-        const currentAddRoomView = document.getElementById('AddRoomView'); 
+        const currentAddRoomView = document.getElementById('AddRoomView');
         if (currentAddRoomView) {
             currentAddRoomView.scrollTop = 0;
         }
-        refreshConditionalFormUI(roomForm); 
+        refreshConditionalFormUI(roomForm);
     }
 
     navLinks.forEach(link => {
         link.addEventListener('click', function (e) {
             e.preventDefault();
-            const targetViewId = this.id.replace('nav', '') + 'View'; 
-            if (editingRoomIdInput.value && targetViewId !== 'AddRoomView' && !document.getElementById('AddRoomView').contains(e.target)) { 
+            const targetViewId = this.id.replace('nav', '') + 'View';
+            if (editingRoomIdInput.value && targetViewId !== 'AddRoomView' && !document.getElementById('AddRoomView').contains(e.target)) {
                 if (!confirm("You have unsaved changes in the room editor. Are you sure you want to leave?")) {
                     return;
                 }
-                resetRoomFormToDefault(); 
+                resetRoomFormToDefault();
             }
             setActiveView(targetViewId);
         });
@@ -274,6 +288,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!shouldBeVisible) otherInputElement.value = '';
             };
             selectElement.addEventListener('change', update);
+            // update(); // Initial call to set correct state on load, if needed for pre-filled forms
         }
     }
 
@@ -299,12 +314,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const updateVisibility = () => {
                 const shouldBeVisible = specificCheckbox.checked;
                 otherTextInput.style.display = shouldBeVisible ? (otherTextInput.classList.contains('inline-other') ? 'inline-block' : 'block') : 'none';
-                if (!shouldBeVisible) otherTextInput.value = ''; 
+                if (!shouldBeVisible) otherTextInput.value = '';
             };
             specificCheckbox.addEventListener('change', updateVisibility);
+            // updateVisibility(); // Initial call
         }
     }
-    
+
     function initializeFormConditionalLogic(formElement) {
         if (!formElement) return;
         initializeGeneralConditionalLogic(formElement);
@@ -319,9 +335,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     formElement.querySelectorAll('input[name="ceilingAsbestos"]').forEach(radio => radio.checked = false);
                  }
             }
-            ceilingTypeSelect.addEventListener('change', updateCeilingOptions); 
+            ceilingTypeSelect.addEventListener('change', updateCeilingOptions);
+            // updateCeilingOptions(); // Initial call
         }
-        
+
         const floorTypeSelect = formElement.querySelector('#floorType');
         const floorTileOptionsDiv = formElement.querySelector('#floorTileOptions');
         if (floorTypeSelect && floorTileOptionsDiv) {
@@ -334,11 +351,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     formElement.querySelectorAll('input[name="floorTileSize"]').forEach(radio => radio.checked = false);
                     if (floorTileSizeOtherEl) {
                          floorTileSizeOtherEl.value = '';
-                         floorTileSizeOtherEl.style.display = 'none'; 
+                         floorTileSizeOtherEl.style.display = 'none';
                     }
                 } else {
                     const floorTileSizeOtherInput = formElement.querySelector('#floorTileSizeOther');
-                     if (floorTileSizeOtherInput) { 
+                     if (floorTileSizeOtherInput) {
                          let selectedRadio = formElement.querySelector('input[name="floorTileSize"]:checked');
                          const showOtherInput = selectedRadio && selectedRadio.value === 'Other';
                          floorTileSizeOtherInput.style.display = showOtherInput ? 'block' : 'none';
@@ -347,6 +364,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             };
             floorTypeSelect.addEventListener('change', updateFloorOptionsVisibility);
+            // updateFloorOptionsVisibility(); // Initial call
 
             const floorTileSizeRadios = formElement.querySelectorAll('input[name="floorTileSize"]');
             const floorTileSizeOtherInput = formElement.querySelector('#floorTileSizeOther');
@@ -358,9 +376,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (!showOtherInput) floorTileSizeOtherInput.value = '';
                 };
                 floorTileSizeRadios.forEach(radio => radio.addEventListener('change', updateFloorTileSizeOtherTextVisibility));
+                // updateFloorTileSizeOtherTextVisibility(); // Initial call
             }
         }
-        
+
         setupConditionalOtherField("Specialty Equipment", "furnitureSpecialtySpecifyText", "furniture", formElement);
         setupConditionalOtherField("Other", "furnitureOtherSpecifyText", "furniture", formElement);
         setupConditionalOtherField("Other", "technologyOtherSpecifyText", "technology", formElement);
@@ -398,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (floorTypeSelect && floorTileOptionsDiv) {
             const showFloorTileOptions = floorTypeSelect.value === 'Tile';
             floorTileOptionsDiv.style.display = showFloorTileOptions ? 'block' : 'none';
-            
+
             let floorTileSizeOtherEl = formElement.querySelector('#floorTileSizeOther');
             if (!showFloorTileOptions) {
                 formElement.querySelectorAll('input[name="floorTileSize"]').forEach(radio => radio.checked = false);
@@ -408,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else {
                 const floorTileSizeOtherInput = formElement.querySelector('#floorTileSizeOther');
-                if (floorTileSizeOtherInput) { 
+                if (floorTileSizeOtherInput) {
                     let selectedRadio = formElement.querySelector('input[name="floorTileSize"]:checked');
                     const showOtherInput = selectedRadio && selectedRadio.value === 'Other';
                     floorTileSizeOtherInput.style.display = showOtherInput ? 'block' : 'none';
@@ -416,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
-        
+
         const conditionalCheckboxFields = [
             { checkboxValue: "Specialty Equipment", textInputId: "furnitureSpecialtySpecifyText", groupName: "furniture" },
             { checkboxValue: "Other", textInputId: "furnitureOtherSpecifyText", groupName: "furniture" },
@@ -445,27 +464,28 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="input-group"><label for="doorIdentifier-${id}">Identifier/Location:</label><input type="text" id="doorIdentifier-${id}" name="doorIdentifier" placeholder="e.g., Main Entry, Closet" value="${escapeHtml(doorData.identifier || '')}"></div>
             <div class="input-group"><label for="doorType-${id}">Type:</label><select id="doorType-${id}" name="doorType"><option value="Wood">Wood</option><option value="Metal">Metal</option><option value="Glass">Glass</option><option value="Other">Other</option></select><input type="text" id="doorTypeOther-${id}" name="doorTypeOther" class="conditional-other" placeholder="Specify other door type" style="display:none;" value="${escapeHtml(doorData.typeOther || '')}"></div>
             <div class="input-group"><label for="doorLockType-${id}">Lock Type:</label><select id="doorLockType-${id}" name="doorLockType"><option value="Key">Key</option><option value="Keypad">Keypad</option><option value="Card Reader">Card Reader</option><option value="None">None</option><option value="Other">Other</option></select><input type="text" id="doorLockTypeOther-${id}" name="doorLockTypeOther" class="conditional-other" placeholder="Specify other lock type" style="display:none;" value="${escapeHtml(doorData.lockTypeOther || '')}"></div>`;
-        
+
         const doorTypeSelect = div.querySelector(`#doorType-${id}`);
         const doorTypeOtherInput = div.querySelector(`#doorTypeOther-${id}`);
         if(doorData.type) doorTypeSelect.value = doorData.type;
         setupConditionalInput(doorTypeSelect, doorTypeOtherInput);
-        if (doorTypeSelect && doorTypeOtherInput) {
+        if (doorTypeSelect && doorTypeOtherInput) { // Ensure elements exist before setting display/value
             const shouldShow = doorTypeSelect.value === 'Other';
             doorTypeOtherInput.style.display = shouldShow ? 'block' : 'none';
             doorTypeOtherInput.value = doorData.typeOther || ''; // Set value regardless of display for prefill
         }
 
+
         const doorLockTypeSelect = div.querySelector(`#doorLockType-${id}`);
         const doorLockTypeOtherInput = div.querySelector(`#doorLockTypeOther-${id}`);
         if(doorData.lockType) doorLockTypeSelect.value = doorData.lockType;
         setupConditionalInput(doorLockTypeSelect, doorLockTypeOtherInput);
-        if (doorLockTypeSelect && doorLockTypeOtherInput) {
+        if (doorLockTypeSelect && doorLockTypeOtherInput) { // Ensure elements exist
             const shouldShow = doorLockTypeSelect.value === 'Other';
             doorLockTypeOtherInput.style.display = shouldShow ? 'block' : 'none';
             doorLockTypeOtherInput.value = doorData.lockTypeOther || ''; // Set value regardless
         }
-        
+
         doorsContainer.appendChild(div);
         div.querySelector('.remove-door-btn').addEventListener('click', () => div.remove());
     }
@@ -494,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <option value="LED">LED</option><option value="Sodium">Sodium</option>
                     <option value="Metal Halide">Metal Halide</option><option value="Other">Other</option>
                 </select>
-                <input type="text" id="lightTypeOther-${id}" name="lightFixtureTypeOtherSpecify" class="light-fixture-other-specify" placeholder="Specify other light type" value="${escapeHtml(fixtureData.typeOtherSpecify || '')}">
+                <input type="text" id="lightTypeOther-${id}" name="lightFixtureTypeOtherSpecify" class="light-fixture-other-specify" placeholder="Specify other light type" value="${escapeHtml(fixtureData.typeOtherSpecify || '')}" style="display:none;">
             </div>
             <div class="input-group">
                 <label for="lightQuantity-${id}">Quantity:</label>
@@ -506,29 +526,30 @@ document.addEventListener('DOMContentLoaded', function () {
                     <option value="Parabolic with Bulbs">Parabolic w/ Bulbs</option><option value="Flat Panel">Flat Panel</option>
                     <option value="Other">Other</option>
                 </select>
-                <input type="text" id="lightStyleOther-${id}" name="lightFixtureStyleOtherSpecify" class="light-fixture-other-specify" placeholder="Specify other light style" value="${escapeHtml(fixtureData.styleOtherSpecify || '')}">
+                <input type="text" id="lightStyleOther-${id}" name="lightFixtureStyleOtherSpecify" class="light-fixture-other-specify" placeholder="Specify other light style" value="${escapeHtml(fixtureData.styleOtherSpecify || '')}" style="display:none;">
             </div>`;
-        
+
         const lightTypeSelect = div.querySelector(`#lightType-${id}`);
         const lightTypeOtherInput = div.querySelector(`#lightTypeOther-${id}`);
         if(fixtureData.type) lightTypeSelect.value = fixtureData.type;
         setupConditionalInput(lightTypeSelect, lightTypeOtherInput);
-        if(lightTypeSelect && lightTypeOtherInput){
+        if(lightTypeSelect && lightTypeOtherInput){ // Ensure elements exist
             const shouldShow = lightTypeSelect.value === 'Other';
             lightTypeOtherInput.style.display = shouldShow ? 'block' : 'none';
             lightTypeOtherInput.value = fixtureData.typeOtherSpecify || '';
         }
 
+
         const lightStyleSelect = div.querySelector(`#lightStyle-${id}`);
         const lightStyleOtherInput = div.querySelector(`#lightStyleOther-${id}`);
         if(fixtureData.style) lightStyleSelect.value = fixtureData.style;
         setupConditionalInput(lightStyleSelect, lightStyleOtherInput);
-        if(lightStyleSelect && lightStyleOtherInput){
+        if(lightStyleSelect && lightStyleOtherInput){ // Ensure elements exist
             const shouldShow = lightStyleSelect.value === 'Other';
             lightStyleOtherInput.style.display = shouldShow ? 'block' : 'none';
             lightStyleOtherInput.value = fixtureData.styleOtherSpecify || '';
         }
-        
+
         lightFixturesContainer.appendChild(div);
         div.querySelector('.remove-light-fixture-btn').addEventListener('click', () => div.remove());
     }
@@ -544,22 +565,22 @@ document.addEventListener('DOMContentLoaded', function () {
             const value = this.value;
             let countInput = null;
             let otherDetailsContainer = null;
-            if (value === "Other") { 
+            if (value === "Other") {
                 otherDetailsContainer = this.closest('.fixture-item-group').querySelector('.other-details-container');
                 if (otherDetailsContainer) {
                     otherDetailsContainer.style.display = this.checked ? 'flex' : 'none';
                     countInput = otherDetailsContainer.querySelector('.fixture-count-input');
                     const specifyInput = otherDetailsContainer.querySelector('input[type="text"].conditional-other');
-                    if (!this.checked && specifyInput) specifyInput.value = ''; 
+                    if (!this.checked && specifyInput) specifyInput.value = '';
                 }
-            } else { 
+            } else {
                 const parentGroup = this.closest('.fixture-item-group');
                 if (parentGroup) countInput = parentGroup.querySelector('.fixture-count-input');
                 if (countInput) countInput.style.display = this.checked ? 'inline-block' : 'none';
             }
             if (countInput) {
-                if (this.checked && !countInput.value) countInput.value = '1'; 
-                else if (!this.checked) countInput.value = ''; 
+                if (this.checked && !countInput.value) countInput.value = '1';
+                else if (!this.checked) countInput.value = '';
             }
         });
     });
@@ -573,9 +594,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- Form Clearing and Reset ---
     function clearFormAndDynamicElements(form) {
         if (!form) return;
-        form.reset(); 
+        form.reset();
         if (doorsContainer) doorsContainer.innerHTML = '';
-        if (lightFixturesContainer) lightFixturesContainer.innerHTML = ''; 
+        if (lightFixturesContainer) lightFixturesContainer.innerHTML = '';
         otherFixturesCheckboxes.forEach(cb => { cb.checked = false; cb.dispatchEvent(new Event('change')); });
         const otherFixturesSpecifyText = document.getElementById('otherFixturesSpecifyText');
         if (otherFixturesSpecifyText) {
@@ -609,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function conditionValueToString(value) {
         if (value === null || typeof value !== 'number') return '';
-        const roundedValue = Math.round(value); 
+        const roundedValue = Math.round(value);
         switch (roundedValue) {
             case 1: return "1 - Excellent";
             case 2: return "2 - Good";
@@ -619,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function () {
             default:
                 if (roundedValue < 1) return "1 - Excellent";
                 if (roundedValue > 5) return "5 - Needs Replacement";
-                return ""; 
+                return "";
         }
     }
 
@@ -635,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!buildingNameVal || !roomIdentifierVal) {
                 if(feedbackMessage){ feedbackMessage.textContent = 'Building Name and Room Identifier are required.'; feedbackMessage.className = 'feedback error';}
                 const currentAddRoomView = document.getElementById('AddRoomView');
-                if (currentAddRoomView) currentAddRoomView.scrollTop = 0; 
+                if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
                 return;
             }
             const existingRoomWithSameIdentifiers = findRoom(buildingNameVal, roomIdentifierVal);
@@ -647,16 +668,16 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const formData = new FormData(roomForm);
-            const newRoomData = { buildingName: buildingNameVal, roomIdentifier: roomIdentifierVal }; 
+            const newRoomData = { buildingName: buildingNameVal, roomIdentifier: roomIdentifierVal };
             const getCbVal = name => Array.from(roomForm.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
 
             newRoomData.roomPurpose = formData.get('roomPurpose');
             newRoomData.roomPurposeOther = (newRoomData.roomPurpose === 'Other') ? formData.get('roomPurposeOther').trim() : '';
             newRoomData.roomMakeup = {
-                walls: formData.get('walls'), 
+                walls: formData.get('walls'),
                 wallsOther: formData.get('walls')==='Other'?formData.get('wallsOther').trim():'',
                 ceiling: {
-                    type:formData.get('ceilingType'), 
+                    type:formData.get('ceilingType'),
                     typeOther:formData.get('ceilingType')==='Other'?formData.get('ceilingTypeOther').trim():''
                 },
                 floor: {
@@ -667,7 +688,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if(formData.get('ceilingType')==='Drop Ceiling') {
                 newRoomData.roomMakeup.ceiling.asbestosInCeiling=formData.get('ceilingAsbestos');
             }
-            if (newRoomData.roomMakeup.floor.type === 'Tile') { 
+            if (newRoomData.roomMakeup.floor.type === 'Tile') {
                 newRoomData.roomMakeup.floor.tileSize = formData.get('floorTileSize');
                 if (formData.get('floorTileSize') === 'Other') {
                     newRoomData.roomMakeup.floor.tileSizeOther = formData.get('floorTileSizeOther').trim();
@@ -699,12 +720,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 let specify = '';
                 if (type === "Other") {
                     const countInput = document.getElementById('otherFixturesOtherCount');
-                    const specifyInput = document.getElementById('otherFixturesSpecifyText'); 
+                    const specifyInput = document.getElementById('otherFixturesSpecifyText');
                     if (countInput && countInput.value) {
                         count = parseInt(countInput.value, 10);
                         if (isNaN(count) || count < 1) count = 1;
                     }
-                    if (specifyInput) specify = specifyInput.value.trim(); 
+                    if (specifyInput) specify = specifyInput.value.trim();
                     if (specify) newRoomData.otherFixtures.push({ type, count, specify });
                 } else {
                     const idSuffix = type.replace(/[^a-zA-Z0-9]/g, '');
@@ -744,7 +765,7 @@ document.addEventListener('DOMContentLoaded', function () {
             newRoomData.technologyOtherSpecify = newRoomData.technology.includes('Other')?formData.get('technologyOtherSpecifyText').trim():'';
             let overallConditionFromForm = formData.get('overallCondition');
             let overallConditionComment = formData.get('overallConditionComment').trim();
-            if (!overallConditionFromForm || overallConditionFromForm === "") { 
+            if (!overallConditionFromForm || overallConditionFromForm === "") {
                 const conditionsToAverage = [
                     conditionStringToValue(formData.get('ceilingCondition')),
                     conditionStringToValue(formData.get('wallsCondition')),
@@ -756,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const averageValue = sum / conditionsToAverage.length;
                     overallConditionFromForm = conditionValueToString(averageValue);
                 } else {
-                    overallConditionFromForm = ''; 
+                    overallConditionFromForm = '';
                 }
             }
             newRoomData.conditionValues = {
@@ -772,13 +793,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 overallComment: overallConditionComment
             };
             addRoomToStorageInternal(newRoomData, currentRoomId);
-            setLastUsedBuilding(buildingNameVal); 
+            setLastUsedBuilding(buildingNameVal);
             if(feedbackMessage){
                 feedbackMessage.textContent = currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!';
                 feedbackMessage.className='feedback success';
             }
             const isEditing = !!currentRoomId;
-            resetRoomFormToDefault(); 
+            resetRoomFormToDefault();
             if (isEditing) {
                 setTimeout(() => { if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView'); }, 1500);
             } else {
@@ -804,7 +825,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 roomData.id = replaceId;
                 roomData.savedAt = new Date().toISOString();
                 rooms[roomIndex] = roomData;
-            } else { 
+            } else {
                 roomData.id = `room_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
                 roomData.savedAt = new Date().toISOString();
                 rooms.push(roomData);
@@ -819,7 +840,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (roomData.buildingName && !buildings.includes(roomData.buildingName)) {
             buildings.push(roomData.buildingName);
             storeBuildings(buildings);
-            populateBuildingDropdowns(); 
+            populateBuildingDropdowns();
         }
     }
 
@@ -836,18 +857,18 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return;
         }
-        resetRoomFormToDefault(); 
-        editingRoomIdInput.value = room.id; 
+        resetRoomFormToDefault();
+        editingRoomIdInput.value = room.id;
         if(addEditRoomTitle) addEditRoomTitle.innerHTML = `<i class="fas fa-edit"></i> Edit Room: ${escapeHtml(room.buildingName)} - ${escapeHtml(room.roomIdentifier)}`;
         if(saveRoomBtn) saveRoomBtn.innerHTML = '<i class="fas fa-save"></i> Update Room Information';
-        if(cancelEditBtn) cancelEditBtn.style.display = 'inline-flex'; 
-        populateBuildingDropdowns(room.buildingName); 
+        if(cancelEditBtn) cancelEditBtn.style.display = 'inline-flex';
+        populateBuildingDropdowns(room.buildingName);
         const roomIdentifierEl = roomForm.querySelector('#roomIdentifier');
         if(roomIdentifierEl) roomIdentifierEl.value = room.roomIdentifier || '';
         const roomPurposeSelectEl = roomForm.querySelector('#roomPurpose');
         const roomPurposeOtherInputEl = roomForm.querySelector('#roomPurposeOther');
         if (roomPurposeSelectEl) roomPurposeSelectEl.value = room.roomPurpose || 'Lab';
-        if (roomPurposeOtherInputEl && room.roomPurpose === 'Other') { 
+        if (roomPurposeOtherInputEl && room.roomPurpose === 'Other') {
             roomPurposeOtherInputEl.value = room.roomPurposeOther || '';
         }
         if (room.roomMakeup) {
@@ -868,7 +889,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (makeup.ceiling.type === 'Drop Ceiling' && makeup.ceiling.asbestosInCeiling) {
                     const ceilingAsbestosInput = roomForm.querySelector(`input[name="ceilingAsbestos"][value="${makeup.ceiling.asbestosInCeiling}"]`);
                     if (ceilingAsbestosInput) ceilingAsbestosInput.checked = true;
-                    else { 
+                    else {
                         const defaultCeilingAsbestos = roomForm.querySelector(`input[name="ceilingAsbestos"][value="No"]`);
                         if (defaultCeilingAsbestos) defaultCeilingAsbestos.checked = true;
                     }
@@ -876,7 +897,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (makeup.floor) {
                 const floorTypeEl = roomForm.querySelector('#floorType');
-                if(floorTypeEl) floorTypeEl.value = makeup.floor.type || 'Carpet'; 
+                if(floorTypeEl) floorTypeEl.value = makeup.floor.type || 'Carpet';
                 if (makeup.floor.type === 'Other') {
                     const floorTypeOtherEl = roomForm.querySelector('#floorTypeOther');
                     if(floorTypeOtherEl) floorTypeOtherEl.value = makeup.floor.typeOther || '';
@@ -884,12 +905,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (makeup.floor.type === 'Tile') {
                     let targetFloorTileSize = null;
                     let targetFloorTileSizeOther = null;
-                    if (makeup.floor.tileSize) { 
+                    if (makeup.floor.tileSize) {
                         targetFloorTileSize = makeup.floor.tileSize;
                         if (makeup.floor.tileSize === 'Other' && makeup.floor.tileSizeOther) {
                             targetFloorTileSizeOther = makeup.floor.tileSizeOther;
                         }
-                    } else if (makeup.ceiling && makeup.ceiling.tileSize) { 
+                    } else if (makeup.ceiling && makeup.ceiling.tileSize) { // Legacy data migration attempt
                         const oldCeilingTileSize = String(makeup.ceiling.tileSize);
                         if (oldCeilingTileSize === "9") {
                             targetFloorTileSize = "9x9";
@@ -900,7 +921,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (targetFloorTileSize) {
                         const floorTileSizeRadio = roomForm.querySelector(`input[name="floorTileSize"][value="${targetFloorTileSize}"]`);
                         if (floorTileSizeRadio) floorTileSizeRadio.checked = true;
-                        else { 
+                        else { // Default if value not found (e.g. old data)
                              const defaultFloorTileSize = roomForm.querySelector(`input[name="floorTileSize"][value="12x12"]`);
                              if(defaultFloorTileSize) defaultFloorTileSize.checked = true;
                         }
@@ -908,20 +929,20 @@ document.addEventListener('DOMContentLoaded', function () {
                             const floorTileSizeOtherEl = roomForm.querySelector('#floorTileSizeOther');
                             if (floorTileSizeOtherEl) floorTileSizeOtherEl.value = targetFloorTileSizeOther;
                         }
-                    } else { 
+                    } else { // Default if no tile size info
                         const defaultFloorTileSize = roomForm.querySelector(`input[name="floorTileSize"][value="12x12"]`);
                         if(defaultFloorTileSize) defaultFloorTileSize.checked = true;
                     }
                 }
             }
         }
-        if (lightFixturesContainer) lightFixturesContainer.innerHTML = ''; 
+        if (lightFixturesContainer) lightFixturesContainer.innerHTML = '';
         if (room.lightFixtures && room.lightFixtures.length > 0) {
             room.lightFixtures.forEach(fixture => appendNewLightFixtureEntry(fixture));
         } else {
-            appendNewLightFixtureEntry(); 
+            appendNewLightFixtureEntry();
         }
-        otherFixturesCheckboxes.forEach(cb => cb.checked = false); 
+        otherFixturesCheckboxes.forEach(cb => cb.checked = false);
         if (room.otherFixtures && room.otherFixtures.length > 0) {
             room.otherFixtures.forEach(fixture => {
                 const checkbox = roomForm.querySelector(`.fixture-present-checkbox[value="${fixture.type}"]`);
@@ -932,14 +953,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (fixture.type === "Other") {
                         countInputId = 'otherFixturesOtherCount';
                         const specifyInput = document.getElementById('otherFixturesSpecifyText');
-                        if (specifyInput) specifyInput.value = fixture.specify || ''; 
+                        if (specifyInput) specifyInput.value = fixture.specify || '';
                     }
                     const countInput = document.getElementById(countInputId);
                     if (countInput) countInput.value = fixture.count || '1';
                 }
             });
         }
-        otherFixturesCheckboxes.forEach(cb => cb.dispatchEvent(new Event('change'))); 
+        otherFixturesCheckboxes.forEach(cb => cb.dispatchEvent(new Event('change')));
         roomForm.querySelectorAll('input[name="furniture"]').forEach(cb => cb.checked = false);
         if (room.furniture && room.furniture.length > 0) {
             room.furniture.forEach(fItem => {
@@ -961,7 +982,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const heatingCoolingOtherEl = roomForm.querySelector('#heatingCoolingOther');
             if(heatingCoolingOtherEl) heatingCoolingOtherEl.value = room.heatingCoolingOther || '';
         }
-        if (doorsContainer) doorsContainer.innerHTML = ''; 
+        if (doorsContainer) doorsContainer.innerHTML = '';
         if (room.doors && room.doors.length > 0) {
             room.doors.forEach(door => appendNewDoorEntry(door));
         }
@@ -995,11 +1016,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const floorConditionCommentEl = roomForm.querySelector('#floorConditionComment');
             if(floorConditionCommentEl) floorConditionCommentEl.value = cv.floorComment || '';
             const overallConditionEl = roomForm.querySelector('#overallCondition');
-            if(overallConditionEl) overallConditionEl.value = cv.overall || ''; 
+            if(overallConditionEl) overallConditionEl.value = cv.overall || '';
             const overallConditionCommentEl = roomForm.querySelector('#overallConditionComment');
             if(overallConditionCommentEl) overallConditionCommentEl.value = cv.overallComment || '';
         }
-        refreshConditionalFormUI(roomForm); 
+        refreshConditionalFormUI(roomForm);
         setActiveView('AddRoomView');
     }
 
@@ -1018,15 +1039,15 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        if (isFilterResults) { 
-            rooms.sort((a,b) => { 
+        if (isFilterResults) {
+            rooms.sort((a,b) => {
                 const buildingCompare = (a.buildingName || '').toLowerCase().localeCompare((b.buildingName || '').toLowerCase());
                 if (buildingCompare !== 0) return buildingCompare;
                 return (a.roomIdentifier || '').toLowerCase().localeCompare((b.roomIdentifier || '').toLowerCase());
             }).forEach(room => {
                 targetContainer.appendChild(createRoomCard(room, true)); // Pass true for filter results
             });
-        } else { 
+        } else {
             const roomsByBuilding = rooms.reduce((acc, room) => {
                 const building = room.buildingName || 'Unspecified Building';
                 if (!acc[building]) acc[building] = [];
@@ -1041,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 buildingHeader.classList.add('building-header');
                 buildingHeader.setAttribute('role', 'button');
                 buildingHeader.setAttribute('tabindex', '0');
-                buildingHeader.setAttribute('aria-expanded', 'false'); 
+                buildingHeader.setAttribute('aria-expanded', 'false');
                 buildingHeader.setAttribute('aria-controls', `building-rooms-${buildingNameVal.replace(/\s+/g, '-')}`);
                 buildingHeader.innerHTML = `
                     <span>${escapeHtml(buildingNameVal)} (${roomsByBuilding[buildingNameVal].length} room${roomsByBuilding[buildingNameVal].length === 1 ? '' : 's'})</span>
@@ -1067,12 +1088,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     }
-    
+
     function createRoomCard(room, isFilterResultCard = false) {
         const card = document.createElement('div');
         card.classList.add('room-card'); card.dataset.roomId = room.id;
         card.setAttribute('aria-label', `Room ${escapeHtml(room.roomIdentifier || 'N/A')} in ${escapeHtml(room.buildingName || 'N/A')}`);
-        
+
         let purposeText = escapeHtml(room.roomPurpose) || 'N/A';
         if (room.roomPurpose === 'Other' && room.roomPurposeOther) {
             purposeText = `${escapeHtml(room.roomPurpose)} (${escapeHtml(room.roomPurposeOther)})`;
@@ -1130,11 +1151,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         const room = findRoomById(roomId);
-        if (!room) { 
-            roomDetailContent.innerHTML = '<p>Error: Room not found.</p>'; 
-            roomDetailModal.style.display = 'block'; 
-            if(closeModalBtn) closeModalBtn.focus(); 
-            return; 
+        if (!room) {
+            roomDetailContent.innerHTML = '<p>Error: Room not found.</p>';
+            roomDetailModal.style.display = 'block';
+            if(closeModalBtn) closeModalBtn.focus();
+            return;
         }
         let html = `<h2>${escapeHtml(room.buildingName)} - ${escapeHtml(room.roomIdentifier)}</h2>`;
         html += `<p><strong>Saved At:</strong> ${new Date(room.savedAt).toLocaleString()}</p>`;
@@ -1152,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 html += `</p>`;
             }
-            if (room.roomMakeup.floor) { 
+            if (room.roomMakeup.floor) {
                 let floorText = `<strong>Floor Type:</strong> ${escapeHtml(room.roomMakeup.floor.type)}`;
                 if (room.roomMakeup.floor.type === 'Other' && room.roomMakeup.floor.typeOther) {
                     floorText += ` (${escapeHtml(room.roomMakeup.floor.typeOther)})`;
@@ -1184,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', function () {
             html += `<p><strong>Other Fixtures:</strong></p><ul>`;
             room.otherFixtures.forEach(of => {
                 let entry = `<li>${escapeHtml(of.count)} x ${escapeHtml(of.type)}`;
-                if (of.type === 'Other' && of.specify) entry += ` (${escapeHtml(of.specify)})`; 
+                if (of.type === 'Other' && of.specify) entry += ` (${escapeHtml(of.specify)})`;
                 entry += `</li>`;
                 html += entry;
             });
@@ -1228,25 +1249,25 @@ document.addEventListener('DOMContentLoaded', function () {
     function deleteRoom(roomId) {
         const room = findRoomById(roomId);
         storeRooms(getStoredRooms().filter(r => r.id !== roomId));
-        renderRoomList(); 
+        renderRoomList();
         if (document.getElementById('FilterView').classList.contains('active-view')) {
-            applyFilters(); 
+            applyFilters();
         }
-        populateBuildingDropdowns(); 
+        populateBuildingDropdowns();
         const firstBuildingHeader = roomListContainer?.querySelector('.building-header');
-        if (firstBuildingHeader) firstBuildingHeader.focus(); else navLinks[0]?.focus(); 
-        if (roomDetailModal?.style.display === 'block') closeModal(); 
+        if (firstBuildingHeader) firstBuildingHeader.focus(); else navLinks[0]?.focus();
+        if (roomDetailModal?.style.display === 'block') closeModal();
     }
 
     function closeModal() {
         if(roomDetailModal) roomDetailModal.style.display = 'none';
         if (focusedButtonBeforeModal) {
             focusedButtonBeforeModal.focus();
-            focusedButtonBeforeModal = null; 
+            focusedButtonBeforeModal = null;
         } else {
-            (roomListContainer?.querySelector('.building-header:first-child') || 
-             filterResultsContainer?.querySelector('.room-card .view-details-btn') || 
-             roomListContainer || 
+            (roomListContainer?.querySelector('.building-header:first-child') ||
+             filterResultsContainer?.querySelector('.room-card .view-details-btn') ||
+             roomListContainer ||
              navLinks[0])?.focus();
         }
     }
@@ -1279,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             buildings.push(newName);
             storeBuildings(buildings);
-            populateBuildingDropdowns(); 
+            populateBuildingDropdowns();
             newBuildingNameInput.value = '';
             buildingManagementFeedback.textContent = `Building "${escapeHtml(newName)}" added successfully.`;
             buildingManagementFeedback.className = 'feedback success';
@@ -1319,17 +1340,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 rooms = rooms.map(room => {
                     if (room.buildingName === oldName) {
                         room.buildingName = newName;
-                        room.savedAt = new Date().toISOString(); 
+                        room.savedAt = new Date().toISOString();
                         roomsUpdatedCount++;
                     }
                     return room;
                 });
                 storeRooms(rooms);
-                populateBuildingDropdowns(); 
-                renderRoomList(); 
-                if (getLastUsedBuilding() === oldName) setLastUsedBuilding(newName); 
-                renameOldBuildingNameSelect.value = ''; 
-                renameNewBuildingNameInput.value = ''; 
+                populateBuildingDropdowns();
+                renderRoomList();
+                if (getLastUsedBuilding() === oldName) setLastUsedBuilding(newName);
+                renameOldBuildingNameSelect.value = '';
+                renameNewBuildingNameInput.value = '';
                 buildingManagementFeedback.textContent = `Building "${escapeHtml(oldName)}" successfully renamed to "${escapeHtml(newName)}". ${roomsUpdatedCount} room(s) updated.`;
                 buildingManagementFeedback.className = 'feedback success';
             } else {
@@ -1342,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (massUpdateBuildingNameBtn) {
         massUpdateBuildingNameBtn.addEventListener('click', () => {
             if (massUpdateFeedback) { massUpdateFeedback.textContent = ''; massUpdateFeedback.className = 'feedback'; }
-            const oldName = massUpdateOldBuildingNameSelect.value; 
+            const oldName = massUpdateOldBuildingNameSelect.value;
             const newName = massUpdateNewBuildingNameInput.value.trim();
             if (!oldName) {
                 massUpdateFeedback.textContent = 'Please select the current building name to reassign rooms from.';
@@ -1352,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 massUpdateFeedback.textContent = 'Please enter the new building name for these rooms.';
                 massUpdateFeedback.className = 'feedback error'; return;
             }
-            if (oldName === newName) { 
+            if (oldName === newName) {
                 massUpdateFeedback.textContent = 'New building name is the same as the current one. No changes made to rooms.';
                 massUpdateFeedback.className = 'feedback info'; return;
             }
@@ -1364,7 +1385,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 buildings.push(newName);
                 storeBuildings(buildings);
-                populateBuildingDropdowns(); 
+                populateBuildingDropdowns();
             }
             const rooms = getStoredRooms();
             const roomsInSelectedBuilding = rooms.filter(room => room.buildingName === oldName);
@@ -1373,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 massUpdateFeedback.className = 'feedback info'; return;
             }
             for (const room of roomsInSelectedBuilding) {
-                if (findRoom(newName, room.roomIdentifier)) { 
+                if (findRoom(newName, room.roomIdentifier)) {
                      massUpdateFeedback.textContent = `Error: Reassigning rooms to "${escapeHtml(newName)}" would cause a conflict for room "${escapeHtml(room.roomIdentifier)}", which already exists with that identifier in the target building. Please resolve conflicts first or choose a different new name.`;
                      massUpdateFeedback.className = 'feedback error'; return;
                 }
@@ -1383,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const updatedRooms = rooms.map(room => {
                     if (room.buildingName === oldName) {
                         room.buildingName = newName;
-                        room.savedAt = new Date().toISOString(); 
+                        room.savedAt = new Date().toISOString();
                         updatedCount++;
                     }
                     return room;
@@ -1391,17 +1412,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 storeRooms(updatedRooms);
                 massUpdateFeedback.textContent = `Successfully reassigned ${updatedCount} room(s) from "${escapeHtml(oldName)}" to "${escapeHtml(newName)}".`;
                 massUpdateFeedback.className = 'feedback success';
-                massUpdateOldBuildingNameSelect.value = ''; 
-                massUpdateNewBuildingNameInput.value = ''; 
-                populateBuildingDropdowns(); 
-                renderRoomList(); 
+                massUpdateOldBuildingNameSelect.value = '';
+                massUpdateNewBuildingNameInput.value = '';
+                populateBuildingDropdowns();
+                renderRoomList();
             } else {
                 massUpdateFeedback.textContent = 'Mass update cancelled.';
                 massUpdateFeedback.className = 'feedback info';
             }
         });
     }
-    
+
     if (exportAllBtn) {
         exportAllBtn.addEventListener('click', async function() {
              if (!jsonDisplayArea || !exportFeedback) return;
@@ -1420,7 +1441,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                      exportFeedback.textContent = `Data exported to ${filename} in Documents.`;
                      exportFeedback.className = 'feedback success';
-                } else { 
+                } else {
                     const blob = new Blob([jsonData], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -1435,8 +1456,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
-    if (copyJsonBtn) { 
+
+    if (copyJsonBtn) {
         copyJsonBtn.addEventListener('click', function() {
             if (!jsonDisplayArea || !exportFeedback) return;
             if (jsonDisplayArea.value === 'No data to display.' || jsonDisplayArea.value.trim() === '') {
@@ -1464,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
             }
-            window.getSelection().removeAllRanges(); 
+            window.getSelection().removeAllRanges();
         });
     }
 
@@ -1495,14 +1516,15 @@ document.addEventListener('DOMContentLoaded', function () {
             processImportedJsonString(jsonString);
         });
     }
-    
+
     function tryMigrateRoomTileData(roomObject) {
         if (roomObject && roomObject.roomMakeup && roomObject.roomMakeup.floor && roomObject.roomMakeup.floor.type === 'Tile' &&
-            !roomObject.roomMakeup.floor.tileSize && 
-            roomObject.roomMakeup.ceiling && roomObject.roomMakeup.ceiling.tileSize) { 
+            !roomObject.roomMakeup.floor.tileSize &&
+            roomObject.roomMakeup.ceiling && roomObject.roomMakeup.ceiling.tileSize) { // Check for old ceiling tile size data
             const oldCeilingTileSize = String(roomObject.roomMakeup.ceiling.tileSize);
             if (oldCeilingTileSize === "9") roomObject.roomMakeup.floor.tileSize = "9x9";
             else if (oldCeilingTileSize === "12") roomObject.roomMakeup.floor.tileSize = "12x12";
+            // delete roomObject.roomMakeup.ceiling.tileSize; // Optionally remove old field
         }
     }
 
@@ -1518,10 +1540,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     currentBuildings.push(room.buildingName);
                     newBuildingsFound = true;
                 }
-                tryMigrateRoomTileData(room);
+                tryMigrateRoomTileData(room); // Attempt to migrate old tile data
             });
             if (newBuildingsFound) storeBuildings(currentBuildings);
-            importedRoomsQueue = data.filter(r => r && typeof r === 'object' && r.buildingName && r.roomIdentifier); 
+            importedRoomsQueue = data.filter(r => r && typeof r === 'object' && r.buildingName && r.roomIdentifier);
             if (importedRoomsQueue.length === 0) {
                 importFeedback.textContent = 'No valid room objects with buildingName and roomIdentifier found in JSON.';
                 importFeedback.className = 'feedback error'; return;
@@ -1542,18 +1564,18 @@ document.addEventListener('DOMContentLoaded', function () {
             let summary = `Import complete. Successfully imported: ${successfullyImportedCount}. Replaced: ${replacedCount}. Skipped: ${skippedCount}.`;
             importFeedback.textContent = summary;
             importFeedback.className = (successfullyImportedCount > 0 || replacedCount > 0) ? 'feedback success' : 'feedback info';
-            renderRoomList(); populateBuildingDropdowns(); 
-            if (jsonImportFile) jsonImportFile.value = ''; if (jsonPasteArea) jsonPasteArea.value = ''; 
+            renderRoomList(); populateBuildingDropdowns();
+            if (jsonImportFile) jsonImportFile.value = ''; if (jsonPasteArea) jsonPasteArea.value = '';
             return;
         }
-        const roomToImport = { ...importedRoomsQueue[currentImportIndex] }; 
-        delete roomToImport.id; delete roomToImport.savedAt;
+        const roomToImport = { ...importedRoomsQueue[currentImportIndex] }; // Shallow copy to avoid modifying original queue item
+        delete roomToImport.id; delete roomToImport.savedAt; // Remove existing ID and savedAt if present
         currentExistingRoom = findRoom(roomToImport.buildingName, roomToImport.roomIdentifier);
         if (currentExistingRoom) {
-            currentConflictingRoom = roomToImport; 
+            currentConflictingRoom = roomToImport;
             showConflictModal(currentConflictingRoom, currentExistingRoom);
         } else {
-            addRoomToStorageInternal(roomToImport); 
+            addRoomToStorageInternal(roomToImport);
             successfullyImportedCount++; currentImportIndex++; processImportQueue();
         }
     }
@@ -1575,40 +1597,65 @@ document.addEventListener('DOMContentLoaded', function () {
     if(closeConflictModalBtn) closeConflictModalBtn.onclick = () => { skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue(); };
     if(skipConflictBtn) skipConflictBtn.onclick = () => { skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue(); };
     if(replaceConflictBtn) replaceConflictBtn.onclick = () => {
-        if (currentConflictingRoom && currentExistingRoom) { 
-            tryMigrateRoomTileData(currentConflictingRoom); 
-            currentConflictingRoom.id = currentExistingRoom.id; 
-            addRoomToStorageInternal(currentConflictingRoom, currentExistingRoom.id); 
-            replacedCount++; 
+        if (currentConflictingRoom && currentExistingRoom) {
+            tryMigrateRoomTileData(currentConflictingRoom); // Ensure data migration for replacement too
+            currentConflictingRoom.id = currentExistingRoom.id; // Use existing ID for replacement
+            addRoomToStorageInternal(currentConflictingRoom, currentExistingRoom.id); // Pass ID to ensure replacement
+            replacedCount++;
         }
         currentImportIndex++; closeConflictModal(); processImportQueue();
     };
     if(saveModifiedConflictBtn) {
-        saveModifiedConflictBtn.onclick = () => { 
+        saveModifiedConflictBtn.onclick = () => {
             if (!currentConflictingRoom || !conflictBuildingNew || !conflictRoomIDNew || !modifyConflictFeedback) return;
-            const newBuilding = conflictBuildingNew.value.trim(); const newRoomIdVal = conflictRoomIDNew.value.trim(); 
+            const newBuilding = conflictBuildingNew.value.trim(); const newRoomIdVal = conflictRoomIDNew.value.trim();
             if (!newBuilding || !newRoomIdVal) { modifyConflictFeedback.textContent = 'Building Name and Room ID cannot be empty.'; modifyConflictFeedback.className = 'feedback error'; return; }
             const stillExisting = findRoom(newBuilding, newRoomIdVal);
-            if (stillExisting && stillExisting.id !== currentExistingRoom?.id) { 
-                modifyConflictFeedback.textContent = 'Conflict: Modified identifiers match another existing room.'; 
+            if (stillExisting && stillExisting.id !== currentExistingRoom?.id) { // Check if new identifiers conflict with *another* existing room
+                modifyConflictFeedback.textContent = 'Conflict: Modified identifiers match another existing room.';
                 modifyConflictFeedback.className = 'feedback error';
-                existingRoomDetailsPreview.innerHTML = formatRoomDataForPreview(stillExisting); 
-                return; 
-            } else if (currentExistingRoom && 
-                       newBuilding.toLowerCase() === currentExistingRoom.buildingName.toLowerCase() && 
+                existingRoomDetailsPreview.innerHTML = formatRoomDataForPreview(stillExisting); // Show the *other* conflicting room
+                return;
+            } else if (currentExistingRoom && // Check if identifiers still match the *original* conflicting room
+                       newBuilding.toLowerCase() === currentExistingRoom.buildingName.toLowerCase() &&
                        newRoomIdVal.toLowerCase() === currentExistingRoom.roomIdentifier.toLowerCase()) {
-                modifyConflictFeedback.textContent = 'Identifiers still match the original conflicting room. Please change them or choose another option.'; 
+                modifyConflictFeedback.textContent = 'Identifiers still match the original conflicting room. Please change them or choose another option.';
                 modifyConflictFeedback.className = 'feedback error'; return;
             }
-            currentConflictingRoom.buildingName = newBuilding; 
+            currentConflictingRoom.buildingName = newBuilding;
             currentConflictingRoom.roomIdentifier = newRoomIdVal;
-            delete currentConflictingRoom.id; 
-            tryMigrateRoomTileData(currentConflictingRoom); 
-            addRoomToStorageInternal(currentConflictingRoom); 
+            delete currentConflictingRoom.id; // Ensure it's treated as a new entry if identifiers changed
+            tryMigrateRoomTileData(currentConflictingRoom); // Ensure data migration
+            addRoomToStorageInternal(currentConflictingRoom);
             successfullyImportedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
         };
     }
-    
+
+    // --- Conditional Input Logic for Filter "Other" fields ---
+    function setupFilterConditionalInput(selectElement, otherInputElement) {
+        if (selectElement && otherInputElement) {
+            const update = () => {
+                const shouldBeVisible = selectElement.value === 'Other';
+                otherInputElement.style.display = shouldBeVisible ? 'block' : 'none';
+                if (!shouldBeVisible) otherInputElement.value = '';
+            };
+            selectElement.addEventListener('change', update);
+            update(); // Initial check to set correct state on load
+        }
+    }
+
+    // Initialize conditional inputs for the filter form
+    if (filterRoomPurposeSelect && filterRoomPurposeOther) {
+        setupFilterConditionalInput(filterRoomPurposeSelect, filterRoomPurposeOther);
+    }
+    if (filterLightFixtureTypeSelect && filterLightFixtureTypeOther) {
+        setupFilterConditionalInput(filterLightFixtureTypeSelect, filterLightFixtureTypeOther);
+    }
+    if (filterFloorTypeSelect && filterFloorTypeOther) {
+        setupFilterConditionalInput(filterFloorTypeSelect, filterFloorTypeOther);
+    }
+
+
     // --- Filter Logic ---
     function applyFilters() {
         if (!filterResultsContainer || !filterFeedback) return;
@@ -1616,12 +1663,16 @@ document.addEventListener('DOMContentLoaded', function () {
         filterFeedback.className = 'feedback';
 
         const buildingNameFilter = filterBuildingNameInput.value.trim().toLowerCase();
-        const roomIdentifierFilter = filterRoomIdentifierInput.value.trim().toLowerCase(); // Filter value
+        const roomIdentifierFilter = filterRoomIdentifierInput.value.trim().toLowerCase();
         const roomPurposeFilter = filterRoomPurposeSelect.value;
+        const roomPurposeOtherFilter = filterRoomPurposeOther.value.trim().toLowerCase();
         const lightFixtureTypeFilter = filterLightFixtureTypeSelect.value;
+        const lightFixtureTypeOtherFilter = filterLightFixtureTypeOther.value.trim().toLowerCase();
         const overallConditionFilter = filterOverallConditionSelect.value;
         const asbestosCeilingFilter = filterHasAsbestosCeilingSelect.value;
         const floorTypeFilter = filterFloorTypeSelect.value;
+        const floorTypeOtherFilter = filterFloorTypeOther.value.trim().toLowerCase();
+
 
         const allRooms = getStoredRooms();
         const filteredRooms = allRooms.filter(room => {
@@ -1630,38 +1681,61 @@ document.addEventListener('DOMContentLoaded', function () {
             if (buildingNameFilter && (!room.buildingName || !room.buildingName.toLowerCase().includes(buildingNameFilter))) {
                 match = false;
             }
-            // Updated Room Identifier Filter: startsWith
             if (match && roomIdentifierFilter && (!room.roomIdentifier || !room.roomIdentifier.toLowerCase().startsWith(roomIdentifierFilter))) {
                 match = false;
             }
-            if (match && roomPurposeFilter && room.roomPurpose !== roomPurposeFilter) {
-                match = false;
-            }
-            if (match && lightFixtureTypeFilter) {
-                if (!room.lightFixtures || !room.lightFixtures.some(fixture => fixture.type === lightFixtureTypeFilter)) {
+            // Room Purpose Filter
+            if (match && roomPurposeFilter) {
+                if (roomPurposeFilter === 'Other') {
+                    // Match if roomPurpose is 'Other' AND roomPurposeOther contains the filter text
+                    if (!(room.roomPurpose === 'Other' && room.roomPurposeOther && room.roomPurposeOther.toLowerCase().includes(roomPurposeOtherFilter))) {
+                        match = false;
+                    }
+                } else if (room.roomPurpose !== roomPurposeFilter) {
                     match = false;
+                }
+            }
+            // Light Fixture Type Filter
+            if (match && lightFixtureTypeFilter) {
+                if (lightFixtureTypeFilter === 'Other') {
+                    // Match if any light fixture is 'Other' AND its typeOtherSpecify contains the filter text
+                    if (!room.lightFixtures || !room.lightFixtures.some(fixture =>
+                        fixture.type === 'Other' && fixture.typeOtherSpecify && fixture.typeOtherSpecify.toLowerCase().includes(lightFixtureTypeOtherFilter))) {
+                        match = false;
+                    }
+                } else {
+                    if (!room.lightFixtures || !room.lightFixtures.some(fixture => fixture.type === lightFixtureTypeFilter)) {
+                        match = false;
+                    }
                 }
             }
             if (match && overallConditionFilter && (!room.conditionValues || room.conditionValues.overall !== overallConditionFilter)) {
                 match = false;
             }
-            // Updated Asbestos Filter Logic
-            if (match && asbestosCeilingFilter) { 
+            if (match && asbestosCeilingFilter) {
                 if (room.roomMakeup?.ceiling?.type === 'Drop Ceiling') {
                     if (room.roomMakeup.ceiling.asbestosInCeiling !== asbestosCeilingFilter) {
-                        match = false; 
+                        match = false;
                     }
-                } else { // Not a drop ceiling
-                    match = false; 
+                } else { // If it's not a drop ceiling, it cannot match a specific asbestos filter value
+                    match = false;
                 }
             }
-            if (match && floorTypeFilter && (!room.roomMakeup?.floor || room.roomMakeup.floor.type !== floorTypeFilter)) {
-                match = false;
+            // Floor Type Filter
+            if (match && floorTypeFilter) {
+                if (floorTypeFilter === 'Other') {
+                    // Match if floor.type is 'Other' AND floor.typeOther contains the filter text
+                    if (!(room.roomMakeup?.floor?.type === 'Other' && room.roomMakeup.floor.typeOther && room.roomMakeup.floor.typeOther.toLowerCase().includes(floorTypeOtherFilter))) {
+                        match = false;
+                    }
+                } else if (!room.roomMakeup?.floor || room.roomMakeup.floor.type !== floorTypeFilter) {
+                    match = false;
+                }
             }
             return match;
         });
 
-        renderRoomList(filteredRooms, filterResultsContainer, true); // Pass true for isFilterResults
+        renderRoomList(filteredRooms, filterResultsContainer, true);
         if (filteredRooms.length > 0) {
             filterFeedback.textContent = `Found ${filteredRooms.length} room(s) matching your criteria.`;
             filterFeedback.className = 'feedback success';
@@ -1681,6 +1755,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (clearFilterBtn) {
         clearFilterBtn.addEventListener('click', function() {
             if (filterForm) filterForm.reset();
+            // Explicitly hide and clear "Other" text fields for filters
+            if (filterRoomPurposeOther) { filterRoomPurposeOther.style.display = 'none'; filterRoomPurposeOther.value = ''; }
+            if (filterLightFixtureTypeOther) { filterLightFixtureTypeOther.style.display = 'none'; filterLightFixtureTypeOther.value = ''; }
+            if (filterFloorTypeOther) { filterFloorTypeOther.style.display = 'none'; filterFloorTypeOther.value = ''; }
+
             if (filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
             if (filterFeedback) {
                 filterFeedback.textContent = '';
@@ -1690,19 +1769,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Global Event Listeners ---
-    window.onkeydown = e => { 
-        if (e.key==='Escape') { 
+    window.onkeydown = e => {
+        if (e.key==='Escape') {
             if (conflictModal?.style.display==='block') {
                 skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
             } else if (roomDetailModal?.style.display==='block') {
                 closeModal();
-            } else if (editingRoomIdInput.value && document.getElementById('AddRoomView')?.classList.contains('active-view')) { 
+            } else if (editingRoomIdInput.value && document.getElementById('AddRoomView')?.classList.contains('active-view')) {
                 if(cancelEditBtn) cancelEditBtn.click();
             }
         }
     };
-    window.onclick = e => { 
-        if (e.target==roomDetailModal) closeModal(); 
+    window.onclick = e => {
+        if (e.target==roomDetailModal) closeModal();
         else if (e.target==conflictModal) {
             skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
         }
@@ -1710,14 +1789,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Initial App Setup ---
     if (roomForm) {
-        initializeFormConditionalLogic(roomForm); 
-        refreshConditionalFormUI(roomForm);       
+        initializeFormConditionalLogic(roomForm);
+        refreshConditionalFormUI(roomForm); // Call refresh to ensure UI is correct on load
     }
     if (lightFixturesContainer && lightFixturesContainer.children.length === 0) {
-        appendNewLightFixtureEntry(); 
+        appendNewLightFixtureEntry();
     }
-    
-    populateBuildingDropdowns(); 
-    setActiveView('ViewRoomsView'); 
+
+    populateBuildingDropdowns();
+    setActiveView('ViewRoomsView'); // Or your preferred default view
     console.log("App Initial Setup: Complete.");
 });

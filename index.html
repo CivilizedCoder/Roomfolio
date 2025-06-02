@@ -348,7 +348,9 @@
                 <form id="filterForm" class="form-section">
                     <div class="input-group">
                         <label for="filterBuildingName">Building Name:</label>
-                        <input type="text" id="filterBuildingName" name="filterBuildingName" placeholder="Enter building name (partial or full)">
+                        <select id="filterBuildingName" name="filterBuildingName">
+                            <option value="">-- Any Building --</option>
+                            </select>
                     </div>
                     <div class="input-group">
                         <label for="filterRoomIdentifier">Room Identifier (Starts with):</label>
@@ -366,6 +368,7 @@
                             <option value="Common">Common</option>
                             <option value="Other">Other</option>
                         </select>
+                        <input type="text" id="filterRoomPurposeOther" name="filterRoomPurposeOther" class="conditional-other filter-other-specify" placeholder="Specify other purpose to search" style="display:none;">
                     </div>
                      <div class="input-group">
                         <label for="filterLightFixtureType">Light Fixture Type:</label>
@@ -380,6 +383,7 @@
                             <option value="Metal Halide">Metal Halide</option>
                             <option value="Other">Other</option>
                         </select>
+                        <input type="text" id="filterLightFixtureTypeOther" name="filterLightFixtureTypeOther" class="conditional-other filter-other-specify" placeholder="Specify other light type to search" style="display:none;">
                     </div>
                     <div class="input-group">
                         <label for="filterOverallCondition">Overall Room Condition:</label>
@@ -412,6 +416,7 @@
                             <option value="Wood">Wood</option>
                             <option value="Other">Other</option>
                         </select>
+                        <input type="text" id="filterFloorTypeOther" name="filterFloorTypeOther" class="conditional-other filter-other-specify" placeholder="Specify other floor type to search" style="display:none;">
                     </div>
 
                     <button type="submit" id="applyFilterBtn" class="action-button primary-button"><i class="fas fa-filter"></i> Apply Filters</button>
@@ -559,15 +564,13 @@
 
     <script src="script.js"></script>
     <script>
-        // This inline script is for very simple UI interactions that don't need complex state management.
-        // Most of the application logic resides in script.js
         document.addEventListener("DOMContentLoaded", function () {
           const otherCheckboxes = document.querySelectorAll(".other-checkbox");
           otherCheckboxes.forEach(checkbox => {
             checkbox.addEventListener("change", function () {
               const container = checkbox.closest(".other-field-wrapper, .fixture-item-group-other");
               const textInput = container.querySelector("input[type='text']");
-              const qtyInput = container.querySelector("input[type='number']"); // Specifically for "Other Fixture" quantity
+              const qtyInput = container.querySelector("input[type='number']");
       
               if (checkbox.checked) {
                 if (textInput) {
@@ -591,12 +594,8 @@
         });
       </script>
       <script>
-        // Service Worker registration
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
-            // Ensure the path to service-worker.js is correct for your deployment (especially for GitHub Pages)
-            // If your app is at https://username.github.io/Roomfolio/, then '/Roomfolio/service-worker.js' is correct.
-            // If it's at the root of a custom domain, '/service-worker.js' might be needed.
             navigator.serviceWorker.register('/Roomfolio/service-worker.js') 
               .then((registration) => {
                 console.log('Service Worker registered with scope:', registration.scope);
