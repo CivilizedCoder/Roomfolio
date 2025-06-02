@@ -5,8 +5,8 @@ const urlsToCache = [
   '/Roomfolio/index.html',   // Explicitly list your main HTML file
   '/Roomfolio/styles.css',   // Your CSS file
   '/Roomfolio/script.js',    // Your JavaScript file
-  '/Roomfolio/images/icon-192x192.png', // Your 192x192 icon
-  '/Roomfolio/images/icon-512x512.png'  // Your 512x512 icon
+  '/Roomfolio/icon-192x192.png', // Your 192x192 icon
+  '/Roomfolio/icon-512x512.png'  // Your 512x512 icon
   // Add any other static assets your app needs to function offline
   // e.g., other HTML pages, more images, fonts, etc.
 ];
