@@ -18,6 +18,7 @@
             <ul>
                 <li><a href="#" id="navViewRooms" class="nav-link active-link"><i class="fas fa-list-alt"></i> View Rooms</a></li>
                 <li><a href="#" id="navAddRoom" class="nav-link"><i class="fas fa-plus-circle"></i> Add Room</a></li>
+                <li><a href="#" id="navFilter" class="nav-link"><i class="fas fa-filter"></i> Filter Rooms</a></li>
                 <li><a href="#" id="navData" class="nav-link"><i class="fas fa-database"></i> Data Management</a></li>
             </ul>
         </nav>
@@ -193,7 +194,8 @@
                     <section class="form-section">
                         <h2><i class="fas fa-couch"></i> 4. Furniture</h2>
                         <fieldset class="input-group">
-                            <legend class="visually-hidden">Furniture types</legend> <div class="checkbox-group" role="group" aria-label="Furniture types">
+                            <legend class="visually-hidden">Furniture types</legend>
+                            <div class="checkbox-group" role="group" aria-label="Furniture types">
                                 <label for="furnitureTables"><input type="checkbox" id="furnitureTables" name="furniture" value="Tables"> Tables</label>
                                 <label for="furnitureChairs"><input type="checkbox" id="furnitureChairs" name="furniture" value="Chairs"> Chairs</label>
                                 <label for="furnitureTablets"><input type="checkbox" id="furnitureTablets" name="furniture" value="Tablets"> Tablets (arm chairs)</label>
@@ -243,12 +245,14 @@
                     <section class="form-section">
                         <h2><i class="fas fa-tv"></i> 7. Technology</h2>
                          <fieldset class="input-group">
-                            <legend class="visually-hidden">Technology types</legend> <div class="checkbox-group" role="group" aria-label="Technology types">
+                            <legend class="visually-hidden">Technology types</legend>
+                            <div class="checkbox-group" role="group" aria-label="Technology types">
                                 <label for="techProjector"><input type="checkbox" id="techProjector" name="technology" value="Projector"> Projector</label>
                                 <label for="techTV"><input type="checkbox" id="techTV" name="technology" value="Wall-mount TV"> Wall-mount TV</label>
                                 <label for="techSound"><input type="checkbox" id="techSound" name="technology" value="Sound System"> Sound System</label>
                                 <label for="techInteractiveWB"><input type="checkbox" id="techInteractiveWB" name="technology" value="Interactive Whiteboard/Smartboard"> Interactive WB/Smartboard</label>
-                                <label for="techPrinters"><input type="checkbox" id="techPrinters" name="technology" value="Printers"> Printers</label> <div class="other-field-wrapper">
+                                <label for="techPrinters"><input type="checkbox" id="techPrinters" name="technology" value="Printers"> Printers</label>
+                                <div class="other-field-wrapper">
                                     <label for="technologyOtherCheckbox">
                                         <input type="checkbox" id="technologyOtherCheckbox" name="technology" value="Other" class="other-checkbox"> Other
                                     </label>
@@ -344,6 +348,88 @@
                 </div>
             </div>
 
+            <div id="FilterView" class="view-section">
+                <header class="view-header">
+                    <h1><i class="fas fa-search"></i> Filter Room Data</h1>
+                </header>
+                <form id="filterForm" class="form-section">
+                    <div class="input-group">
+                        <label for="filterBuildingName">Building Name:</label>
+                        <input type="text" id="filterBuildingName" name="filterBuildingName" placeholder="Enter building name (partial or full)">
+                    </div>
+                    <div class="input-group">
+                        <label for="filterRoomIdentifier">Room Identifier:</label>
+                        <input type="text" id="filterRoomIdentifier" name="filterRoomIdentifier" placeholder="Enter room ID (partial or full)">
+                    </div>
+                    <div class="input-group">
+                        <label for="filterRoomPurpose">Room Purpose:</label>
+                        <select id="filterRoomPurpose" name="filterRoomPurpose">
+                            <option value="">-- Any Purpose --</option>
+                            <option value="Lab">Lab</option>
+                            <option value="Classroom">Classroom</option>
+                            <option value="Specialty">Specialty</option>
+                            <option value="Office">Office</option>
+                            <option value="Storage">Storage</option>
+                            <option value="Common">Common</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                     <div class="input-group">
+                        <label for="filterLightFixtureType">Light Fixture Type:</label>
+                        <select id="filterLightFixtureType" name="filterLightFixtureType">
+                            <option value="">-- Any Light Type --</option>
+                            <option value="Fluorescent T5">Fluorescent T5</option>
+                            <option value="Fluorescent T8">Fluorescent T8</option>
+                            <option value="Fluorescent T12">Fluorescent T12</option>
+                            <option value="Incandescent">Incandescent</option>
+                            <option value="LED">LED</option>
+                            <option value="Sodium">Sodium</option>
+                            <option value="Metal Halide">Metal Halide</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="filterOverallCondition">Overall Room Condition:</label>
+                        <select id="filterOverallCondition" name="filterOverallCondition">
+                            <option value="">-- Any Condition --</option>
+                            <option value="1 - Excellent">1 - Excellent</option>
+                            <option value="2 - Good">2 - Good</option>
+                            <option value="3 - Fair">3 - Fair</option>
+                            <option value="4 - Poor">4 - Poor</option>
+                            <option value="5 - Needs Replacement">5 - Needs Replacement</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="filterHasAsbestosCeiling">Asbestos in Ceiling (Drop Ceiling Only):</label>
+                        <select id="filterHasAsbestosCeiling" name="filterHasAsbestosCeiling">
+                            <option value="">-- Any --</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="Unknown">Unknown</option>
+                        </select>
+                    </div>
+                     <div class="input-group">
+                        <label for="filterFloorType">Floor Type:</label>
+                        <select id="filterFloorType" name="filterFloorType">
+                            <option value="">-- Any Floor Type --</option>
+                            <option value="Carpet">Carpet</option>
+                            <option value="Tile">Tile</option>
+                            <option value="VCT">VCT</option>
+                            <option value="Concrete">Concrete</option>
+                            <option value="Wood">Wood</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="applyFilterBtn" class="action-button primary-button"><i class="fas fa-filter"></i> Apply Filters</button>
+                    <button type="button" id="clearFilterBtn" class="action-button secondary-button"><i class="fas fa-undo"></i> Clear Filters</button>
+                    <p id="filterFeedback" class="feedback"></p>
+                </form>
+                <div id="filterResultsContainer">
+                    </div>
+            </div>
+
+
             <div id="DataView" class="view-section">
                 <header class="view-header">
                     <h1><i class="fas fa-cogs"></i> Data Management</h1>
@@ -352,7 +438,8 @@
                 <section class="form-section data-management-section">
                     <h2><i class="fas fa-building-user"></i> Manage Buildings</h2>
                     <p class="data-management-description">Add new buildings or rename existing ones. Renaming a building here will update it for all associated rooms.</p>
-                    <div class="import-method-container"> <h3 class="data-sub-heading"><i class="fas fa-plus-square"></i> Add New Building</h3>
+                    <div class="import-method-container">
+                        <h3 class="data-sub-heading"><i class="fas fa-plus-square"></i> Add New Building</h3>
                         <div class="input-group">
                             <label for="newBuildingNameInput">New Building Name:</label>
                             <input type="text" id="newBuildingNameInput" name="newBuildingNameInput" placeholder="Enter name for the new building">
@@ -360,12 +447,13 @@
                         <button id="addBuildingBtn" class="action-button primary-button"><i class="fas fa-plus"></i> Add Building</button>
                     </div>
                     <hr class="data-section-divider">
-                    <div class="import-method-container"> <h3 class="data-sub-heading"><i class="fas fa-edit"></i> Rename Existing Building</h3>
+                    <div class="import-method-container">
+                        <h3 class="data-sub-heading"><i class="fas fa-edit"></i> Rename Existing Building</h3>
                         <div class="input-group">
                             <label for="renameOldBuildingNameSelect">Select Building to Rename:</label>
                             <select id="renameOldBuildingNameSelect" name="renameOldBuildingNameSelect">
                                 <option value="">-- Select Building --</option>
-                                </select>
+                            </select>
                         </div>
                         <div class="input-group">
                             <label for="renameNewBuildingNameInput">New Name for Building:</label>
@@ -472,51 +560,52 @@
     <script src="script.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+          // This script block is for minor UI enhancements that might not be covered by the main script.js
+          // or for quick fixes. The main logic is in script.js.
           const otherCheckboxes = document.querySelectorAll(".other-checkbox");
           otherCheckboxes.forEach(checkbox => {
             checkbox.addEventListener("change", function () {
               const container = checkbox.closest(".other-field-wrapper, .fixture-item-group-other");
               const textInput = container.querySelector("input[type='text']");
-              const qtyInput = container.querySelector("input[type='number']");
+              const qtyInput = container.querySelector("input[type='number']"); // For "Other Fixture"
       
               if (checkbox.checked) {
                 if (textInput) {
                   textInput.style.display = textInput.classList.contains('inline-other') ? "inline-block" : "block";
-                  textInput.required = true;
+                  // textInput.required = true; // Requirement handled in main script.js logic
                 }
-                if (qtyInput && container.classList.contains('fixture-item-group-other')) { // Only for "Other Fixture" quantity
+                if (qtyInput && container.classList.contains('fixture-item-group-other')) {
                   qtyInput.style.display = "block";
-                  qtyInput.required = true;
+                  // qtyInput.required = true; // Requirement handled in main script.js logic
                 }
               } else {
                 if (textInput) {
                   textInput.style.display = "none";
-                  textInput.required = false;
+                  // textInput.required = false;
                   textInput.value = "";
                 }
                 if (qtyInput && container.classList.contains('fixture-item-group-other')) {
                   qtyInput.style.display = "none";
-                  qtyInput.required = false;
+                  // qtyInput.required = false;
                   qtyInput.value = "";
                 }
               }
             });
-            // Initial state is now more robustly handled by script.js's populateFormForEditing and conditio
           });
         });
       </script>
       <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/Roomfolio/service-worker.js')
-        .then((registration) => {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
-    });
-  }
-</script>
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/Roomfolio/service-worker.js') // Ensure this path is correct for your GitHub Pages setup
+              .then((registration) => {
+                console.log('Service Worker registered with scope:', registration.scope);
+              })
+              .catch((error) => {
+                console.error('Service Worker registration failed:', error);
+              });
+          });
+        }
+    </script>
 </body>
 </html>

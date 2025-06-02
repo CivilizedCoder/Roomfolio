@@ -1,10 +1,12 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log("App DOMContentLoaded: Initializing...");
     
+    // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
     const views = document.querySelectorAll('.view-section');
     const addEditRoomTitle = document.getElementById('addEditRoomTitle');
 
+    // Room Form elements
     const roomForm = document.getElementById('roomForm');
     const editingRoomIdInput = document.getElementById('editingRoomId');
     const buildingNameSelect = document.getElementById('buildingName');
@@ -13,29 +15,31 @@ document.addEventListener('DOMContentLoaded', function () {
     const addDoorBtn = document.getElementById('addDoorBtn');
     const saveRoomBtn = document.getElementById('saveRoomBtn');
     const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const lightFixturesContainer = document.getElementById('lightFixturesContainer');
+    const addLightFixtureBtn = document.getElementById('addLightFixtureBtn');
+    const otherFixturesCheckboxes = document.querySelectorAll('.fixture-present-checkbox');
 
+    // View Rooms elements
     const roomListContainer = document.getElementById('roomListContainer');
     const roomDetailModal = document.getElementById('roomDetailModal');
     const roomDetailContent = document.getElementById('roomDetailContent');
     const closeModalBtn = document.querySelector('#roomDetailModal .close-modal-btn');
 
-    const dataView = document.getElementById('DataView');
+    // Data Management elements
+    const dataView = document.getElementById('DataView'); // Keep if used elsewhere, otherwise can remove if only for nav
     const jsonImportFile = document.getElementById('jsonImportFile');
     const importJsonFileBtn = document.getElementById('importJsonFileBtn');
     const jsonPasteArea = document.getElementById('jsonPasteArea');
     const importJsonPasteBtn = document.getElementById('importJsonPasteBtn');
     const importFeedback = document.getElementById('importFeedback');
-
     const jsonDisplayArea = document.getElementById('jsonDisplayArea');
     const copyJsonBtn = document.getElementById('copyJsonBtn');
     const exportAllBtn = document.getElementById('exportAllBtn');
     const exportFeedback = document.getElementById('exportFeedback');
-
     const massUpdateOldBuildingNameSelect = document.getElementById('massUpdateOldBuildingNameSelect');
     const massUpdateNewBuildingNameInput = document.getElementById('massUpdateNewBuildingNameInput');
     const massUpdateBuildingNameBtn = document.getElementById('massUpdateBuildingNameBtn');
     const massUpdateFeedback = document.getElementById('massUpdateFeedback');
-
     const newBuildingNameInput = document.getElementById('newBuildingNameInput');
     const addBuildingBtn = document.getElementById('addBuildingBtn');
     const renameOldBuildingNameSelect = document.getElementById('renameOldBuildingNameSelect');
@@ -43,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const renameBuildingBtn = document.getElementById('renameBuildingBtn');
     const buildingManagementFeedback = document.getElementById('buildingManagementFeedback');
 
-
+    // Conflict Modal elements
     const conflictModal = document.getElementById('conflictModal');
     const closeConflictModalBtn = document.getElementById('closeConflictModalBtn');
     const importingRoomDetailsPreview = document.getElementById('importingRoomDetailsPreview');
@@ -55,14 +59,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const saveModifiedConflictBtn = document.getElementById('saveModifiedConflictBtn');
     const modifyConflictFeedback = document.getElementById('modifyConflictFeedback');
 
-    const lightFixturesContainer = document.getElementById('lightFixturesContainer');
-    const addLightFixtureBtn = document.getElementById('addLightFixtureBtn');
-    const otherFixturesCheckboxes = document.querySelectorAll('.fixture-present-checkbox');
+    // Filter View elements
+    const filterForm = document.getElementById('filterForm');
+    const filterBuildingNameInput = document.getElementById('filterBuildingName');
+    const filterRoomIdentifierInput = document.getElementById('filterRoomIdentifier');
+    const filterRoomPurposeSelect = document.getElementById('filterRoomPurpose');
+    const filterLightFixtureTypeSelect = document.getElementById('filterLightFixtureType');
+    const filterOverallConditionSelect = document.getElementById('filterOverallCondition');
+    const filterHasAsbestosCeilingSelect = document.getElementById('filterHasAsbestosCeiling');
+    const filterFloorTypeSelect = document.getElementById('filterFloorType');
+    const applyFilterBtn = document.getElementById('applyFilterBtn');
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
+    const filterResultsContainer = document.getElementById('filterResultsContainer');
+    const filterFeedback = document.getElementById('filterFeedback');
 
+
+    // LocalStorage keys
     const ROOM_DATA_KEY = 'roomAppData_rooms';
     const BUILDING_DATA_KEY = 'roomAppData_buildings';
     const LAST_USED_BUILDING_KEY = 'roomAppData_lastUsedBuilding';
 
+    // Default buildings list
     const DEFAULT_BUILDINGS = [
         "Boyd Science Center", "Brown Chapel", "Cambridge Hall", "Montgomery Hall", "MOT House",
         "Neptune Center", "Palmer Art Gallery", "Paul Hall", "Philip and Betsey Caldwell Hall",
@@ -75,6 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
         "Lakeside 133 (Phi Tau)", "Lakeside 135", "Lakeside 137 (RA Housing)", 'Lakeside 141 (Phi Psi)', "Lakeside 151 (Ulster)"
     ];
 
+    // Import process variables
     let importedRoomsQueue = [];
     let currentImportIndex = 0;
     let successfullyImportedCount = 0;
@@ -83,16 +101,17 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentConflictingRoom = null;
     let currentExistingRoom = null;
 
+    // Capacitor diagnostics (optional, can be kept or removed)
     setTimeout(() => {
         if (window.Capacitor) {
             if (window.Capacitor.Plugins) {
                 if (!window.Capacitor.Plugins.Filesystem) console.error("DIAGNOSTIC: Capacitor.Plugins.Filesystem IS UNDEFINED.");
-                if (!window.Capacitor.Plugins.Directory) console.error("DIAGNOSTIC: Capacitor.Plugins.Directory IS UNDEFINED. Will attempt to use string fallback in export function.");
-                if (!window.Capacitor.Plugins.Encoding) console.error("DIAGNOSTIC: Capacitor.Plugins.Encoding IS UNDEFINED. Will attempt to use string fallback in export function.");
+                // ... other capacitor checks
             } else console.error("DIAGNOSTIC: window.Capacitor.Plugins IS UNDEFINED.");
         } else console.warn("DIAGNOSTIC: window.Capacitor object NOT found. Assuming web environment for export.");
     }, 3000);
 
+    // --- Building Data Management ---
     function getStoredBuildings() {
         const stored = localStorage.getItem(BUILDING_DATA_KEY);
         if (stored) {
@@ -122,7 +141,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectsToUpdate = [
             { el: buildingNameSelect, defaultOpt: "-- Select Building --", selectedVal: selectedBuildingForForm || lastUsed },
             { el: massUpdateOldBuildingNameSelect, defaultOpt: "-- Select Building to Reassign From --" },
-            { el: renameOldBuildingNameSelect, defaultOpt: "-- Select Building to Rename --" }
+            { el: renameOldBuildingNameSelect, defaultOpt: "-- Select Building to Rename --" },
+            // { el: filterBuildingNameSelect, defaultOpt: "-- Any Building --" } // If filterBuildingName was a select
         ];
 
         selectsToUpdate.forEach(item => {
@@ -155,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // --- Navigation and View Management ---
     function setActiveView(targetViewId) {
         views.forEach(view => view.classList.remove('active-view'));
         const targetElement = document.getElementById(targetViewId); 
@@ -178,7 +199,8 @@ document.addEventListener('DOMContentLoaded', function () {
             renderRoomList();
         } else if (targetViewId === 'DataView') {
             displayFullJsonForExport();
-            populateBuildingDropdowns();
+            populateBuildingDropdowns(); // Ensure dropdowns here are populated
+            // Clear feedbacks and inputs for DataView
             if(importFeedback) {importFeedback.textContent = ''; importFeedback.className = 'feedback';}
             if(exportFeedback) {exportFeedback.textContent = ''; exportFeedback.className = 'feedback';}
             if(massUpdateFeedback) {massUpdateFeedback.textContent = ''; massUpdateFeedback.className = 'feedback';}
@@ -192,6 +214,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!editingRoomIdInput.value) { 
                 resetRoomFormToDefault();
             }
+        } else if (targetViewId === 'FilterView') {
+            // Actions for when FilterView becomes active (e.g., populate filter dropdowns if needed, clear previous results)
+            if(filterForm) filterForm.reset(); // Reset filter form
+            if(filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
+            if(filterFeedback) {filterFeedback.textContent = ''; filterFeedback.className = 'feedback';}
+            // populateBuildingDropdowns(); // Already called by general setup, but ensure filter specific dropdowns are handled if any.
         }
     }
 
@@ -223,8 +251,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (currentAddRoomView) {
             currentAddRoomView.scrollTop = 0;
         }
-        // initializeFormConditionalLogic(roomForm); // REMOVED
-        refreshConditionalFormUI(roomForm); // ADDED
+        refreshConditionalFormUI(roomForm); 
     }
 
     navLinks.forEach(link => {
@@ -241,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // MODIFIED: Only attaches listener
+    // --- Conditional Form Logic (Setup and Refresh) ---
     function setupConditionalInput(selectElement, otherInputElement) {
         if (selectElement && otherInputElement) {
             const update = () => {
@@ -250,7 +277,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!shouldBeVisible) otherInputElement.value = '';
             };
             selectElement.addEventListener('change', update);
-            // update(); // REMOVED - will be handled by refreshConditionalFormUI
         }
     }
 
@@ -264,11 +290,10 @@ document.addEventListener('DOMContentLoaded', function () {
         for (const selectId in generalConditionalMap) {
             const selectEl = formElement.querySelector(`#${selectId}`);
             const otherEl = formElement.querySelector(`#${generalConditionalMap[selectId]}`);
-            if (selectEl && otherEl) setupConditionalInput(selectEl, otherEl); // Calls modified setupConditionalInput
+            if (selectEl && otherEl) setupConditionalInput(selectEl, otherEl);
         }
     }
 
-    // MODIFIED: Only attaches listener
     function setupConditionalOtherField(controlCheckboxValue, otherTextInputId, groupName, parentElement = document) {
         const specificCheckbox = parentElement.querySelector(`input[name="${groupName}"][value="${controlCheckboxValue}"].other-checkbox`);
         const otherTextInput = parentElement.querySelector(`#${otherTextInputId}`);
@@ -280,14 +305,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!shouldBeVisible) otherTextInput.value = ''; 
             };
             specificCheckbox.addEventListener('change', updateVisibility);
-            // updateVisibility(); // REMOVED
         }
     }
-
-    // MODIFIED: Only attaches listeners
+    
     function initializeFormConditionalLogic(formElement) {
         if (!formElement) return;
-        initializeGeneralConditionalLogic(formElement); // Calls modified setupConditionalInput via this
+        initializeGeneralConditionalLogic(formElement);
 
         const ceilingTypeSelect = formElement.querySelector('#ceilingType');
         const dropCeilingOptionsDiv = formElement.querySelector('#dropCeilingOptions');
@@ -300,7 +323,6 @@ document.addEventListener('DOMContentLoaded', function () {
                  }
             }
             ceilingTypeSelect.addEventListener('change', updateCeilingOptions); 
-            // updateCeilingOptions(); // REMOVED
         }
         
         const floorTypeSelect = formElement.querySelector('#floorType');
@@ -318,9 +340,8 @@ document.addEventListener('DOMContentLoaded', function () {
                          floorTileSizeOtherEl.style.display = 'none'; 
                     }
                 } else {
-                    const floorTileSizeRadios = formElement.querySelectorAll('input[name="floorTileSize"]'); // Keep for context
                     const floorTileSizeOtherInput = formElement.querySelector('#floorTileSizeOther');
-                     if (floorTileSizeOtherInput) { // Check if element exists
+                     if (floorTileSizeOtherInput) { 
                          let selectedRadio = formElement.querySelector('input[name="floorTileSize"]:checked');
                          const showOtherInput = selectedRadio && selectedRadio.value === 'Other';
                          floorTileSizeOtherInput.style.display = showOtherInput ? 'block' : 'none';
@@ -329,7 +350,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             };
             floorTypeSelect.addEventListener('change', updateFloorOptionsVisibility);
-            // updateFloorOptionsVisibility(); // REMOVED
 
             const floorTileSizeRadios = formElement.querySelectorAll('input[name="floorTileSize"]');
             const floorTileSizeOtherInput = formElement.querySelector('#floorTileSizeOther');
@@ -341,21 +361,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (!showOtherInput) floorTileSizeOtherInput.value = '';
                 };
                 floorTileSizeRadios.forEach(radio => radio.addEventListener('change', updateFloorTileSizeOtherTextVisibility));
-                // updateFloorTileSizeOtherTextVisibility(); // REMOVED
             }
         }
         
-        // These will call the modified setupConditionalOtherField
         setupConditionalOtherField("Specialty Equipment", "furnitureSpecialtySpecifyText", "furniture", formElement);
         setupConditionalOtherField("Other", "furnitureOtherSpecifyText", "furniture", formElement);
         setupConditionalOtherField("Other", "technologyOtherSpecifyText", "technology", formElement);
     }
 
-    // NEW FUNCTION: To refresh UI based on current form values
     function refreshConditionalFormUI(formElement) {
         if (!formElement) return;
 
-        // --- Logic from setupConditionalInput / initializeGeneralConditionalLogic ---
         const generalConditionalMap = {
             'walls': 'wallsOther', 'ceilingType': 'ceilingTypeOther',
             'floorType': 'floorTypeOther', 'heatingCooling': 'heatingCoolingOther',
@@ -371,7 +387,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // --- Logic from updateCeilingOptions ---
         const ceilingTypeSelect = formElement.querySelector('#ceilingType');
         const dropCeilingOptionsDiv = formElement.querySelector('#dropCeilingOptions');
         if (ceilingTypeSelect && dropCeilingOptionsDiv) {
@@ -382,7 +397,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // --- Logic from updateFloorOptionsVisibility & updateFloorTileSizeOtherTextVisibility ---
         const floorTypeSelect = formElement.querySelector('#floorType');
         const floorTileOptionsDiv = formElement.querySelector('#floorTileOptions');
         if (floorTypeSelect && floorTileOptionsDiv) {
@@ -407,7 +421,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
         
-        // --- Logic from setupConditionalOtherField (updateVisibility) ---
         const conditionalCheckboxFields = [
             { checkboxValue: "Specialty Equipment", textInputId: "furnitureSpecialtySpecifyText", groupName: "furniture" },
             { checkboxValue: "Other", textInputId: "furnitureOtherSpecifyText", groupName: "furniture" },
@@ -425,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-
+    // --- Dynamic Form Element Appending (Doors, Light Fixtures) ---
     function appendNewDoorEntry(doorData = {}) {
         if (!doorsContainer) return;
         const id = `doorInstance_${Date.now()}`;
@@ -438,24 +451,20 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="input-group"><label for="doorType-${id}">Type:</label><select id="doorType-${id}" name="doorType"><option value="Wood">Wood</option><option value="Metal">Metal</option><option value="Glass">Glass</option><option value="Other">Other</option></select><input type="text" id="doorTypeOther-${id}" name="doorTypeOther" class="conditional-other" placeholder="Specify other door type" style="display:none;" value="${escapeHtml(doorData.typeOther || '')}"></div>
             <div class="input-group"><label for="doorLockType-${id}">Lock Type:</label><select id="doorLockType-${id}" name="doorLockType"><option value="Key">Key</option><option value="Keypad">Keypad</option><option value="Card Reader">Card Reader</option><option value="None">None</option><option value="Other">Other</option></select><input type="text" id="doorLockTypeOther-${id}" name="doorLockTypeOther" class="conditional-other" placeholder="Specify other lock type" style="display:none;" value="${escapeHtml(doorData.lockTypeOther || '')}"></div>`;
         
-        // Setup conditional logic for newly added door entry's selects
         const doorTypeSelect = div.querySelector(`#doorType-${id}`);
         const doorTypeOtherInput = div.querySelector(`#doorTypeOther-${id}`);
-        if(doorData.type) doorTypeSelect.value = doorData.type; // Set initial value if provided
-        setupConditionalInput(doorTypeSelect, doorTypeOtherInput); // Attaches listener
-        // Manually update UI for this new element based on its current value
+        if(doorData.type) doorTypeSelect.value = doorData.type;
+        setupConditionalInput(doorTypeSelect, doorTypeOtherInput);
         if (doorTypeSelect && doorTypeOtherInput) {
             const shouldShow = doorTypeSelect.value === 'Other';
             doorTypeOtherInput.style.display = shouldShow ? 'block' : 'none';
             if(!shouldShow) doorTypeOtherInput.value = doorData.typeOther || ''; else doorTypeOtherInput.value = doorData.typeOther || '';
         }
 
-
         const doorLockTypeSelect = div.querySelector(`#doorLockType-${id}`);
         const doorLockTypeOtherInput = div.querySelector(`#doorLockTypeOther-${id}`);
-        if(doorData.lockType) doorLockTypeSelect.value = doorData.lockType; // Set initial value
-        setupConditionalInput(doorLockTypeSelect, doorLockTypeOtherInput); // Attaches listener
-        // Manually update UI for this new element
+        if(doorData.lockType) doorLockTypeSelect.value = doorData.lockType;
+        setupConditionalInput(doorLockTypeSelect, doorLockTypeOtherInput);
         if (doorLockTypeSelect && doorLockTypeOtherInput) {
             const shouldShow = doorLockTypeSelect.value === 'Other';
             doorLockTypeOtherInput.style.display = shouldShow ? 'block' : 'none';
@@ -505,7 +514,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 <input type="text" id="lightStyleOther-${id}" name="lightFixtureStyleOtherSpecify" class="light-fixture-other-specify" placeholder="Specify other light style" value="${escapeHtml(fixtureData.styleOtherSpecify || '')}">
             </div>`;
         
-
         const lightTypeSelect = div.querySelector(`#lightType-${id}`);
         const lightTypeOtherInput = div.querySelector(`#lightTypeOther-${id}`);
         if(fixtureData.type) lightTypeSelect.value = fixtureData.type;
@@ -536,6 +544,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // --- Other Fixtures Checkbox Logic ---
     otherFixturesCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const value = this.value;
@@ -563,12 +572,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // --- Room Data Storage and Retrieval ---
     function getStoredRooms() { return JSON.parse(localStorage.getItem(ROOM_DATA_KEY) || '[]'); }
     function storeRooms(rooms) { localStorage.setItem(ROOM_DATA_KEY, JSON.stringify(rooms)); }
     function findRoom(bName, rId) { return (!bName||!rId)?null:getStoredRooms().find(r=>r.buildingName?.toLowerCase()===bName.toLowerCase()&&r.roomIdentifier?.toLowerCase()===rId.toLowerCase());}
     function findRoomById(roomId) { return getStoredRooms().find(r => r.id === roomId); }
 
-
+    // --- Form Clearing and Reset ---
     function clearFormAndDynamicElements(form) {
         if (!form) return;
         form.reset(); 
@@ -593,7 +603,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         form.querySelectorAll('input[name="floorTileSize"]').forEach(radio => radio.checked = false);
 
-
         ['ceilingConditionComment', 'wallsConditionComment', 'furnitureConditionComment', 'floorConditionComment', 'overallConditionComment'].forEach(id => {
             const textarea = document.getElementById(id);
             if (textarea) textarea.value = '';
@@ -604,6 +613,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (feedbackMessage) { feedbackMessage.textContent = ''; feedbackMessage.className = 'feedback'; }
     }
 
+    // --- Condition Value Helpers ---
     function conditionStringToValue(conditionString) {
         if (!conditionString || typeof conditionString !== 'string') return null;
         const match = conditionString.match(/^(\d+)/);
@@ -626,30 +636,31 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // --- Room Form Submission ---
     if (roomForm) {
         roomForm.addEventListener('submit', function (event) {
             event.preventDefault();
             if(feedbackMessage) { feedbackMessage.textContent = ''; feedbackMessage.className = 'feedback';}
-            const buildingName = buildingNameSelect.value;
-            const roomIdentifier = roomForm.querySelector('#roomIdentifier').value.trim();
+            const buildingNameVal = buildingNameSelect.value; // Use a different var name to avoid conflict
+            const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim(); // Use a different var name
             const currentRoomId = editingRoomIdInput.value;
 
-            if (!buildingName || !roomIdentifier) {
+            if (!buildingNameVal || !roomIdentifierVal) {
                 if(feedbackMessage){ feedbackMessage.textContent = 'Building Name and Room Identifier are required.'; feedbackMessage.className = 'feedback error';}
                 const currentAddRoomView = document.getElementById('AddRoomView');
                 if (currentAddRoomView) currentAddRoomView.scrollTop = 0; 
                 return;
             }
-            const existingRoomWithSameIdentifiers = findRoom(buildingName, roomIdentifier);
+            const existingRoomWithSameIdentifiers = findRoom(buildingNameVal, roomIdentifierVal);
             if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
-                if(feedbackMessage){ feedbackMessage.textContent = `Error: Room "${escapeHtml(buildingName)} - ${escapeHtml(roomIdentifier)}" already exists.`; feedbackMessage.className = 'feedback error';}
+                if(feedbackMessage){ feedbackMessage.textContent = `Error: Room "${escapeHtml(buildingNameVal)} - ${escapeHtml(roomIdentifierVal)}" already exists.`; feedbackMessage.className = 'feedback error';}
                 const currentAddRoomView = document.getElementById('AddRoomView');
                 if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
                 return;
             }
 
             const formData = new FormData(roomForm);
-            const newRoomData = { buildingName, roomIdentifier }; 
+            const newRoomData = { buildingName: buildingNameVal, roomIdentifier: roomIdentifierVal }; 
             const getCbVal = name => Array.from(roomForm.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
 
             newRoomData.roomPurpose = formData.get('roomPurpose');
@@ -784,7 +795,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 overallComment: overallConditionComment
             };
             addRoomToStorageInternal(newRoomData, currentRoomId);
-            setLastUsedBuilding(buildingName); 
+            setLastUsedBuilding(buildingNameVal); 
 
             if(feedbackMessage){
                 feedbackMessage.textContent = currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!';
@@ -838,13 +849,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // --- Populate Form for Editing ---
     function populateFormForEditing(roomId) {
         const room = findRoomById(roomId);
         if (!room) {
-            alert("Error: Could not find room to edit.");
+            alert("Error: Could not find room to edit."); // Consider replacing alert with modal or feedback message
             return;
         }
-        resetRoomFormToDefault(); // This will call refreshConditionalFormUI for reset state
+        resetRoomFormToDefault(); 
     
         editingRoomIdInput.value = room.id; 
         if(addEditRoomTitle) addEditRoomTitle.innerHTML = `<i class="fas fa-edit"></i> Edit Room: ${escapeHtml(room.buildingName)} - ${escapeHtml(room.roomIdentifier)}`;
@@ -856,11 +868,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const roomIdentifierEl = roomForm.querySelector('#roomIdentifier');
         if(roomIdentifierEl) roomIdentifierEl.value = room.roomIdentifier || '';
         
-        const roomPurposeSelect = roomForm.querySelector('#roomPurpose');
-        const roomPurposeOtherInput = roomForm.querySelector('#roomPurposeOther'); // Already handled by refresh
-        if (roomPurposeSelect) roomPurposeSelect.value = room.roomPurpose || 'Lab';
-        if (roomPurposeOtherInput && room.roomPurpose === 'Other') { // Set value if it's 'Other'
-            roomPurposeOtherInput.value = room.roomPurposeOther || '';
+        const roomPurposeSelectEl = roomForm.querySelector('#roomPurpose'); // Renamed to avoid conflict
+        const roomPurposeOtherInputEl = roomForm.querySelector('#roomPurposeOther'); // Renamed
+        if (roomPurposeSelectEl) roomPurposeSelectEl.value = room.roomPurpose || 'Lab';
+        if (roomPurposeOtherInputEl && room.roomPurpose === 'Other') { 
+            roomPurposeOtherInputEl.value = room.roomPurposeOther || '';
         }
     
         if (room.roomMakeup) {
@@ -935,7 +947,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
-        // initializeFormConditionalLogic(roomForm); // REMOVED
     
         if (lightFixturesContainer) lightFixturesContainer.innerHTML = ''; 
         if (room.lightFixtures && room.lightFixtures.length > 0) {
@@ -979,7 +990,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(otherText) otherText.value = room.furnitureOtherSpecify || '';
             }
         }
-        // setupConditionalOtherField calls are part of initializeFormConditionalLogic, UI part handled by refresh
     
         const heatingCoolingEl = roomForm.querySelector('#heatingCooling');
         if(heatingCoolingEl) heatingCoolingEl.value = room.heatingCooling || 'Forced Air';
@@ -1027,116 +1037,141 @@ document.addEventListener('DOMContentLoaded', function () {
             const floorConditionCommentEl = roomForm.querySelector('#floorConditionComment');
             if(floorConditionCommentEl) floorConditionCommentEl.value = cv.floorComment || '';
             
-            const overallConditionEl = roomForm.querySelector('#overallCondition');
+            const overallConditionEl = roomForm.querySelector('#overallCondition'); // Form element
             if(overallConditionEl) overallConditionEl.value = cv.overall || ''; 
             const overallConditionCommentEl = roomForm.querySelector('#overallConditionComment');
             if(overallConditionCommentEl) overallConditionCommentEl.value = cv.overallComment || '';
         }
     
-        refreshConditionalFormUI(roomForm); // ADDED - to refresh UI based on loaded data
+        refreshConditionalFormUI(roomForm); 
         setActiveView('AddRoomView');
     }
 
-    function renderRoomList() {
-        if (!roomListContainer) return;
-        roomListContainer.innerHTML = '';
-        const rooms = getStoredRooms();
+    // --- Render Room List (for ViewRoomsView and FilterResults) ---
+    function renderRoomList(roomsToRender = null, targetContainer = roomListContainer, isFilterResults = false) {
+        if (!targetContainer) return;
+        targetContainer.innerHTML = '';
+        const rooms = roomsToRender === null ? getStoredRooms() : roomsToRender;
 
         if (rooms.length === 0) {
-            roomListContainer.innerHTML = '<p class="empty-list-message">No rooms saved yet. Go to "Add Room" or "Data Management" to get started!</p>';
+            if (isFilterResults) {
+                targetContainer.innerHTML = '<p class="empty-list-message">No rooms match your filter criteria.</p>';
+            } else {
+                targetContainer.innerHTML = '<p class="empty-list-message">No rooms saved yet. Go to "Add Room" or "Data Management" to get started!</p>';
+            }
             return;
         }
 
-        const roomsByBuilding = rooms.reduce((acc, room) => {
-            const building = room.buildingName || 'Unspecified Building';
-            if (!acc[building]) acc[building] = [];
-            acc[building].push(room);
-            return acc;
-        }, {});
-
-        const sortedBuildingNames = Object.keys(roomsByBuilding).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-
-        sortedBuildingNames.forEach(buildingName => {
-            const buildingGroupDiv = document.createElement('div');
-            buildingGroupDiv.classList.add('building-group');
-
-            const buildingHeader = document.createElement('div');
-            buildingHeader.classList.add('building-header');
-            buildingHeader.setAttribute('role', 'button');
-            buildingHeader.setAttribute('tabindex', '0');
-            buildingHeader.setAttribute('aria-expanded', 'false'); 
-            buildingHeader.setAttribute('aria-controls', `building-rooms-${buildingName.replace(/\s+/g, '-')}`);
-            buildingHeader.innerHTML = `
-                <span>${escapeHtml(buildingName)} (${roomsByBuilding[buildingName].length} room${roomsByBuilding[buildingName].length === 1 ? '' : 's'})</span>
-                <i class="fas fa-chevron-right toggle-icon"></i>`;
-
-            const roomsContainerElement = document.createElement('div');
-            roomsContainerElement.classList.add('rooms-in-building-container');
-            roomsContainerElement.id = `building-rooms-${buildingName.replace(/\s+/g, '-')}`;
-
-            roomsByBuilding[buildingName].sort((a,b) => (a.roomIdentifier || '').toLowerCase().localeCompare((b.roomIdentifier || '').toLowerCase()))
-                .forEach(room => {
-                const card = document.createElement('div');
-                card.classList.add('room-card'); card.dataset.roomId = room.id;
-                card.setAttribute('aria-label', `Room ${escapeHtml(room.roomIdentifier)}`);
-                
-                let purposeText = escapeHtml(room.roomPurpose) || 'N/A';
-                if (room.roomPurpose === 'Other' && room.roomPurposeOther) {
-                    purposeText = `${escapeHtml(room.roomPurpose)} (${escapeHtml(room.roomPurposeOther)})`;
-                } else if (!room.roomPurpose) {
-                    purposeText = 'N/A';
-                }
-
-                card.innerHTML = `
-                    <h3><i class="fas fa-door-closed"></i> ${escapeHtml(room.roomIdentifier)}</h3>
-                    <p><small>Purpose: ${purposeText}</small></p>
-                    <div class="actions">
-                        <button type="button" class="action-button secondary-button view-details-btn" data-room-id="${room.id}" aria-label="View details for room ${escapeHtml(room.roomIdentifier)}"><i class="fas fa-eye"></i> View</button>
-                        <button type="button" class="action-button warning-button edit-room-btn" data-room-id="${room.id}" aria-label="Edit room ${escapeHtml(room.roomIdentifier)}"><i class="fas fa-edit"></i> Edit</button>
-                        <button type="button" class="action-button danger-button delete-room-btn" data-room-id="${room.id}" aria-label="Delete room ${escapeHtml(room.roomIdentifier)}"><i class="fas fa-trash-alt"></i> Delete</button>
-                    </div>`;
-                roomsContainerElement.appendChild(card);
+        if (isFilterResults || !targetContainer.id.includes('roomListContainer')) { // Direct list for filter results
+            rooms.sort((a,b) => { // Sort by building then room ID for filter results
+                const buildingCompare = (a.buildingName || '').toLowerCase().localeCompare((b.buildingName || '').toLowerCase());
+                if (buildingCompare !== 0) return buildingCompare;
+                return (a.roomIdentifier || '').toLowerCase().localeCompare((b.roomIdentifier || '').toLowerCase());
+            }).forEach(room => {
+                targetContainer.appendChild(createRoomCard(room));
             });
+        } else { // Group by building for ViewRoomsView
+            const roomsByBuilding = rooms.reduce((acc, room) => {
+                const building = room.buildingName || 'Unspecified Building';
+                if (!acc[building]) acc[building] = [];
+                acc[building].push(room);
+                return acc;
+            }, {});
 
-            const toggleExpansion = () => {
-                const isExpanded = buildingHeader.classList.toggle('expanded');
-                buildingHeader.setAttribute('aria-expanded', isExpanded.toString());
-            };
+            const sortedBuildingNames = Object.keys(roomsByBuilding).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
-            buildingHeader.addEventListener('click', toggleExpansion);
-            buildingHeader.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpansion(); }
+            sortedBuildingNames.forEach(buildingNameVal => { // Renamed to avoid conflict
+                const buildingGroupDiv = document.createElement('div');
+                buildingGroupDiv.classList.add('building-group');
+
+                const buildingHeader = document.createElement('div');
+                buildingHeader.classList.add('building-header');
+                buildingHeader.setAttribute('role', 'button');
+                buildingHeader.setAttribute('tabindex', '0');
+                buildingHeader.setAttribute('aria-expanded', 'false'); 
+                buildingHeader.setAttribute('aria-controls', `building-rooms-${buildingNameVal.replace(/\s+/g, '-')}`);
+                buildingHeader.innerHTML = `
+                    <span>${escapeHtml(buildingNameVal)} (${roomsByBuilding[buildingNameVal].length} room${roomsByBuilding[buildingNameVal].length === 1 ? '' : 's'})</span>
+                    <i class="fas fa-chevron-right toggle-icon"></i>`;
+
+                const roomsContainerElement = document.createElement('div');
+                roomsContainerElement.classList.add('rooms-in-building-container');
+                roomsContainerElement.id = `building-rooms-${buildingNameVal.replace(/\s+/g, '-')}`;
+
+                roomsByBuilding[buildingNameVal].sort((a,b) => (a.roomIdentifier || '').toLowerCase().localeCompare((b.roomIdentifier || '').toLowerCase()))
+                    .forEach(room => {
+                    roomsContainerElement.appendChild(createRoomCard(room));
+                });
+
+                const toggleExpansion = () => {
+                    const isExpanded = buildingHeader.classList.toggle('expanded');
+                    buildingHeader.setAttribute('aria-expanded', isExpanded.toString());
+                };
+
+                buildingHeader.addEventListener('click', toggleExpansion);
+                buildingHeader.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpansion(); }
+                });
+
+                buildingGroupDiv.appendChild(buildingHeader);
+                buildingGroupDiv.appendChild(roomsContainerElement);
+                targetContainer.appendChild(buildingGroupDiv);
             });
+        }
+    }
+    
+    function createRoomCard(room) {
+        const card = document.createElement('div');
+        card.classList.add('room-card'); card.dataset.roomId = room.id;
+        card.setAttribute('aria-label', `Room ${escapeHtml(room.roomIdentifier || 'N/A')} in ${escapeHtml(room.buildingName || 'N/A')}`);
+        
+        let purposeText = escapeHtml(room.roomPurpose) || 'N/A';
+        if (room.roomPurpose === 'Other' && room.roomPurposeOther) {
+            purposeText = `${escapeHtml(room.roomPurpose)} (${escapeHtml(room.roomPurposeOther)})`;
+        } else if (!room.roomPurpose) {
+            purposeText = 'N/A';
+        }
+        // For filter results, show building name in the card if not grouped
+        const buildingNamePrefix = filterResultsContainer.contains(card) ? `<strong>${escapeHtml(room.buildingName || 'N/A')}</strong> - ` : '';
 
-            buildingGroupDiv.appendChild(buildingHeader);
-            buildingGroupDiv.appendChild(roomsContainerElement);
-            roomListContainer.appendChild(buildingGroupDiv);
-        });
+
+        card.innerHTML = `
+            <h3>${buildingNamePrefix}<i class="fas fa-door-closed"></i> ${escapeHtml(room.roomIdentifier)}</h3>
+            <p><small>Purpose: ${purposeText}</small></p>
+            <p><small>Overall Condition: ${escapeHtml(room.conditionValues?.overall || 'N/A')}</small></p>
+            <div class="actions">
+                <button type="button" class="action-button secondary-button view-details-btn" data-room-id="${room.id}" aria-label="View details for room ${escapeHtml(room.roomIdentifier)}"><i class="fas fa-eye"></i> View</button>
+                <button type="button" class="action-button warning-button edit-room-btn" data-room-id="${room.id}" aria-label="Edit room ${escapeHtml(room.roomIdentifier)}"><i class="fas fa-edit"></i> Edit</button>
+                <button type="button" class="action-button danger-button delete-room-btn" data-room-id="${room.id}" aria-label="Delete room ${escapeHtml(room.roomIdentifier)}"><i class="fas fa-trash-alt"></i> Delete</button>
+            </div>`;
+        return card;
     }
 
-    if (roomListContainer) {
-        roomListContainer.addEventListener('click', function(event) {
-            const targetButton = event.target.closest('button.action-button');
-            if (!targetButton) return;
 
-            const roomId = targetButton.dataset.roomId;
-            if (targetButton.classList.contains('view-details-btn')) {
-                const cardElement = targetButton.closest('.room-card');
-                if(cardElement) cardElement.dataset.roomIdOpenedModal = roomId; 
-                displayRoomDetails(roomId);
-            } else if (targetButton.classList.contains('edit-room-btn')) {
-                populateFormForEditing(roomId);
-            } else if (targetButton.classList.contains('delete-room-btn')) {
-                const room = findRoomById(roomId);
-                if (confirm(`Are you sure you want to delete room: ${escapeHtml(room?.roomIdentifier)} in ${escapeHtml(room?.buildingName)}? This action cannot be undone.`)) {
-                    deleteRoom(roomId);
-                }
+    // Event delegation for room card actions (works for both ViewRooms and FilterResults)
+    document.querySelector('.content-area').addEventListener('click', function(event) {
+        const targetButton = event.target.closest('button.action-button');
+        if (!targetButton) return;
+
+        const roomId = targetButton.dataset.roomId;
+        if (targetButton.classList.contains('view-details-btn')) {
+            const cardElement = targetButton.closest('.room-card');
+            if(cardElement) cardElement.dataset.roomIdOpenedModal = roomId; 
+            displayRoomDetails(roomId);
+        } else if (targetButton.classList.contains('edit-room-btn')) {
+            populateFormForEditing(roomId);
+        } else if (targetButton.classList.contains('delete-room-btn')) {
+            const room = findRoomById(roomId);
+            if (confirm(`Are you sure you want to delete room: ${escapeHtml(room?.roomIdentifier)} in ${escapeHtml(room?.buildingName)}? This action cannot be undone.`)) {
+                deleteRoom(roomId);
             }
-        });
-    }
+        }
+    });
+
 
     function escapeHtml(unsafe) {return unsafe==null?'':String(unsafe).replace(/[&<"'>]/g,m=>({'&':'&amp;','<':'&lt;','"':'&quot;',"'":'&#039;','>':'&gt;'})[m]);}
 
+    // --- Room Details Modal ---
     function formatRoomDataForPreview(room) {
         if (!room) return '<p>N/A</p>';
         let html = `<p><strong>Building:</strong> ${escapeHtml(room.buildingName)}</p><p><strong>Room ID:</strong> ${escapeHtml(room.roomIdentifier)}</p>`;
@@ -1262,19 +1297,23 @@ document.addEventListener('DOMContentLoaded', function () {
     function deleteRoom(roomId) {
         const room = findRoomById(roomId);
         storeRooms(getStoredRooms().filter(r => r.id !== roomId));
-        renderRoomList();
+        renderRoomList(); // Refresh ViewRoomsView
+        if (document.getElementById('FilterView').classList.contains('active-view')) {
+            applyFilters(); // Re-apply filters if filter view is active
+        }
         populateBuildingDropdowns(); 
         const firstBuildingHeader = roomListContainer?.querySelector('.building-header');
         if (firstBuildingHeader) firstBuildingHeader.focus(); else navLinks[0]?.focus(); 
         if (roomDetailModal?.style.display === 'block') closeModal(); 
-        setTimeout(() => alert(`Room "${escapeHtml(room?.buildingName)} - ${escapeHtml(room?.roomIdentifier)}" has been deleted.`), 100); 
+        // Consider replacing alert with a less intrusive feedback mechanism
+        // setTimeout(() => alert(`Room "${escapeHtml(room?.buildingName)} - ${escapeHtml(room?.roomIdentifier)}" has been deleted.`), 100); 
     }
 
     function closeModal() {
         if(roomDetailModal) roomDetailModal.style.display = 'none';
         const activeCardSourceId = document.activeElement?.dataset.roomIdOpenedModal; 
         if(activeCardSourceId){
-            const sourceCardButton = roomListContainer?.querySelector(`.view-details-btn[data-room-id="${activeCardSourceId}"]`);
+            const sourceCardButton = document.querySelector(`.view-details-btn[data-room-id="${activeCardSourceId}"]`); // Search whole document
             if (sourceCardButton) sourceCardButton.focus();
             if(sourceCardButton && sourceCardButton.closest('.room-card')) {
                  delete sourceCardButton.closest('.room-card').dataset.roomIdOpenedModal; 
@@ -1289,6 +1328,7 @@ document.addEventListener('DOMContentLoaded', function () {
         closeModalBtn.onkeydown = e => { if (e.key==='Enter'||e.key===' ') {e.preventDefault();closeModal();}};
     }
 
+    // --- Data Management: Export ---
     function displayFullJsonForExport() {
         if (!jsonDisplayArea) return;
         const rooms = getStoredRooms();
@@ -1296,6 +1336,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (exportFeedback) {exportFeedback.className = 'feedback'; exportFeedback.textContent = '';}
     }
 
+    // --- Data Management: Building Management ---
     if (addBuildingBtn) {
         addBuildingBtn.addEventListener('click', () => {
             if (buildingManagementFeedback) { buildingManagementFeedback.textContent = ''; buildingManagementFeedback.className = 'feedback'; }
@@ -1375,6 +1416,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // --- Data Management: Mass Update Building Names ---
     if (massUpdateBuildingNameBtn) {
         massUpdateBuildingNameBtn.addEventListener('click', () => {
             if (massUpdateFeedback) { massUpdateFeedback.textContent = ''; massUpdateFeedback.className = 'feedback'; }
@@ -1443,7 +1485,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
+    
+    // --- Data Management: Export and Copy ---
     if (exportAllBtn) {
         exportAllBtn.addEventListener('click', async function() {
              if (!jsonDisplayArea || !exportFeedback) return;
@@ -1460,13 +1503,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     await Filesystem.writeFile({
                         path: filename,
                         data: jsonData,
-                        directory: Directory.Documents, // Or Directory.Downloads if available and preferred
+                        directory: Directory.Documents, 
                         encoding: Encoding.UTF8,
                     });
                      exportFeedback.textContent = `Data exported to ${filename} in Documents.`;
                      exportFeedback.className = 'feedback success';
-                     alert(`Data exported to ${filename} in app's Documents directory. You can access this via your device's file browser or by connecting to a computer.`);
-                } else { // Fallback for web
+                     // alert(`Data exported to ${filename} in app's Documents directory...`); // Consider less intrusive feedback
+                } else { 
                     const blob = new Blob([jsonData], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -1483,7 +1526,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('Export error:', error);
                 exportFeedback.textContent = `Export failed: ${error.message || 'Unknown error'}`;
                 exportFeedback.className = 'feedback error';
-                alert(`Export failed. Check console for details. Error: ${error.message}`);
+                // alert(`Export failed. Check console...`); // Consider less intrusive
             }
         });
     }
@@ -1506,7 +1549,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('Fallback copy error:', err);
                 exportFeedback.textContent = 'Copying JSON failed. See console.';
                 exportFeedback.className = 'feedback error';
-                // Fallback for browsers that don't support execCommand or if it fails
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(jsonDisplayArea.value).then(() => {
                         exportFeedback.textContent = 'JSON copied to clipboard! (using fallback)';
@@ -1518,10 +1560,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
             }
-            window.getSelection().removeAllRanges(); // Deselect
+            window.getSelection().removeAllRanges(); 
         });
     }
 
+    // --- Data Management: Import ---
     if (importJsonFileBtn && jsonImportFile) {
         importJsonFileBtn.addEventListener('click', () => {
             if (jsonImportFile.files.length === 0) {
@@ -1598,6 +1641,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // --- Import Conflict Resolution ---
     function processImportQueue() {
         if(modifyConflictFeedback){modifyConflictFeedback.className='feedback';modifyConflictFeedback.textContent='';}
         if (currentImportIndex >= importedRoomsQueue.length) {
@@ -1676,6 +1720,85 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
     
+    // --- Filter Logic ---
+    function applyFilters() {
+        if (!filterResultsContainer || !filterFeedback) return;
+        filterFeedback.textContent = '';
+        filterFeedback.className = 'feedback';
+
+        const buildingNameFilter = filterBuildingNameInput.value.trim().toLowerCase();
+        const roomIdentifierFilter = filterRoomIdentifierInput.value.trim().toLowerCase();
+        const roomPurposeFilter = filterRoomPurposeSelect.value;
+        const lightFixtureTypeFilter = filterLightFixtureTypeSelect.value;
+        const overallConditionFilter = filterOverallConditionSelect.value;
+        const asbestosCeilingFilter = filterHasAsbestosCeilingSelect.value;
+        const floorTypeFilter = filterFloorTypeSelect.value;
+
+
+        const allRooms = getStoredRooms();
+        const filteredRooms = allRooms.filter(room => {
+            let match = true;
+
+            if (buildingNameFilter && (!room.buildingName || !room.buildingName.toLowerCase().includes(buildingNameFilter))) {
+                match = false;
+            }
+            if (match && roomIdentifierFilter && (!room.roomIdentifier || !room.roomIdentifier.toLowerCase().includes(roomIdentifierFilter))) {
+                match = false;
+            }
+            if (match && roomPurposeFilter && room.roomPurpose !== roomPurposeFilter) {
+                match = false;
+            }
+            if (match && lightFixtureTypeFilter) {
+                if (!room.lightFixtures || !room.lightFixtures.some(fixture => fixture.type === lightFixtureTypeFilter)) {
+                    match = false;
+                }
+            }
+            if (match && overallConditionFilter && (!room.conditionValues || room.conditionValues.overall !== overallConditionFilter)) {
+                match = false;
+            }
+            if (match && asbestosCeilingFilter) {
+                if (room.roomMakeup?.ceiling?.type !== 'Drop Ceiling' || room.roomMakeup.ceiling.asbestosInCeiling !== asbestosCeilingFilter) {
+                     // If filter is set for asbestos, but it's not a drop ceiling, or the asbestos value doesn't match, then it's not a match.
+                    if (asbestosCeilingFilter === "Yes" || asbestosCeilingFilter === "No" || asbestosCeilingFilter === "Unknown") {
+                         match = false;
+                    }
+                }
+            }
+            if (match && floorTypeFilter && (!room.roomMakeup?.floor || room.roomMakeup.floor.type !== floorTypeFilter)) {
+                match = false;
+            }
+            return match;
+        });
+
+        renderRoomList(filteredRooms, filterResultsContainer, true);
+        if (filteredRooms.length > 0) {
+            filterFeedback.textContent = `Found ${filteredRooms.length} room(s) matching your criteria.`;
+            filterFeedback.className = 'feedback success';
+        } else {
+            filterFeedback.textContent = 'No rooms found matching your criteria.';
+            filterFeedback.className = 'feedback info';
+        }
+    }
+
+    if (filterForm) {
+        filterForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            applyFilters();
+        });
+    }
+
+    if (clearFilterBtn) {
+        clearFilterBtn.addEventListener('click', function() {
+            if (filterForm) filterForm.reset();
+            if (filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
+            if (filterFeedback) {
+                filterFeedback.textContent = '';
+                filterFeedback.className = 'feedback';
+            }
+        });
+    }
+
+    // --- Global Event Listeners (Escape key, Modal click outside) ---
     window.onkeydown = e => { 
         if (e.key==='Escape') { 
             if (conflictModal?.style.display==='block') {
@@ -1694,10 +1817,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    // MODIFIED: Call conditional logic initialization and UI refresh
+    // --- Initial App Setup ---
     if (roomForm) {
-        initializeFormConditionalLogic(roomForm); // Attaches listeners ONCE
-        refreshConditionalFormUI(roomForm);       // Sets initial UI state
+        initializeFormConditionalLogic(roomForm); 
+        refreshConditionalFormUI(roomForm);       
     }
     if (lightFixturesContainer && lightFixturesContainer.children.length === 0) {
         appendNewLightFixtureEntry(); 

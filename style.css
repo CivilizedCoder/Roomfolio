@@ -139,6 +139,7 @@ body {
 
 /* --- Form Styling & Data Management Sections --- */
 #roomForm .form-section, 
+#filterForm.form-section, /* Added for filter form */
 .data-management-section {
     margin-bottom: 30px;
     padding: 20px;
@@ -152,6 +153,7 @@ body {
 
 
 #roomForm .form-section h2, 
+#filterForm.form-section h2, /* Added for filter form */
 .data-management-section h2 {
     font-size: 1.3rem;
     color: var(--text-color);
@@ -164,6 +166,7 @@ body {
     align-items: center;
 }
 #roomForm .form-section h2 i, 
+#filterForm.form-section h2 i, /* Added for filter form */
 .data-management-section h2 i {
     margin-right: 10px;
     color: var(--secondary-color);
@@ -459,7 +462,11 @@ input[type="file"]:focus {
 }
 
 
-/* --- View Rooms Styling --- */
+/* --- View Rooms Styling & Filter Results Styling --- */
+#roomListContainer, #filterResultsContainer {
+    margin-top: 20px;
+}
+
 .building-group {
     margin-bottom: 20px;
     border: 1px solid var(--border-color);
@@ -504,6 +511,12 @@ input[type="file"]:focus {
     padding: 15px;
     overflow-y: auto; 
 }
+/* For Filter Results - direct grid layout */
+#filterResultsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
 
 
 .empty-list-message {
@@ -512,6 +525,7 @@ input[type="file"]:focus {
     font-size: 1.1rem;
     padding: 30px;
     width:100%; 
+    grid-column: 1 / -1; /* Make it span all columns if in a grid */
 }
 
 .room-card {
@@ -881,7 +895,9 @@ input[type="file"]:focus {
     .view-header h1 {
         font-size: 1.5rem;
     }
-    #roomForm .form-section h2, .data-management-section h2 {
+    #roomForm .form-section h2, 
+    #filterForm.form-section h2,
+    .data-management-section h2 {
         font-size: 1.15rem;
     }
     .modal-content {
@@ -893,6 +909,7 @@ input[type="file"]:focus {
         margin-bottom: 10px;
     }
     #roomForm .action-button, 
+    #filterForm .action-button, /* Added for filter form */
     #roomForm #cancelEditBtn { 
         width: 100%;
         margin-right: 0;
@@ -949,7 +966,7 @@ input[type="file"]:focus {
         width: 100%; 
         margin-left: 0;
     }
-    .rooms-in-building-container { 
+    .rooms-in-building-container, #filterResultsContainer { 
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
     }
     .room-card .actions .action-button {
@@ -969,11 +986,14 @@ input[type="file"]:focus {
     .view-header h1 {
         font-size: 1.3rem;
     }
-     #roomForm .form-section h2, .data-management-section h2 {
+     #roomForm .form-section h2, 
+     #filterForm.form-section h2,
+     .data-management-section h2 {
         font-size: 1.1rem;
     }
     .export-buttons-wrapper .action-button,
     .data-management-section .action-button,
+    #filterForm .action-button, /* Added for filter form */
     #conflictModal .action-button { 
         width: 100%; 
         margin-right: 0;
@@ -987,7 +1007,7 @@ input[type="file"]:focus {
         font-size: 0.95rem;
         padding: 10px 15px;
     }
-    .rooms-in-building-container {
+    .rooms-in-building-container, #filterResultsContainer {
         grid-template-columns: 1fr; 
     }
      .room-card .actions .action-button {
@@ -999,10 +1019,21 @@ input[type="file"]:focus {
     margin-top: 0; 
 }
 
-#buildingManagementFeedback:empty {
+#buildingManagementFeedback:empty, #filterFeedback:empty { /* Added filterFeedback */
     display: none;
 }
 
 .data-management-section h2 i.fa-building-user {
     color: var(--secondary-color); 
+}
+
+/* Ensure filter form buttons have some space */
+#filterForm .action-button + .action-button {
+    margin-left: 10px;
+}
+@media (max-width: 768px) {
+    #filterForm .action-button + .action-button {
+        margin-left: 0;
+        margin-top: 10px; /* Stack them on smaller screens */
+    }
 }
