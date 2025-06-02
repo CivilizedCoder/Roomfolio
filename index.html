@@ -339,13 +339,6 @@
                 </header>
                 <div id="roomListContainer">
                     </div>
-                <div id="roomDetailModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close-modal-btn" role="button" tabindex="0" aria-label="Close room details">&times;</span>
-                        <h2>Room Details</h2>
-                        <div id="roomDetailContent"></div>
-                    </div>
-                </div>
             </div>
 
             <div id="FilterView" class="view-section">
@@ -358,8 +351,8 @@
                         <input type="text" id="filterBuildingName" name="filterBuildingName" placeholder="Enter building name (partial or full)">
                     </div>
                     <div class="input-group">
-                        <label for="filterRoomIdentifier">Room Identifier:</label>
-                        <input type="text" id="filterRoomIdentifier" name="filterRoomIdentifier" placeholder="Enter room ID (partial or full)">
+                        <label for="filterRoomIdentifier">Room Identifier (Starts with):</label>
+                        <input type="text" id="filterRoomIdentifier" name="filterRoomIdentifier" placeholder="e.g., 3 for 3rd floor rooms">
                     </div>
                     <div class="input-group">
                         <label for="filterRoomPurpose">Room Purpose:</label>
@@ -453,7 +446,7 @@
                             <label for="renameOldBuildingNameSelect">Select Building to Rename:</label>
                             <select id="renameOldBuildingNameSelect" name="renameOldBuildingNameSelect">
                                 <option value="">-- Select Building --</option>
-                            </select>
+                                </select>
                         </div>
                         <div class="input-group">
                             <label for="renameNewBuildingNameInput">New Name for Building:</label>
@@ -494,7 +487,7 @@
                         <label for="massUpdateOldBuildingNameSelect">Select Current Building Name (from Room Data):</label>
                         <select id="massUpdateOldBuildingNameSelect" name="massUpdateOldBuildingNameSelect">
                              <option value="">-- Select Building to Reassign From --</option>
-                        </select>
+                             </select>
                     </div>
                     <div class="input-group">
                         <label for="massUpdateNewBuildingNameInput">New Building Name (for these Rooms):</label>
@@ -514,8 +507,13 @@
                     </div>
                     <p id="exportFeedback" class="feedback"></p>
                 </section>
-            </div>
-        </main>
+            </div> </main> </div> <div id="roomDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal-btn" role="button" tabindex="0" aria-label="Close room details">&times;</span>
+            <h2>Room Details</h2>
+            <div id="roomDetailContent">
+                </div>
+        </div>
     </div>
 
     <div id="conflictModal" class="modal">
@@ -527,11 +525,13 @@
                 <div class="conflict-room-comparison">
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-file-import"></i> Importing Room Data:</h4>
-                        <div id="importingRoomDetailsPreview" class="room-details-preview"></div>
+                        <div id="importingRoomDetailsPreview" class="room-details-preview">
+                            </div>
                     </div>
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-database"></i> Existing Room Data:</h4>
-                        <div id="existingRoomDetailsPreview" class="room-details-preview"></div>
+                        <div id="existingRoomDetailsPreview" class="room-details-preview">
+                            </div>
                     </div>
                 </div>
             </div>
@@ -559,34 +559,30 @@
 
     <script src="script.js"></script>
     <script>
+        // This inline script is for very simple UI interactions that don't need complex state management.
+        // Most of the application logic resides in script.js
         document.addEventListener("DOMContentLoaded", function () {
-          // This script block is for minor UI enhancements that might not be covered by the main script.js
-          // or for quick fixes. The main logic is in script.js.
           const otherCheckboxes = document.querySelectorAll(".other-checkbox");
           otherCheckboxes.forEach(checkbox => {
             checkbox.addEventListener("change", function () {
               const container = checkbox.closest(".other-field-wrapper, .fixture-item-group-other");
               const textInput = container.querySelector("input[type='text']");
-              const qtyInput = container.querySelector("input[type='number']"); // For "Other Fixture"
+              const qtyInput = container.querySelector("input[type='number']"); // Specifically for "Other Fixture" quantity
       
               if (checkbox.checked) {
                 if (textInput) {
                   textInput.style.display = textInput.classList.contains('inline-other') ? "inline-block" : "block";
-                  // textInput.required = true; // Requirement handled in main script.js logic
                 }
-                if (qtyInput && container.classList.contains('fixture-item-group-other')) {
+                if (qtyInput && container.classList.contains('fixture-item-group-other')) { 
                   qtyInput.style.display = "block";
-                  // qtyInput.required = true; // Requirement handled in main script.js logic
                 }
               } else {
                 if (textInput) {
                   textInput.style.display = "none";
-                  // textInput.required = false;
                   textInput.value = "";
                 }
                 if (qtyInput && container.classList.contains('fixture-item-group-other')) {
                   qtyInput.style.display = "none";
-                  // qtyInput.required = false;
                   qtyInput.value = "";
                 }
               }
@@ -595,9 +591,13 @@
         });
       </script>
       <script>
+        // Service Worker registration
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/Roomfolio/service-worker.js') // Ensure this path is correct for your GitHub Pages setup
+            // Ensure the path to service-worker.js is correct for your deployment (especially for GitHub Pages)
+            // If your app is at https://username.github.io/Roomfolio/, then '/Roomfolio/service-worker.js' is correct.
+            // If it's at the root of a custom domain, '/service-worker.js' might be needed.
+            navigator.serviceWorker.register('/Roomfolio/service-worker.js') 
               .then((registration) => {
                 console.log('Service Worker registered with scope:', registration.scope);
               })
