@@ -1,14 +1,17 @@
 :root {
-    --primary-color: #3498db; 
-    --secondary-color: #2ecc71; 
-    --accent-color: #f39c12; 
-    --bg-color: #f4f7f6; 
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --accent-color: #f39c12;
+    --bg-color: #f4f7f6;
     --card-bg-color: #ffffff;
     --text-color: #333;
     --muted-text-color: #7f8c8d;
     --border-color: #e0e0e0;
     --danger-color: #e74c3c;
     --success-color: #27ae60;
+    --sticky-input-color: #757575; /* Color for sticky input text */
+    --sticky-input-bg-color: #f9f9f9; /* Optional background for sticky inputs */
+
 
     --font-family: 'Poppins', sans-serif;
     --border-radius: 8px;
@@ -105,13 +108,13 @@ body {
     padding: 25px;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
-    animation: fadeIn 0.5s ease-in-out forwards; 
+    animation: fadeIn 0.5s ease-in-out forwards;
 }
 
 .view-section.active-view {
-    display: block !important; 
-    max-height: calc(100vh - var(--nav-height) - 40px); 
-    overflow-y: auto; 
+    display: block !important;
+    max-height: calc(100vh - var(--nav-height) - 40px); /* Adjust based on actual nav height and padding */
+    overflow-y: auto; /* Enable scrolling for the active view */
 }
 
 @keyframes fadeIn {
@@ -138,7 +141,7 @@ body {
 
 
 /* --- Form Styling & Data Management Sections --- */
-#roomForm .form-section, 
+#roomForm .form-section,
 #filterForm.form-section, /* Added for filter form */
 .data-management-section {
     margin-bottom: 30px;
@@ -152,7 +155,7 @@ body {
 }
 
 
-#roomForm .form-section h2, 
+#roomForm .form-section h2,
 #filterForm.form-section h2, /* Added for filter form */
 .data-management-section h2 {
     font-size: 1.3rem;
@@ -165,23 +168,23 @@ body {
     display: flex;
     align-items: center;
 }
-#roomForm .form-section h2 i, 
+#roomForm .form-section h2 i,
 #filterForm.form-section h2 i, /* Added for filter form */
 .data-management-section h2 i {
     margin-right: 10px;
     color: var(--secondary-color);
 }
 .data-management-section h2 i.fa-file-export,
-.data-management-section h2 i.fa-exchange-alt { 
-    color: var(--primary-color); 
+.data-management-section h2 i.fa-exchange-alt {
+    color: var(--primary-color); /* Differentiate some data management icons */
 }
 
 
 .input-group {
     margin-bottom: 20px;
-    position: relative; 
+    position: relative; /* For potential absolute positioned elements inside */
 }
-.input-group fieldset.input-group { 
+.input-group fieldset.input-group { /* Nested fieldsets */
     margin-bottom: 0;
     padding-bottom: 0;
 }
@@ -204,7 +207,7 @@ fieldset.sub-group legend {
     font-weight: 500;
     color: var(--muted-text-color);
 }
-.checkbox-group .group-label, .radio-group .group-label { 
+.checkbox-group .group-label, .radio-group .group-label { /* Specific for checkbox/radio group legends */
     margin-bottom: 10px;
 }
 
@@ -215,8 +218,8 @@ fieldset.sub-group legend {
     color: var(--muted-text-color);
     margin-top: 5px;
 }
-.input-group textarea { 
-    margin-top: 8px; 
+.input-group textarea { /* Specific textarea styling within input-group */
+    margin-top: 8px; /* Add some space above textareas */
     font-size: 0.95rem;
     padding: 0.6rem 0.8rem;
 }
@@ -238,21 +241,21 @@ input[type="file"] {
     background-color: #fff;
 }
 input[type="file"] {
-    padding: 0.6rem 0.8rem; 
+    padding: 0.6rem 0.8rem; /* Slightly less padding for file inputs */
 }
-input[type="number"].fixture-count-input, 
-input[type="number"].light-fixture-quantity { 
-    width: 80px; 
-    padding: 0.6rem 0.8rem; 
+input[type="number"].fixture-count-input,
+input[type="number"].light-fixture-quantity { /* Specific styling for quantity inputs */
+    width: 80px; /* Narrower width for quantity */
+    padding: 0.6rem 0.8rem;
     margin-left: 5px;
     text-align: center;
 }
 
 textarea {
     line-height: 1.5;
-    min-height: 60px; 
+    min-height: 60px; /* Minimum height for textareas */
 }
-#jsonPasteArea, #jsonDisplayArea { 
+#jsonPasteArea, #jsonDisplayArea { /* Specific textareas for JSON */
     min-height: 100px;
 }
 
@@ -267,12 +270,27 @@ input[type="file"]:focus {
     outline: none;
 }
 
+/* Sticky Input Styling */
+.sticky-input-unconfirmed {
+    color: var(--sticky-input-color) !important;
+    font-style: italic !important;
+    /* background-color: var(--sticky-input-bg-color) !important; */
+    /* border: 1px dashed var(--sticky-input-color) !important; */
+}
+
+/* Ensure select options also reflect sticky state if possible, though direct styling of options is limited */
+select.sticky-input-unconfirmed {
+    color: var(--sticky-input-color) !important;
+    font-style: italic !important;
+}
+
+
 .radio-group label,
-.checkbox-group label { 
-    display: inline-flex; 
+.checkbox-group label {
+    display: inline-flex; /* Align checkbox/radio with text */
     align-items: center;
-    margin-right: 15px; 
-    margin-bottom: 10px;
+    margin-right: 15px; /* Space between options */
+    margin-bottom: 10px; /* Space below options */
     font-weight: 400;
     cursor: pointer;
     position: relative;
@@ -281,59 +299,64 @@ input[type="file"]:focus {
 .radio-group input[type="radio"],
 .checkbox-group input[type="checkbox"] {
     margin-right: 8px;
-    accent-color: var(--primary-color);
+    accent-color: var(--primary-color); /* Modern way to color radios/checkboxes */
     transform: scale(1.1);
     cursor: pointer;
-    flex-shrink: 0; 
+    flex-shrink: 0; /* Prevent shrinking if label text is long */
+}
+.checkbox-group input[type="checkbox"].sticky-input-unconfirmed {
+    /* May need JavaScript to visually indicate parent label if checkbox itself can't be styled well */
+    outline: 1px dashed var(--sticky-input-color); /* Example */
 }
 
-.conditional-section { 
+
+.conditional-section { /* For sections like dropCeilingOptions, floorTileOptions */
     padding: 15px;
     margin-top: 15px;
     border-left: 3px solid var(--secondary-color);
-    display: none;
+    display: none; /* Initially hidden, shown by JS */
     background-color: #f9f9f9;
     border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 
-.conditional-other { 
+.conditional-other { /* For "Other" text inputs */
     margin-top: 8px;
-    display: none; 
+    display: none; /* Initially hidden */
 }
-.light-fixture-other-specify { 
+.light-fixture-other-specify { /* Specific for light fixture "other" text inputs */
     margin-top: 8px;
     display: none;
 }
 
 
-.inline-other { 
-    margin-left: 10px; 
-    width: auto; 
+.inline-other { /* For "Other" text inputs that appear next to a checkbox */
+    margin-left: 10px;
+    width: auto; /* Adjust width as needed */
     padding: 0.4rem 0.6rem;
     font-size: 0.9rem;
     border-radius: 4px;
-    display: none; 
+    display: none; /* Initially hidden */
 }
-.other-field-wrapper { 
+.other-field-wrapper { /* Container for a checkbox and its inline "other" input */
     display: inline-flex;
     align-items: center;
-    margin-right: 20px; 
-    margin-bottom: 10px; 
-    vertical-align: middle; 
+    margin-right: 20px;
+    margin-bottom: 10px;
+    vertical-align: middle; /* Align with other form elements */
 }
-.other-field-wrapper label { 
+.other-field-wrapper label { /* Label within this wrapper */
     margin-right: 0;
     margin-bottom: 0;
 }
 
 
-.door-entry, .light-fixture-entry { 
+.door-entry, .light-fixture-entry { /* Styling for dynamically added door/light fixture sections */
     padding: 15px;
     border: 1px dashed var(--border-color);
     border-radius: var(--border-radius);
     margin-bottom: 15px;
     background-color: #fdfdfd;
-    position: relative;
+    position: relative; /* For absolute positioning of remove button */
 }
 .door-entry h4, .light-fixture-entry h4 {
     margin-top:0;
@@ -343,14 +366,14 @@ input[type="file"]:focus {
     font-size: 1.05rem;
 }
 .light-fixture-entry .input-group {
-    margin-bottom: 10px; 
+    margin-bottom: 10px; /* Reduced margin for tighter layout */
 }
 .light-fixture-entry .input-group label {
     font-size: 0.9rem;
 }
 
 
-.remove-door-btn, .remove-light-fixture-btn { 
+.remove-door-btn, .remove-light-fixture-btn { /* Remove buttons for dynamic entries */
     position: absolute;
     top: 10px;
     right: 10px;
@@ -362,10 +385,10 @@ input[type="file"]:focus {
     cursor: pointer;
     font-size: 0.9em;
     transition: background-color 0.2s ease;
-    line-height: 1; 
+    line-height: 1; /* Ensure icon fits well */
 }
 .remove-door-btn:hover, .remove-light-fixture-btn:hover {
-    background-color: #c0392b;
+    background-color: #c0392b; /* Darker red on hover */
 }
 
 
@@ -381,8 +404,8 @@ input[type="file"]:focus {
     font-weight: 500;
     text-align: center;
     transition: background-color 0.2s ease-in-out, transform 0.1s ease, box-shadow 0.2s ease;
-    margin-top: 10px; 
-    margin-right: 10px; 
+    margin-top: 10px; /* Default top margin */
+    margin-right: 10px; /* Default right margin for spacing */
     text-decoration: none;
 }
 .action-button i {
@@ -402,7 +425,7 @@ input[type="file"]:focus {
     color: white;
 }
 .primary-button:hover {
-    background-color: #2980b9;
+    background-color: #2980b9; /* Darker primary on hover */
 }
 
 .secondary-button {
@@ -410,7 +433,7 @@ input[type="file"]:focus {
     color: white;
 }
 .secondary-button:hover {
-    background-color: #27ae60;
+    background-color: #27ae60; /* Darker secondary on hover */
 }
 
 .warning-button {
@@ -418,7 +441,7 @@ input[type="file"]:focus {
     color: white;
 }
 .warning-button:hover {
-    background-color: #d68910;
+    background-color: #d68910; /* Darker accent on hover */
 }
 
 
@@ -427,7 +450,7 @@ input[type="file"]:focus {
     color: white;
 }
 .danger-button:hover {
-    background-color: #c0392b;
+    background-color: #c0392b; /* Darker danger on hover */
 }
 
 
@@ -439,24 +462,24 @@ input[type="file"]:focus {
     font-weight: 500;
     font-size: 0.95rem;
 }
-.feedback:empty { 
+.feedback:empty { /* Hide if no text */
     display: none;
 }
 .feedback.success {
-    display: block; 
+    display: block; /* Ensure it's visible when class is added */
     background-color: #d4efdf;
     color: var(--success-color);
     border: 1px solid #a9dfbf;
 }
 .feedback.error {
-    display: block; 
+    display: block; /* Ensure it's visible */
     background-color: #fdedec;
     color: var(--danger-color);
     border: 1px solid #f5b7b1;
 }
-.feedback.info { 
+.feedback.info { /* For informational messages */
     display: block;
-    background-color: #eaf2f8; 
+    background-color: #eaf2f8;
     color: var(--primary-color);
     border: 1px solid #aed6f1;
 }
@@ -471,15 +494,15 @@ input[type="file"]:focus {
     margin-bottom: 20px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    background-color: var(--card-bg-color); 
+    background-color: var(--card-bg-color); /* Ensures background for the group */
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 .building-header {
-    background-color: var(--primary-color); 
+    background-color: var(--primary-color); /* Header for building group */
     color: white;
     padding: 12px 18px;
     cursor: pointer;
-    border-radius: var(--border-radius) var(--border-radius) 0 0; 
+    border-radius: var(--border-radius) var(--border-radius) 0 0; /* Rounded top corners */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -487,29 +510,29 @@ input[type="file"]:focus {
     transition: background-color 0.2s ease;
 }
 .building-header:hover {
-    background-color: #2980b9; 
+    background-color: #2980b9; /* Darker on hover */
 }
 .building-header .toggle-icon {
     transition: transform 0.3s ease;
     font-size: 0.9em;
 }
 .building-header.expanded .toggle-icon {
-    transform: rotate(90deg);
+    transform: rotate(90deg); /* Icon rotation for expanded state */
 }
 
 .rooms-in-building-container {
-    padding: 0px 15px; 
-    display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    padding: 0px 15px; /* Initial padding, adjusted when expanded */
+    display: grid; /* Use grid for room cards */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive columns */
     gap: 15px;
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.4s ease-out, padding 0.4s ease-out; 
+    transition: max-height 0.4s ease-out, padding 0.4s ease-out; /* Smooth expansion */
 }
 .building-header.expanded + .rooms-in-building-container {
-    max-height: 2000px; 
+    max-height: 2000px; /* Large enough max-height for content */
     padding: 15px;
-    overflow-y: auto; 
+    overflow-y: auto; /* Scroll if content overflows */
 }
 /* For Filter Results - direct grid layout */
 #filterResultsContainer {
@@ -524,22 +547,22 @@ input[type="file"]:focus {
     color: var(--muted-text-color);
     font-size: 1.1rem;
     padding: 30px;
-    width:100%; 
+    width:100%; /* Full width */
     grid-column: 1 / -1; /* Make it span all columns if in a grid */
 }
 
 .room-card {
-    background-color: #fff; 
+    background-color: #fff; /* White background for cards */
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    padding: 15px; 
+    padding: 15px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.07);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
 }
 .room-card:hover, .room-card:focus-within {
-    transform: translateY(-3px); 
+    transform: translateY(-3px); /* Slight lift on hover/focus */
     box-shadow: 0 4px 12px rgba(0,0,0,0.09);
 }
 
@@ -547,24 +570,24 @@ input[type="file"]:focus {
 .room-card h3 {
     color: var(--primary-color);
     margin-bottom: 8px;
-    font-size: 1.1rem; 
+    font-size: 1.1rem; /* Slightly smaller for card context */
     font-weight: 600;
 }
 .room-card p {
     color: var(--muted-text-color);
-    font-size: 0.85rem; 
+    font-size: 0.85rem; /* Smaller text for details */
     margin-bottom: 12px;
-    flex-grow: 1; 
+    flex-grow: 1; /* Allow p to take available space */
 }
 .room-card .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px; 
+    gap: 8px; /* Space between action buttons */
     margin-top: auto;
     flex-wrap: wrap;
 }
 .room-card .actions .action-button {
-    font-size: 0.8rem; 
+    font-size: 0.8rem; /* Smaller buttons in cards */
     padding: 0.45rem 0.9rem;
     margin-top: 5px;
 }
@@ -627,13 +650,13 @@ input[type="file"]:focus {
 #roomDetailContent {
     max-height: 65vh;
     overflow-y: auto;
-    padding-right: 15px; 
+    padding-right: 15px; /* Space for scrollbar */
 }
-#roomDetailContent h2 { 
+#roomDetailContent h2 { /* Title inside modal */
     color: var(--primary-color);
     margin-bottom: 15px;
 }
-#roomDetailContent h3 { 
+#roomDetailContent h3 { /* Section titles inside modal */
     color: var(--secondary-color);
     margin-top: 20px;
     margin-bottom: 10px;
@@ -645,12 +668,12 @@ input[type="file"]:focus {
     margin-bottom: 8px;
     font-size: 0.95rem;
 }
-#roomDetailContent p.condition-comment { 
+#roomDetailContent p.condition-comment { /* Comments for condition values */
     font-style: italic;
     color: var(--muted-text-color);
     font-size: 0.9rem;
     padding-left: 15px;
-    margin-top: -5px; 
+    margin-top: -5px; /* Pull up slightly */
     margin-bottom: 10px;
 }
 
@@ -695,10 +718,10 @@ input[type="file"]:focus {
     border-top: 1px solid var(--border-color);
 }
 
-#jsonDisplayArea { 
+#jsonDisplayArea { /* For exporting JSON */
     width: 100%;
     min-height: 200px;
-    max-height: 400px; 
+    max-height: 400px; /* Limit height to prevent excessive scrolling */
     padding: 15px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -710,7 +733,7 @@ input[type="file"]:focus {
     margin-bottom: 20px;
     background-color: #fdfdfd;
 }
-#jsonPasteArea { 
+#jsonPasteArea { /* For pasting JSON to import */
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9rem;
 }
@@ -719,10 +742,10 @@ input[type="file"]:focus {
     display: flex;
     justify-content: center;
     gap: 15px;
-    flex-wrap: wrap; 
+    flex-wrap: wrap; /* Allow buttons to wrap on small screens */
 }
 
-/* --- Building Name Suggestions --- */
+/* --- Building Name Suggestions (if implemented) --- */
 .suggestions-list {
     border: 1px solid var(--border-color);
     border-top: none;
@@ -730,9 +753,9 @@ input[type="file"]:focus {
     overflow-y: auto;
     position: absolute;
     background-color: white;
-    width: 100%; 
-    left:0; 
-    top: 100%; 
+    width: 100%; /* Match input width */
+    left:0; /* Align with input */
+    top: 100%; /* Position below input */
     z-index: 999;
     border-radius: 0 0 var(--border-radius) var(--border-radius);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
@@ -753,63 +776,63 @@ input[type="file"]:focus {
 /* --- Other Fixtures Styling --- */
 .other-fixtures-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive grid */
     gap: 15px;
 }
 .fixture-item-group {
-    display: flex; 
+    display: flex; /* Align checkbox, label, and count input */
     align-items: center;
-    margin-bottom: 5px; 
-    flex-wrap: nowrap; 
+    margin-bottom: 5px; /* Small gap between items */
+    flex-wrap: nowrap; /* Prevent wrapping within the group */
 }
 .fixture-item-group label.fixture-checkbox-label {
-    display: flex; 
+    display: flex; /* Align checkbox with its text */
     align-items: center;
-    margin-right: 5px; 
-    flex-grow: 1; 
-    margin-bottom: 0; 
+    margin-right: 5px; /* Space between checkbox and count input */
+    flex-grow: 1; /* Allow label to take available space */
+    margin-bottom: 0; /* Override default label margin */
 }
 
 .fixture-item-group input[type="checkbox"].fixture-present-checkbox {
-    margin-right: 8px; 
+    margin-right: 8px; /* Space after checkbox */
 }
 .fixture-item-group input[type="number"].fixture-count-input {
-    width: 70px; 
+    width: 70px; /* Smaller width for quantity */
     padding: 0.4rem 0.6rem;
     font-size: 0.9rem;
-    margin-left: auto; 
+    margin-left: auto; /* Push to the right if space allows */
 }
-.fixture-item-group-other { 
-    grid-column: 1 / -1; 
-    flex-direction: column; 
+.fixture-item-group-other { /* Special layout for "Other Fixture" group */
+    grid-column: 1 / -1; /* Span full width */
+    flex-direction: column; /* Stack elements vertically */
     align-items: flex-start;
 }
 .fixture-item-group-other .other-details-container {
-    display: flex; 
-    flex-direction: column; 
+    display: none; /* Initially hidden, shown by JS */
+    flex-direction: column; /* Stack specify text and quantity */
     width: 100%;
     margin-top: 5px;
-    padding-left: 25px; 
+    padding-left: 25px; /* Indent "Other" details */
 }
 .fixture-item-group-other .other-details-container input[type="text"],
 .fixture-item-group-other .other-details-container input[type="number"] {
-    width: 100%; 
-    margin-left: 0; 
+    width: 100%; /* Full width within its container */
+    margin-left: 0; /* Reset margin */
     margin-bottom: 5px;
 }
 .fixture-item-group-other .other-details-container input[type="number"] {
-    width: 100px; 
+    width: 100px; /* Specific width for quantity in "Other" */
 }
 
 
 /* --- Conflict Modal Specific Styling --- */
 .conflict-room-comparison {
     display: flex;
-    gap: 20px; 
+    gap: 20px; /* Space between importing and existing room panels */
     margin-bottom: 20px;
 }
 .conflict-room-panel {
-    flex: 1; 
+    flex: 1; /* Equal width for both panels */
     padding: 15px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -827,7 +850,7 @@ input[type="file"]:focus {
     margin-right: 8px;
     color: var(--primary-color);
 }
-.conflict-room-panel:last-child h4 i { 
+.conflict-room-panel:last-child h4 i { /* Different icon color for existing room */
      color: var(--secondary-color);
 }
 
@@ -895,7 +918,7 @@ input[type="file"]:focus {
     .view-header h1 {
         font-size: 1.5rem;
     }
-    #roomForm .form-section h2, 
+    #roomForm .form-section h2,
     #filterForm.form-section h2,
     .data-management-section h2 {
         font-size: 1.15rem;
@@ -905,41 +928,41 @@ input[type="file"]:focus {
         width: 95%;
         padding: 20px;
     }
-    .action-button { 
+    .action-button { /* General action button adjustments */
         margin-bottom: 10px;
     }
-    #roomForm .action-button, 
+    #roomForm .action-button,
     #filterForm .action-button, /* Added for filter form */
-    #roomForm #cancelEditBtn { 
+    #roomForm #cancelEditBtn { /* Buttons in main forms take full width */
         width: 100%;
         margin-right: 0;
     }
 
     .export-buttons-wrapper .action-button,
     .data-management-section .action-button,
-    #conflictModal .action-button { 
-        width: auto; 
+    #conflictModal .action-button { /* Buttons in specific sections/modals */
+        width: auto; /* Allow them to size based on content */
         flex-grow: 1;
-        margin-right: 10px; 
+        margin-right: 10px; /* Keep some spacing */
     }
     .data-management-section .action-button:last-child,
     #conflictModal .action-button:last-child {
-        margin-right: 0; 
+        margin-right: 0; /* No margin for the last button in a row */
     }
 
     .data-management-section .input-group input[type="file"],
     .data-management-section .input-group textarea,
-    .data-management-section .input-group select { 
+    .data-management-section .input-group select { /* Ensure inputs in data management are full width */
         width: 100%;
     }
 
      .checkbox-group label, .radio-group label, .other-field-wrapper {
-        display: block; 
+        display: block; /* Stack checkbox/radio groups */
         width: 100%;
         margin-right: 0;
     }
     .inline-other {
-        width: calc(100% - 0px); 
+        width: calc(100% - 0px); /* Make inline-other full width when stacked */
         margin-left: 0;
         margin-top: 8px;
     }
@@ -947,15 +970,15 @@ input[type="file"]:focus {
         margin-left: 0;
     }
     .conflict-room-comparison {
-        flex-direction: column; 
+        flex-direction: column; /* Stack conflict panels */
     }
 
-    .other-fixtures-grid { 
+    .other-fixtures-grid { /* Single column for fixtures grid */
         grid-template-columns: 1fr;
     }
     .light-fixture-entry .input-group {
         display: flex;
-        flex-direction: column; 
+        flex-direction: column; /* Stack elements within light fixture entry */
     }
     .light-fixture-entry .input-group label {
         margin-bottom: 5px;
@@ -963,14 +986,14 @@ input[type="file"]:focus {
     .light-fixture-entry input[type="number"].light-fixture-quantity,
     .light-fixture-entry select,
     .light-fixture-entry input[type="text"] {
-        width: 100%; 
+        width: 100%; /* Full width for light fixture inputs */
         margin-left: 0;
     }
-    .rooms-in-building-container, #filterResultsContainer { 
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
+    .rooms-in-building-container, #filterResultsContainer { /* Adjust grid for room cards */
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     }
     .room-card .actions .action-button {
-        flex-basis: calc(50% - 4px); 
+        flex-basis: calc(50% - 4px); /* Two buttons per row in card actions */
         min-width: 100px;
     }
 }
@@ -986,7 +1009,7 @@ input[type="file"]:focus {
     .view-header h1 {
         font-size: 1.3rem;
     }
-     #roomForm .form-section h2, 
+     #roomForm .form-section h2,
      #filterForm.form-section h2,
      .data-management-section h2 {
         font-size: 1.1rem;
@@ -994,12 +1017,12 @@ input[type="file"]:focus {
     .export-buttons-wrapper .action-button,
     .data-management-section .action-button,
     #filterForm .action-button, /* Added for filter form */
-    #conflictModal .action-button { 
-        width: 100%; 
+    #conflictModal .action-button { /* All these buttons become full width */
+        width: 100%;
         margin-right: 0;
     }
     .conflict-actions .action-button {
-        width: 100%; 
+        width: 100%;
         margin-bottom: 10px;
         margin-right: 0;
     }
@@ -1008,15 +1031,15 @@ input[type="file"]:focus {
         padding: 10px 15px;
     }
     .rooms-in-building-container, #filterResultsContainer {
-        grid-template-columns: 1fr; 
+        grid-template-columns: 1fr; /* Single column for room cards */
     }
      .room-card .actions .action-button {
-        flex-basis: 100%; 
+        flex-basis: 100%; /* Single button per row in card actions */
     }
 }
 
 .data-management-section .import-method-container + .data-section-divider + .import-method-container {
-    margin-top: 0; 
+    margin-top: 0; /* Adjust margin for stacked import methods */
 }
 
 #buildingManagementFeedback:empty, #filterFeedback:empty { /* Added filterFeedback */
@@ -1024,7 +1047,7 @@ input[type="file"]:focus {
 }
 
 .data-management-section h2 i.fa-building-user {
-    color: var(--secondary-color); 
+    color: var(--secondary-color); /* Specific icon color */
 }
 
 /* Ensure filter form buttons have some space */

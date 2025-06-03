@@ -36,7 +36,8 @@
                             <label for="buildingName">Building Name:</label>
                             <select id="buildingName" name="buildingName" required>
                                 <option value="">-- Select Building --</option>
-                                </select>
+                                <!-- Options populated by JS -->
+                            </select>
                         </div>
                         <div class="input-group">
                             <label for="roomIdentifier">Room Identifier:</label>
@@ -70,6 +71,8 @@
                             <select id="walls" name="walls">
                                 <option value="Drywall">Drywall</option>
                                 <option value="Plaster">Plaster</option>
+                                <option value="Bricks">Bricks</option>
+                                <option value="Blocks">Blocks</option>
                                 <option value="Other">Other</option>
                             </select>
                             <label for="wallsOther" class="visually-hidden">Specify other wall type</label>
@@ -81,6 +84,7 @@
                                 <option value="Drop Ceiling">Drop Ceiling</option>
                                 <option value="Hard Ceiling">Hard Ceiling</option>
                                 <option value="Plaster">Plaster</option>
+                                <option value="None">None</option>
                                 <option value="Other">Other</option>
                             </select>
                             <label for="ceilingTypeOther" class="visually-hidden">Specify other ceiling type</label>
@@ -130,7 +134,8 @@
                         <fieldset class="input-group">
                             <legend class="group-label">Light Fixtures</legend>
                             <div id="lightFixturesContainer">
-                                </div>
+                                <!-- Light fixture entries populated by JS -->
+                            </div>
                             <button type="button" id="addLightFixtureBtn" class="action-button secondary-button" style="margin-top: 5px; font-size: 0.9em; padding: 0.5em 1em;"><i class="fas fa-plus"></i> Add Light Fixture Type</button>
                         </fieldset>
                         <fieldset class="input-group">
@@ -238,7 +243,8 @@
                     <section class="form-section">
                         <h2><i class="fas fa-door-open"></i> 6. Doors Within the Room</h2>
                         <div id="doorsContainer">
-                            </div>
+                            <!-- Door entries populated by JS -->
+                        </div>
                         <button type="button" id="addDoorBtn" class="action-button secondary-button"><i class="fas fa-plus"></i> Add Door</button>
                     </section>
 
@@ -252,6 +258,7 @@
                                 <label for="techSound"><input type="checkbox" id="techSound" name="technology" value="Sound System"> Sound System</label>
                                 <label for="techInteractiveWB"><input type="checkbox" id="techInteractiveWB" name="technology" value="Interactive Whiteboard/Smartboard"> Interactive WB/Smartboard</label>
                                 <label for="techPrinters"><input type="checkbox" id="techPrinters" name="technology" value="Printers"> Printers</label>
+                                <label for="techComputerStations"><input type="checkbox" id="techComputerStations" name="technology" value="Computer Station(s)"> Computer Station(s)</label>
                                 <div class="other-field-wrapper">
                                     <label for="technologyOtherCheckbox">
                                         <input type="checkbox" id="technologyOtherCheckbox" name="technology" value="Other" class="other-checkbox"> Other
@@ -338,7 +345,8 @@
                     <h1><i class="fas fa-eye"></i> View Saved Rooms</h1>
                 </header>
                 <div id="roomListContainer">
-                    </div>
+                    <!-- Room cards populated by JS -->
+                </div>
             </div>
 
             <div id="FilterView" class="view-section">
@@ -350,7 +358,8 @@
                         <label for="filterBuildingName">Building Name:</label>
                         <select id="filterBuildingName" name="filterBuildingName">
                             <option value="">-- Any Building --</option>
-                            </select>
+                            <!-- Options populated by JS -->
+                        </select>
                     </div>
                     <div class="input-group">
                         <label for="filterRoomIdentifier">Room Identifier (Starts with):</label>
@@ -424,7 +433,8 @@
                     <p id="filterFeedback" class="feedback"></p>
                 </form>
                 <div id="filterResultsContainer">
-                    </div>
+                    <!-- Filter results populated by JS -->
+                </div>
             </div>
 
 
@@ -451,7 +461,8 @@
                             <label for="renameOldBuildingNameSelect">Select Building to Rename:</label>
                             <select id="renameOldBuildingNameSelect" name="renameOldBuildingNameSelect">
                                 <option value="">-- Select Building --</option>
-                                </select>
+                                <!-- Options populated by JS -->
+                            </select>
                         </div>
                         <div class="input-group">
                             <label for="renameNewBuildingNameInput">New Name for Building:</label>
@@ -492,7 +503,8 @@
                         <label for="massUpdateOldBuildingNameSelect">Select Current Building Name (from Room Data):</label>
                         <select id="massUpdateOldBuildingNameSelect" name="massUpdateOldBuildingNameSelect">
                              <option value="">-- Select Building to Reassign From --</option>
-                             </select>
+                             <!-- Options populated by JS -->
+                        </select>
                     </div>
                     <div class="input-group">
                         <label for="massUpdateNewBuildingNameInput">New Building Name (for these Rooms):</label>
@@ -512,12 +524,17 @@
                     </div>
                     <p id="exportFeedback" class="feedback"></p>
                 </section>
-            </div> </main> </div> <div id="roomDetailModal" class="modal">
+            </div>
+        </main>
+    </div>
+
+    <div id="roomDetailModal" class="modal">
         <div class="modal-content">
             <span class="close-modal-btn" role="button" tabindex="0" aria-label="Close room details">&times;</span>
             <h2>Room Details</h2>
             <div id="roomDetailContent">
-                </div>
+                <!-- Room details populated by JS -->
+            </div>
         </div>
     </div>
 
@@ -531,12 +548,14 @@
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-file-import"></i> Importing Room Data:</h4>
                         <div id="importingRoomDetailsPreview" class="room-details-preview">
-                            </div>
+                            <!-- Importing room details by JS -->
+                        </div>
                     </div>
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-database"></i> Existing Room Data:</h4>
                         <div id="existingRoomDetailsPreview" class="room-details-preview">
-                            </div>
+                            <!-- Existing room details by JS -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -563,30 +582,45 @@
     </div>
 
     <script src="script.js"></script>
+    <!-- Inline script for simple DOM manipulations that don't need full app context -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+          // This script handles the "Other" checkbox behavior for specialty/other text inputs
+          // in furniture and technology sections, and for "Other Fixture" details.
           const otherCheckboxes = document.querySelectorAll(".other-checkbox");
           otherCheckboxes.forEach(checkbox => {
             checkbox.addEventListener("change", function () {
               const container = checkbox.closest(".other-field-wrapper, .fixture-item-group-other");
-              const textInput = container.querySelector("input[type='text']");
-              const qtyInput = container.querySelector("input[type='number']");
-      
+              if (!container) return;
+
+              const textInput = container.querySelector("input[type='text'].conditional-other, input[type='text'][name$='Specify']");
+              const qtyInput = container.querySelector("input[type='number'].fixture-count-input"); // Specifically for "Other Fixture"
+
               if (checkbox.checked) {
                 if (textInput) {
                   textInput.style.display = textInput.classList.contains('inline-other') ? "inline-block" : "block";
                 }
-                if (qtyInput && container.classList.contains('fixture-item-group-other')) { 
-                  qtyInput.style.display = "block";
+                // Special handling for the "Other Fixture" group which has a details container
+                if (container.classList.contains('fixture-item-group-other')) {
+                    const detailsContainer = container.querySelector('.other-details-container');
+                    if (detailsContainer) detailsContainer.style.display = 'flex'; // Or 'block' depending on desired layout
                 }
+
               } else {
                 if (textInput) {
                   textInput.style.display = "none";
                   textInput.value = "";
                 }
-                if (qtyInput && container.classList.contains('fixture-item-group-other')) {
-                  qtyInput.style.display = "none";
-                  qtyInput.value = "";
+                if (container.classList.contains('fixture-item-group-other')) {
+                    const detailsContainer = container.querySelector('.other-details-container');
+                    if (detailsContainer) {
+                        detailsContainer.style.display = 'none';
+                        // Also clear inputs within the details container
+                        const innerTextInput = detailsContainer.querySelector("input[type='text']");
+                        const innerQtyInput = detailsContainer.querySelector("input[type='number']");
+                        if(innerTextInput) innerTextInput.value = "";
+                        if(innerQtyInput) innerQtyInput.value = "";
+                    }
                 }
               }
             });
@@ -594,9 +628,10 @@
         });
       </script>
       <script>
+        // Service worker registration
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/Roomfolio/service-worker.js') 
+            navigator.serviceWorker.register('/Roomfolio/service-worker.js') // Ensure this path is correct for your deployment
               .then((registration) => {
                 console.log('Service Worker registered with scope:', registration.scope);
               })
