@@ -263,6 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
             currentAddRoomView.scrollTop = 0;
         }
         refreshConditionalFormUI(roomForm);
+        window.scrollTo(0, 0); // Scroll to the top of the screen
     }
 
     navLinks.forEach(link => {
