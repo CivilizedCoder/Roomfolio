@@ -647,47 +647,74 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Room Form Submission ---
     if (roomForm) {
-        roomForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-            if(feedbackMessage) { feedbackMessage.textContent = ''; feedbackMessage.className = 'feedback';}
-            const buildingNameVal = buildingNameSelect.value;
-            const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim();
-            const currentRoomId = editingRoomIdInput.value;
+    roomForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        console.log("[RoomFormSubmit] Form submission initiated.");
 
-            if (!buildingNameVal || !roomIdentifierVal) {
-                if(feedbackMessage){ feedbackMessage.textContent = 'Building Name and Room Identifier are required.'; feedbackMessage.className = 'feedback error';}
-                const currentAddRoomView = document.getElementById('AddRoomView');
-                if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
-                return;
-            }
-            const existingRoomWithSameIdentifiers = findRoom(buildingNameVal, roomIdentifierVal);
-            if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
-                if(feedbackMessage){ feedbackMessage.textContent = `Error: Room "${escapeHtml(buildingNameVal)} - ${escapeHtml(roomIdentifierVal)}" already exists.`; feedbackMessage.className = 'feedback error';}
-                const currentAddRoomView = document.getElementById('AddRoomView');
-                if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
-                return;
-            }
+        if (feedbackMessage) {
+            feedbackMessage.textContent = '';
+            feedbackMessage.className = 'feedback';
+        } else {
+            console.warn("[RoomFormSubmit] feedbackMessage element not found. User feedback might be limited to alerts/console.");
+        }
 
+        const buildingNameVal = buildingNameSelect.value;
+        const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim();
+        const currentRoomId = editingRoomIdInput.value;
+
+        if (!buildingNameVal || !roomIdentifierVal) {
+            const msg = 'Building Name and Room Identifier are required.';
+            console.warn("[RoomFormSubmit] Validation failed:", msg);
+            if (feedbackMessage) {
+                feedbackMessage.textContent = msg;
+                feedbackMessage.className = 'feedback error';
+            } else {
+                alert(msg);
+            }
+            const currentAddRoomView = document.getElementById('AddRoomView');
+            if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+            return;
+        }
+
+        const existingRoomWithSameIdentifiers = findRoom(buildingNameVal, roomIdentifierVal);
+        if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
+            const msg = `Error: Room "${escapeHtml(buildingNameVal)} - ${escapeHtml(roomIdentifierVal)}" already exists.`;
+            console.warn("[RoomFormSubmit] Validation failed: Duplicate room.", { buildingNameVal, roomIdentifierVal });
+            if (feedbackMessage) {
+                feedbackMessage.textContent = msg;
+                feedbackMessage.className = 'feedback error';
+            } else {
+                alert(msg);
+            }
+            const currentAddRoomView = document.getElementById('AddRoomView');
+            if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+            return;
+        }
+
+        try {
+            console.log("[RoomFormSubmit] Starting data collection and save operation for room:", { buildingNameVal, roomIdentifierVal, currentRoomId });
             const formData = new FormData(roomForm);
             const newRoomData = { buildingName: buildingNameVal, roomIdentifier: roomIdentifierVal };
-            const getCbVal = name => Array.from(roomForm.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
 
+            // Room Purpose
             newRoomData.roomPurpose = formData.get('roomPurpose');
             newRoomData.roomPurposeOther = (newRoomData.roomPurpose === 'Other') ? formData.get('roomPurposeOther').trim() : '';
+
+            // Room Makeup
             newRoomData.roomMakeup = {
                 walls: formData.get('walls'),
-                wallsOther: formData.get('walls')==='Other'?formData.get('wallsOther').trim():'',
+                wallsOther: formData.get('walls') === 'Other' ? formData.get('wallsOther').trim() : '',
                 ceiling: {
-                    type:formData.get('ceilingType'),
-                    typeOther:formData.get('ceilingType')==='Other'?formData.get('ceilingTypeOther').trim():''
+                    type: formData.get('ceilingType'),
+                    typeOther: formData.get('ceilingType') === 'Other' ? formData.get('ceilingTypeOther').trim() : ''
                 },
                 floor: {
                     type: formData.get('floorType'),
                     typeOther: formData.get('floorType') === 'Other' ? formData.get('floorTypeOther').trim() : ''
                 }
             };
-            if(formData.get('ceilingType')==='Drop Ceiling') {
-                newRoomData.roomMakeup.ceiling.asbestosInCeiling=formData.get('ceilingAsbestos');
+            if (formData.get('ceilingType') === 'Drop Ceiling') {
+                newRoomData.roomMakeup.ceiling.asbestosInCeiling = formData.get('ceilingAsbestos');
             }
             if (newRoomData.roomMakeup.floor.type === 'Tile') {
                 newRoomData.roomMakeup.floor.tileSize = formData.get('floorTileSize');
@@ -695,6 +722,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     newRoomData.roomMakeup.floor.tileSizeOther = formData.get('floorTileSizeOther').trim();
                 }
             }
+
+            // Light Fixtures
             newRoomData.lightFixtures = [];
             if (lightFixturesContainer) {
                 lightFixturesContainer.querySelectorAll('.light-fixture-entry').forEach(entry => {
@@ -714,6 +743,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
             }
+
+            // Other Fixtures
             newRoomData.otherFixtures = [];
             document.querySelectorAll('.fixture-present-checkbox:checked').forEach(cb => {
                 const type = cb.value;
@@ -738,11 +769,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     newRoomData.otherFixtures.push({ type, count });
                 }
             });
+
+            const getCbVal = name => Array.from(roomForm.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+            // Furniture
             newRoomData.furniture = getCbVal('furniture');
-            newRoomData.furnitureSpecialtySpecify = newRoomData.furniture.includes('Specialty Equipment')?formData.get('furnitureSpecialtySpecifyText').trim():'';
-            newRoomData.furnitureOtherSpecify = newRoomData.furniture.includes('Other')?formData.get('furnitureOtherSpecifyText').trim():'';
+            newRoomData.furnitureSpecialtySpecify = newRoomData.furniture.includes('Specialty Equipment') ? formData.get('furnitureSpecialtySpecifyText').trim() : '';
+            newRoomData.furnitureOtherSpecify = newRoomData.furniture.includes('Other') ? formData.get('furnitureOtherSpecifyText').trim() : '';
+
+            // Heating/Cooling
             newRoomData.heatingCooling = formData.get('heatingCooling');
-            newRoomData.heatingCoolingOther = formData.get('heatingCooling')==='Other'?formData.get('heatingCoolingOther').trim():'';
+            newRoomData.heatingCoolingOther = formData.get('heatingCooling') === 'Other' ? formData.get('heatingCoolingOther').trim() : '';
+
+            // Doors
             newRoomData.doors = [];
             if (doorsContainer) {
                 doorsContainer.querySelectorAll('.door-entry').forEach(entry => {
@@ -751,19 +789,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     const lockTypeSel = entry.querySelector('select[name="doorLockType"]');
                     const doorTypeOtherIn = entry.querySelector('input[name="doorTypeOther"]');
                     const lockTypeOtherIn = entry.querySelector('input[name="doorLockTypeOther"]');
-                    if(doorIdVal || doorTypeSel.value !== 'Wood' || lockTypeSel.value !== 'Key' ||
-                       (doorTypeSel.value === 'Other' && doorTypeOtherIn?.value.trim() !== '') ||
-                       (lockTypeSel.value === 'Other' && lockTypeOtherIn?.value.trim() !== '')) {
+                    if (doorIdVal || doorTypeSel.value !== 'Wood' || lockTypeSel.value !== 'Key' ||
+                        (doorTypeSel.value === 'Other' && doorTypeOtherIn?.value.trim() !== '') ||
+                        (lockTypeSel.value === 'Other' && lockTypeOtherIn?.value.trim() !== '')) {
                         newRoomData.doors.push({
-                            identifier:doorIdVal, type:doorTypeSel.value, lockType:lockTypeSel.value,
-                            typeOther:(doorTypeSel.value==='Other'&&doorTypeOtherIn)?doorTypeOtherIn.value.trim():'',
-                            lockTypeOther:(lockTypeSel.value==='Other'&&lockTypeOtherIn)?lockTypeOtherIn.value.trim():''
+                            identifier: doorIdVal, type: doorTypeSel.value, lockType: lockTypeSel.value,
+                            typeOther: (doorTypeSel.value === 'Other' && doorTypeOtherIn) ? doorTypeOtherIn.value.trim() : '',
+                            lockTypeOther: (lockTypeSel.value === 'Other' && lockTypeOtherIn) ? lockTypeOtherIn.value.trim() : ''
                         });
                     }
                 });
             }
+
+            // Technology
             newRoomData.technology = getCbVal('technology');
-            newRoomData.technologyOtherSpecify = newRoomData.technology.includes('Other')?formData.get('technologyOtherSpecifyText').trim():'';
+            newRoomData.technologyOtherSpecify = newRoomData.technology.includes('Other') ? formData.get('technologyOtherSpecifyText').trim() : '';
+
+            // Condition Values
             let overallConditionFromForm = formData.get('overallCondition');
             let overallConditionComment = formData.get('overallConditionComment').trim();
             if (!overallConditionFromForm || overallConditionFromForm === "") {
@@ -793,21 +835,65 @@ document.addEventListener('DOMContentLoaded', function () {
                 overall: overallConditionFromForm,
                 overallComment: overallConditionComment
             };
+
+            console.log("[RoomFormSubmit] Data collection complete. Room data object:", newRoomData);
+
             addRoomToStorageInternal(newRoomData, currentRoomId);
+            console.log("[RoomFormSubmit] addRoomToStorageInternal completed successfully.");
+
             setLastUsedBuilding(buildingNameVal);
-            if(feedbackMessage){
+            console.log("[RoomFormSubmit] setLastUsedBuilding completed successfully.");
+
+            if (feedbackMessage) {
                 feedbackMessage.textContent = currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!';
-                feedbackMessage.className='feedback success';
-            }
-            const isEditing = !!currentRoomId;
-            resetRoomFormToDefault();
-            if (isEditing) {
-                setTimeout(() => { if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView'); }, 1500);
+                feedbackMessage.className = 'feedback success';
+                console.log("[RoomFormSubmit] Success feedback displayed to user.");
             } else {
-                 setTimeout(() => { if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView'); }, 1500);
+                console.warn("[RoomFormSubmit] feedbackMessage element not found, but operation was successful.");
+                alert(currentRoomId ? 'Room information updated successfully! (Feedback area not found)' : 'Room information saved successfully! (Feedback area not found)');
             }
-        });
-    }
+
+            const isEditing = !!currentRoomId;
+            // Post-save UI updates
+            try {
+                resetRoomFormToDefault();
+                console.log("[RoomFormSubmit] resetRoomFormToDefault completed.");
+                if (isEditing) {
+                    setTimeout(() => {
+                        if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView');
+                        console.log("[RoomFormSubmit] Navigated to ViewRoomsView (after edit).");
+                    }, 1500);
+                } else {
+                    setTimeout(() => {
+                        if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView');
+                        console.log("[RoomFormSubmit] Navigated to ViewRoomsView (after add).");
+                    }, 1500);
+                }
+            } catch (uiError) {
+                console.error("[RoomFormSubmit] Error during post-save UI updates (reset/navigation):", uiError);
+                // Data was saved, but UI update failed. The success message for saving is already shown.
+                // Optionally, inform the user about the UI glitch if critical.
+                if (feedbackMessage) {
+                    // Append to existing success message or add a new one if appropriate
+                    // For now, just log, as primary save was successful.
+                }
+            }
+
+        } catch (error) {
+            console.error('[RoomFormSubmit] CRITICAL ERROR during room save process:', error);
+            const errorMsg = 'Failed to save room information. An unexpected error occurred. Please try again. If the problem persists, check the console for more details.';
+            if (feedbackMessage) {
+                feedbackMessage.textContent = errorMsg;
+                feedbackMessage.className = 'feedback error';
+            } else {
+                alert(errorMsg); // Fallback if feedbackMessage element is somehow missing
+            }
+            // Scroll to the top of the form to make feedback visible
+            const currentAddRoomView = document.getElementById('AddRoomView');
+            if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+        }
+    });
+}
 
     if(cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => {
