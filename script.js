@@ -773,8 +773,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const getCbVal = name => Array.from(roomForm.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
             // Furniture
             newRoomData.furniture = getCbVal('furniture');
-            newRoomData.furnitureSpecialtySpecify = newRoomData.furniture.includes('Specialty Equipment') ? formData.get('furnitureSpecialtySpecifyText').trim() : '';
-            newRoomData.furnitureOtherSpecify = newRoomData.furniture.includes('Other') ? formData.get('furnitureOtherSpecifyText').trim() : '';
+            newRoomData.furnitureSpecialtySpecify = newRoomData.furniture.includes('Specialty Equipment') ? (formData.get('furnitureSpecialtySpecify') || '').trim() : '';
+            newRoomData.furnitureOtherSpecify = newRoomData.furniture.includes('Other') ? (formData.get('furnitureOtherSpecify') || '').trim() : '';
 
             // Heating/Cooling
             newRoomData.heatingCooling = formData.get('heatingCooling');
@@ -803,7 +803,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Technology
             newRoomData.technology = getCbVal('technology');
-            newRoomData.technologyOtherSpecify = newRoomData.technology.includes('Other') ? formData.get('technologyOtherSpecifyText').trim() : '';
+            newRoomData.technologyOtherSpecify = newRoomData.technology.includes('Other') ? (formData.get('technologyOtherSpecify') || '').trim() : '';
 
             // Condition Values
             let overallConditionFromForm = formData.get('overallCondition');
