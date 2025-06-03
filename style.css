@@ -9,9 +9,7 @@
     --border-color: #e0e0e0;
     --danger-color: #e74c3c;
     --success-color: #27ae60;
-    --sticky-input-color: #757575; /* Color for sticky input text */
-    --sticky-input-bg-color: #f9f9f9; /* Optional background for sticky inputs */
-
+    --remembered-input-color: #888; /* Color for remembered inputs */
 
     --font-family: 'Poppins', sans-serif;
     --border-radius: 8px;
@@ -237,8 +235,9 @@ input[type="file"] {
     box-sizing: border-box;
     font-size: 1rem;
     font-family: var(--font-family);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, font-style 0.3s ease;
     background-color: #fff;
+    color: var(--text-color); /* Default text color */
 }
 input[type="file"] {
     padding: 0.6rem 0.8rem; /* Slightly less padding for file inputs */
@@ -268,20 +267,20 @@ input[type="file"]:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
     outline: none;
+    color: var(--text-color); /* Ensure text color is normal on focus */
+    font-style: normal; /* Ensure font style is normal on focus */
 }
 
-/* Sticky Input Styling */
-.sticky-input-unconfirmed {
-    color: var(--sticky-input-color) !important;
+/* Styling for remembered inputs */
+.remembered-input {
+    color: var(--remembered-input-color) !important;
     font-style: italic !important;
-    /* background-color: var(--sticky-input-bg-color) !important; */
-    /* border: 1px dashed var(--sticky-input-color) !important; */
 }
 
-/* Ensure select options also reflect sticky state if possible, though direct styling of options is limited */
-select.sticky-input-unconfirmed {
-    color: var(--sticky-input-color) !important;
-    font-style: italic !important;
+/* Ensure select dropdown text itself isn't styled by remembered-input directly, but the select box shows it */
+select.remembered-input option {
+    color: var(--text-color); /* Options should always be normal color */
+    font-style: normal;
 }
 
 
@@ -303,10 +302,6 @@ select.sticky-input-unconfirmed {
     transform: scale(1.1);
     cursor: pointer;
     flex-shrink: 0; /* Prevent shrinking if label text is long */
-}
-.checkbox-group input[type="checkbox"].sticky-input-unconfirmed {
-    /* May need JavaScript to visually indicate parent label if checkbox itself can't be styled well */
-    outline: 1px dashed var(--sticky-input-color); /* Example */
 }
 
 

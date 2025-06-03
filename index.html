@@ -383,8 +383,8 @@
                         <label for="filterLightFixtureType">Light Fixture Type:</label>
                         <select id="filterLightFixtureType" name="filterLightFixtureType">
                             <option value="">-- Any Light Type --</option>
-                            <option value="Fluorescent T5">Fluorescent T5</option>
                             <option value="Fluorescent T8">Fluorescent T8</option>
+                            <option value="Fluorescent T5">Fluorescent T5</option>
                             <option value="Fluorescent T12">Fluorescent T12</option>
                             <option value="Incandescent">Incandescent</option>
                             <option value="LED">LED</option>
@@ -524,9 +524,9 @@
                     </div>
                     <p id="exportFeedback" class="feedback"></p>
                 </section>
-            </div>
+            </div> <!-- Closing DataView -->
         </main>
-    </div>
+    </div> <!-- Closing app-container -->
 
     <div id="roomDetailModal" class="modal">
         <div class="modal-content">
@@ -594,7 +594,7 @@
               if (!container) return;
 
               const textInput = container.querySelector("input[type='text'].conditional-other, input[type='text'][name$='Specify']");
-              const qtyInput = container.querySelector("input[type='number'].fixture-count-input"); // Specifically for "Other Fixture"
+              // const qtyInput = container.querySelector("input[type='number'].fixture-count-input"); // Specifically for "Other Fixture"
 
               if (checkbox.checked) {
                 if (textInput) {
@@ -603,7 +603,7 @@
                 // Special handling for the "Other Fixture" group which has a details container
                 if (container.classList.contains('fixture-item-group-other')) {
                     const detailsContainer = container.querySelector('.other-details-container');
-                    if (detailsContainer) detailsContainer.style.display = 'flex'; // Or 'block' depending on desired layout
+                    if (detailsContainer) detailsContainer.style.display = 'flex'; 
                 }
 
               } else {
