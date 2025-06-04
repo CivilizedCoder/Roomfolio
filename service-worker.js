@@ -3,7 +3,7 @@ const urlsToCache = [
   // IMPORTANT: For GitHub Pages, all paths must include your repository name
   '/Roomfolio/',             // The root of your app (index.html is implicitly covered)
   '/Roomfolio/index.html',   // Explicitly list your main HTML file
-  '/Roomfolio/styles.css',   // Your CSS file
+  '/Roomfolio/style.css',   // Your CSS file
   '/Roomfolio/script.js',    // Your JavaScript file
   '/Roomfolio/icon-192x192.png', // Your 192x192 icon
   '/Roomfolio/icon-512x512.png'  // Your 512x512 icon

@@ -820,20 +820,22 @@ select.remembered-input option {
 }
 
 
-/* --- Conflict Modal Specific Styling --- */
-.conflict-room-comparison {
+/* --- Conflict Modal Specific Styling (Import & Duplicate Save) --- */
+.conflict-room-comparison, .conflict-resolution-container {
     display: flex;
     gap: 20px; /* Space between importing and existing room panels */
     margin-bottom: 20px;
 }
-.conflict-room-panel {
+.conflict-panel, .conflict-room-panel { /* Combined for reuse */
     flex: 1; /* Equal width for both panels */
     padding: 15px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     background-color: #f9f9f9;
+    display: flex;
+    flex-direction: column;
 }
-.conflict-room-panel h4 {
+.conflict-panel h3, .conflict-room-panel h4 { /* Combined for reuse */
     color: var(--text-color);
     margin-bottom: 10px;
     font-weight: 500;
@@ -841,22 +843,25 @@ select.remembered-input option {
     align-items: center;
     font-size: 1.05rem;
 }
-.conflict-room-panel h4 i {
+.conflict-panel h3 i, .conflict-room-panel h4 i { /* Combined for reuse */
     margin-right: 8px;
     color: var(--primary-color);
 }
-.conflict-room-panel:last-child h4 i { /* Different icon color for existing room */
+.conflict-room-panel:last-child h4 i,
+#existingDataPanel h3 i { /* Different icon color for existing room */
      color: var(--secondary-color);
 }
 
 .room-details-preview {
     font-size: 0.85rem;
-    max-height: 150px;
+    max-height: 150px; /* Adjust as needed */
     overflow-y: auto;
     background-color: #fff;
     padding: 10px;
     border-radius: 4px;
     border: 1px solid #eee;
+    flex-grow: 1; /* Allow preview to take space */
+    margin-bottom: 10px;
 }
 .room-details-preview p {
     margin-bottom: 5px;
@@ -866,14 +871,14 @@ select.remembered-input option {
     font-weight: 500;
 }
 
-#conflictModal .input-group {
+#conflictModal .input-group, #duplicateResolutionView .input-group { /* Apply to both */
     margin-bottom: 15px;
 }
-#conflictModal .action-button {
+#conflictModal .action-button, #duplicateResolutionView .action-button { /* Apply to both */
     font-size: 0.9rem;
     padding: 0.6rem 1.2rem;
 }
-#modifyConflictFeedback:empty {
+#modifyConflictFeedback:empty, #duplicateResolutionFeedback:empty { /* Apply to both */
     display:none;
 }
 
@@ -936,15 +941,21 @@ select.remembered-input option {
 
     .export-buttons-wrapper .action-button,
     .data-management-section .action-button,
-    #conflictModal .action-button { /* Buttons in specific sections/modals */
+    #conflictModal .action-button,
+    #duplicateResolutionView .actions .action-button, /* Buttons in duplicate resolution panels */
+    #duplicateResolutionView > div > .action-button { /* Back to Room List button */
         width: auto; /* Allow them to size based on content */
         flex-grow: 1;
         margin-right: 10px; /* Keep some spacing */
     }
+
     .data-management-section .action-button:last-child,
-    #conflictModal .action-button:last-child {
+    #conflictModal .action-button:last-child,
+    #duplicateResolutionView .actions .action-button:last-child,
+    #duplicateResolutionView > div > .action-button:last-of-type {
         margin-right: 0; /* No margin for the last button in a row */
     }
+
 
     .data-management-section .input-group input[type="file"],
     .data-management-section .input-group textarea,
@@ -965,9 +976,23 @@ select.remembered-input option {
     .other-field-wrapper .inline-other {
         margin-left: 0;
     }
-    .conflict-room-comparison {
+    
+    .conflict-room-comparison, .conflict-resolution-container {
         flex-direction: column; /* Stack conflict panels */
     }
+    .conflict-panel .actions, .conflict-room-panel .actions { /* Actions within conflict panels */
+        display: flex;
+        flex-direction: column; /* Stack buttons */
+    }
+    .conflict-panel .actions .action-button, .conflict-room-panel .actions .action-button {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+     .conflict-panel .actions .action-button:last-child, .conflict-room-panel .actions .action-button:last-child {
+        margin-bottom: 0;
+    }
+
 
     .other-fixtures-grid { /* Single column for fixtures grid */
         grid-template-columns: 1fr;
@@ -1013,7 +1038,9 @@ select.remembered-input option {
     .export-buttons-wrapper .action-button,
     .data-management-section .action-button,
     #filterForm .action-button, /* Added for filter form */
-    #conflictModal .action-button { /* All these buttons become full width */
+    #conflictModal .action-button,
+    #duplicateResolutionView .actions .action-button,
+    #duplicateResolutionView > div > .action-button { /* All these buttons become full width */
         width: 100%;
         margin-right: 0;
     }
