@@ -928,7 +928,8 @@ select.remembered-input option {
     }
     #roomForm .action-button,
     #filterForm .action-button, /* Added for filter form */
-    #roomForm #cancelEditBtn { /* Buttons in main forms take full width */
+    #roomForm #cancelEditBtn,
+    #roomForm #copyCurrentRoomJsonBtn { /* Buttons in main forms take full width */
         width: 100%;
         margin-right: 0;
     }

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const doorsContainer = document.getElementById('doorsContainer');
     const addDoorBtn = document.getElementById('addDoorBtn');
     const saveRoomBtn = document.getElementById('saveRoomBtn');
+    const copyCurrentRoomJsonBtn = document.getElementById('copyCurrentRoomJsonBtn'); // New button
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     const lightFixturesContainer = document.getElementById('lightFixturesContainer');
     const addLightFixtureBtn = document.getElementById('addLightFixtureBtn');
@@ -776,281 +777,368 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // --- Room Form Submission ---
-    if (roomForm) {
-    roomForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        console.log("[RoomFormSubmit] Form submission initiated.");
-
-        if (feedbackMessage) {
-            feedbackMessage.textContent = '';
-            feedbackMessage.className = 'feedback';
-        } else {
-            console.warn("[RoomFormSubmit] feedbackMessage element not found. User feedback might be limited to alerts/console.");
-        }
-
+    // --- Helper function to collect form data into a room object ---
+    function getCurrentRoomDataFromForm() {
+        const formData = new FormData(roomForm);
         const buildingNameVal = buildingNameSelect.value;
         const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim();
-        const currentRoomId = editingRoomIdInput.value;
+        
+        const newRoomData = { buildingName: buildingNameVal, roomIdentifier: roomIdentifierVal };
 
-        if (!buildingNameVal || !roomIdentifierVal) {
-            const msg = 'Building Name and Room Identifier are required.';
-            console.warn("[RoomFormSubmit] Validation failed:", msg);
-            if (feedbackMessage) {
-                feedbackMessage.textContent = msg;
-                feedbackMessage.className = 'feedback error';
-            } else {
-                alert(msg);
+        // Room Purpose
+        newRoomData.roomPurpose = formData.get('roomPurpose');
+        newRoomData.roomPurposeOther = (newRoomData.roomPurpose === 'Other') ? formData.get('roomPurposeOther').trim() : '';
+
+        // Room Makeup
+        newRoomData.roomMakeup = {
+            walls: formData.get('walls'),
+            wallsOther: formData.get('walls') === 'Other' ? formData.get('wallsOther').trim() : '',
+            ceiling: {
+                type: formData.get('ceilingType'),
+                typeOther: formData.get('ceilingType') === 'Other' ? formData.get('ceilingTypeOther').trim() : ''
+            },
+            floor: {
+                type: formData.get('floorType'),
+                typeOther: formData.get('floorType') === 'Other' ? formData.get('floorTypeOther').trim() : ''
             }
-            const currentAddRoomView = document.getElementById('AddRoomView');
-            if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
-            return;
+        };
+        if (formData.get('ceilingType') === 'Drop Ceiling') {
+            newRoomData.roomMakeup.ceiling.asbestosInCeiling = formData.get('ceilingAsbestos');
         }
-
-        const existingRoomWithSameIdentifiers = findRoom(buildingNameVal, roomIdentifierVal);
-        if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
-            const msg = `Error: Room "${escapeHtml(buildingNameVal)} - ${escapeHtml(roomIdentifierVal)}" already exists.`;
-            console.warn("[RoomFormSubmit] Validation failed: Duplicate room.", { buildingNameVal, roomIdentifierVal });
-            if (feedbackMessage) {
-                feedbackMessage.textContent = msg;
-                feedbackMessage.className = 'feedback error';
-            } else {
-                alert(msg);
+        if (newRoomData.roomMakeup.floor.type === 'Tile') {
+            newRoomData.roomMakeup.floor.tileSize = formData.get('floorTileSize');
+            if (formData.get('floorTileSize') === 'Other') {
+                newRoomData.roomMakeup.floor.tileSizeOther = formData.get('floorTileSizeOther').trim();
             }
-            const currentAddRoomView = document.getElementById('AddRoomView');
-            if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
-            return;
         }
-
-        try {
-            console.log("[RoomFormSubmit] Starting data collection and save operation for room:", { buildingNameVal, roomIdentifierVal, currentRoomId });
-            const formData = new FormData(roomForm);
-            const newRoomData = { buildingName: buildingNameVal, roomIdentifier: roomIdentifierVal };
-
-            // Room Purpose
-            newRoomData.roomPurpose = formData.get('roomPurpose');
-            newRoomData.roomPurposeOther = (newRoomData.roomPurpose === 'Other') ? formData.get('roomPurposeOther').trim() : '';
-
-            // Room Makeup
-            newRoomData.roomMakeup = {
-                walls: formData.get('walls'),
-                wallsOther: formData.get('walls') === 'Other' ? formData.get('wallsOther').trim() : '',
-                ceiling: {
-                    type: formData.get('ceilingType'),
-                    typeOther: formData.get('ceilingType') === 'Other' ? formData.get('ceilingTypeOther').trim() : ''
-                },
-                floor: {
-                    type: formData.get('floorType'),
-                    typeOther: formData.get('floorType') === 'Other' ? formData.get('floorTypeOther').trim() : ''
-                }
-            };
-            if (formData.get('ceilingType') === 'Drop Ceiling') {
-                newRoomData.roomMakeup.ceiling.asbestosInCeiling = formData.get('ceilingAsbestos');
+        
+        // Condition Values (Moved section, data collection remains similar)
+        let overallConditionFromForm = formData.get('overallCondition');
+        let overallConditionComment = formData.get('overallConditionComment').trim();
+        if (!overallConditionFromForm || overallConditionFromForm === "") {
+            const conditionsToAverage = [
+                conditionStringToValue(formData.get('ceilingCondition')),
+                conditionStringToValue(formData.get('wallsCondition')),
+                conditionStringToValue(formData.get('furnitureCondition')),
+                conditionStringToValue(formData.get('floorCondition'))
+            ].filter(val => val !== null);
+            if (conditionsToAverage.length > 0) {
+                const sum = conditionsToAverage.reduce((acc, curr) => acc + curr, 0);
+                const averageValue = sum / conditionsToAverage.length;
+                overallConditionFromForm = conditionValueToString(averageValue);
+            } else {
+                overallConditionFromForm = '';
             }
-            if (newRoomData.roomMakeup.floor.type === 'Tile') {
-                newRoomData.roomMakeup.floor.tileSize = formData.get('floorTileSize');
-                if (formData.get('floorTileSize') === 'Other') {
-                    newRoomData.roomMakeup.floor.tileSizeOther = formData.get('floorTileSizeOther').trim();
-                }
-            }
+        }
+        newRoomData.conditionValues = {
+            ceiling: formData.get('ceilingCondition'),
+            ceilingComment: formData.get('ceilingConditionComment').trim(),
+            walls: formData.get('wallsCondition'),
+            wallsComment: formData.get('wallsConditionComment').trim(),
+            furniture: formData.get('furnitureCondition'),
+            furnitureComment: formData.get('furnitureConditionComment').trim(),
+            floor: formData.get('floorCondition'),
+            floorComment: formData.get('floorConditionComment').trim(),
+            overall: overallConditionFromForm,
+            overallComment: overallConditionComment
+        };
 
-            // Light Fixtures
-            newRoomData.lightFixtures = [];
-            if (lightFixturesContainer) {
-                lightFixturesContainer.querySelectorAll('.light-fixture-entry').forEach(entry => {
-                    const typeSel = entry.querySelector('select[name="lightFixtureType"]');
-                    const quantityInput = entry.querySelector('input[name="lightFixtureQuantity"]');
-                    const styleSel = entry.querySelector('select[name="lightFixtureStyle"]');
-                    const typeOtherIn = entry.querySelector('input[name="lightFixtureTypeOtherSpecify"]');
-                    const styleOtherIn = entry.querySelector('input[name="lightFixtureStyleOtherSpecify"]');
-                    if (typeSel && quantityInput && styleSel) {
-                        newRoomData.lightFixtures.push({
-                            type: typeSel.value,
-                            quantity: parseInt(quantityInput.value, 10) || 1,
-                            style: styleSel.value,
-                            typeOtherSpecify: (typeSel.value === 'Other' && typeOtherIn) ? typeOtherIn.value.trim() : '',
-                            styleOtherSpecify: (styleSel.value === 'Other' && styleOtherIn) ? styleOtherIn.value.trim() : ''
-                        });
-                    }
-                });
-            }
 
-            // Other Fixtures
-            newRoomData.otherFixtures = [];
-            document.querySelectorAll('.fixture-present-checkbox:checked').forEach(cb => {
-                const type = cb.value;
-                let count = 1;
-                let specify = '';
-                if (type === "Other") {
-                    const countInput = document.getElementById('otherFixturesOtherCount');
-                    const specifyInput = document.getElementById('otherFixturesSpecifyText');
-                    if (countInput && countInput.value) {
-                        count = parseInt(countInput.value, 10);
-                        if (isNaN(count) || count < 1) count = 1;
-                    }
-                    if (specifyInput) specify = specifyInput.value.trim();
-                    if (specify) newRoomData.otherFixtures.push({ type, count, specify });
-                } else {
-                    const idSuffix = type.replace(/[^a-zA-Z0-9]/g, '');
-                    const countInput = document.getElementById(`otherFixture${idSuffix}Count`);
-                    if (countInput && countInput.value) {
-                        count = parseInt(countInput.value, 10);
-                        if (isNaN(count) || count < 1) count = 1;
-                    }
-                    newRoomData.otherFixtures.push({ type, count });
+        // Light Fixtures
+        newRoomData.lightFixtures = [];
+        if (lightFixturesContainer) {
+            lightFixturesContainer.querySelectorAll('.light-fixture-entry').forEach(entry => {
+                const typeSel = entry.querySelector('select[name="lightFixtureType"]');
+                const quantityInput = entry.querySelector('input[name="lightFixtureQuantity"]');
+                const styleSel = entry.querySelector('select[name="lightFixtureStyle"]');
+                const typeOtherIn = entry.querySelector('input[name="lightFixtureTypeOtherSpecify"]');
+                const styleOtherIn = entry.querySelector('input[name="lightFixtureStyleOtherSpecify"]');
+                if (typeSel && quantityInput && styleSel) {
+                    newRoomData.lightFixtures.push({
+                        type: typeSel.value,
+                        quantity: parseInt(quantityInput.value, 10) || 1,
+                        style: styleSel.value,
+                        typeOtherSpecify: (typeSel.value === 'Other' && typeOtherIn) ? typeOtherIn.value.trim() : '',
+                        styleOtherSpecify: (styleSel.value === 'Other' && styleOtherIn) ? styleOtherIn.value.trim() : ''
+                    });
                 }
             });
+        }
 
-            const getCbVal = name => Array.from(roomForm.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
-            // Furniture
-            newRoomData.furniture = getCbVal('furniture');
-            newRoomData.furnitureSpecialtySpecify = newRoomData.furniture.includes('Specialty Equipment') ? (formData.get('furnitureSpecialtySpecify') || '').trim() : '';
-            newRoomData.furnitureOtherSpecify = newRoomData.furniture.includes('Other') ? (formData.get('furnitureOtherSpecify') || '').trim() : '';
+        // Other Fixtures
+        newRoomData.otherFixtures = [];
+        document.querySelectorAll('.fixture-present-checkbox:checked').forEach(cb => {
+            const type = cb.value;
+            let count = 1;
+            let specify = '';
+            if (type === "Other") {
+                const countInput = document.getElementById('otherFixturesOtherCount');
+                const specifyInput = document.getElementById('otherFixturesSpecifyText');
+                if (countInput && countInput.value) {
+                    count = parseInt(countInput.value, 10);
+                    if (isNaN(count) || count < 1) count = 1;
+                }
+                if (specifyInput) specify = specifyInput.value.trim();
+                if (specify) newRoomData.otherFixtures.push({ type, count, specify });
+            } else {
+                const idSuffix = type.replace(/[^a-zA-Z0-9]/g, '');
+                const countInput = document.getElementById(`otherFixture${idSuffix}Count`);
+                if (countInput && countInput.value) {
+                    count = parseInt(countInput.value, 10);
+                    if (isNaN(count) || count < 1) count = 1;
+                }
+                newRoomData.otherFixtures.push({ type, count });
+            }
+        });
 
-            // Heating/Cooling
-            newRoomData.heatingCooling = formData.get('heatingCooling');
-            newRoomData.heatingCoolingOther = formData.get('heatingCooling') === 'Other' ? formData.get('heatingCoolingOther').trim() : '';
+        const getCbVal = name => Array.from(roomForm.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+        // Furniture
+        newRoomData.furniture = getCbVal('furniture');
+        newRoomData.furnitureSpecialtySpecify = newRoomData.furniture.includes('Specialty Equipment') ? (formData.get('furnitureSpecialtySpecify') || '').trim() : '';
+        newRoomData.furnitureOtherSpecify = newRoomData.furniture.includes('Other') ? (formData.get('furnitureOtherSpecify') || '').trim() : '';
 
-            // Doors
-            newRoomData.doors = [];
-            if (doorsContainer) {
-                doorsContainer.querySelectorAll('.door-entry').forEach(entry => {
-                    const doorIdVal = entry.querySelector('input[name="doorIdentifier"]').value.trim();
-                    const doorTypeSel = entry.querySelector('select[name="doorType"]');
-                    const lockTypeSel = entry.querySelector('select[name="doorLockType"]');
-                    const doorTypeOtherIn = entry.querySelector('input[name="doorTypeOther"]');
-                    const lockTypeOtherIn = entry.querySelector('input[name="doorLockTypeOther"]');
-                    if (doorIdVal || doorTypeSel.value !== 'Wood' || lockTypeSel.value !== 'Key' ||
-                        (doorTypeSel.value === 'Other' && doorTypeOtherIn?.value.trim() !== '') ||
-                        (lockTypeSel.value === 'Other' && lockTypeOtherIn?.value.trim() !== '')) {
-                        newRoomData.doors.push({
-                            identifier: doorIdVal, type: doorTypeSel.value, lockType: lockTypeSel.value,
-                            typeOther: (doorTypeSel.value === 'Other' && doorTypeOtherIn) ? doorTypeOtherIn.value.trim() : '',
-                            lockTypeOther: (lockTypeSel.value === 'Other' && lockTypeOtherIn) ? lockTypeOtherIn.value.trim() : ''
-                        });
-                    }
-                });
+        // Heating/Cooling
+        newRoomData.heatingCooling = formData.get('heatingCooling');
+        newRoomData.heatingCoolingOther = formData.get('heatingCooling') === 'Other' ? formData.get('heatingCoolingOther').trim() : '';
+
+        // Doors
+        newRoomData.doors = [];
+        if (doorsContainer) {
+            doorsContainer.querySelectorAll('.door-entry').forEach(entry => {
+                const doorIdVal = entry.querySelector('input[name="doorIdentifier"]').value.trim();
+                const doorTypeSel = entry.querySelector('select[name="doorType"]');
+                const lockTypeSel = entry.querySelector('select[name="doorLockType"]');
+                const doorTypeOtherIn = entry.querySelector('input[name="doorTypeOther"]');
+                const lockTypeOtherIn = entry.querySelector('input[name="doorLockTypeOther"]');
+                if (doorIdVal || doorTypeSel.value !== 'Wood' || lockTypeSel.value !== 'Key' ||
+                    (doorTypeSel.value === 'Other' && doorTypeOtherIn?.value.trim() !== '') ||
+                    (lockTypeSel.value === 'Other' && lockTypeOtherIn?.value.trim() !== '')) {
+                    newRoomData.doors.push({
+                        identifier: doorIdVal, type: doorTypeSel.value, lockType: lockTypeSel.value,
+                        typeOther: (doorTypeSel.value === 'Other' && doorTypeOtherIn) ? doorTypeOtherIn.value.trim() : '',
+                        lockTypeOther: (lockTypeSel.value === 'Other' && lockTypeOtherIn) ? lockTypeOtherIn.value.trim() : ''
+                    });
+                }
+            });
+        }
+
+        // Technology
+        newRoomData.technology = getCbVal('technology');
+        newRoomData.technologyOtherSpecify = newRoomData.technology.includes('Other') ? (formData.get('technologyOtherSpecify') || '').trim() : '';
+        
+        return newRoomData;
+    }
+
+
+    // --- Room Form Submission ---
+    if (roomForm) {
+        roomForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            console.log("[RoomFormSubmit] Form submission initiated.");
+
+            if (feedbackMessage) {
+                feedbackMessage.textContent = '';
+                feedbackMessage.className = 'feedback';
+            } else {
+                console.warn("[RoomFormSubmit] feedbackMessage element not found. User feedback might be limited to alerts/console.");
             }
 
-            // Technology
-            newRoomData.technology = getCbVal('technology');
-            newRoomData.technologyOtherSpecify = newRoomData.technology.includes('Other') ? (formData.get('technologyOtherSpecify') || '').trim() : '';
+            const buildingNameVal = buildingNameSelect.value;
+            const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim();
+            const currentRoomId = editingRoomIdInput.value;
 
-            // Condition Values
-            let overallConditionFromForm = formData.get('overallCondition');
-            let overallConditionComment = formData.get('overallConditionComment').trim();
-            if (!overallConditionFromForm || overallConditionFromForm === "") {
-                const conditionsToAverage = [
-                    conditionStringToValue(formData.get('ceilingCondition')),
-                    conditionStringToValue(formData.get('wallsCondition')),
-                    conditionStringToValue(formData.get('furnitureCondition')),
-                    conditionStringToValue(formData.get('floorCondition'))
-                ].filter(val => val !== null);
-                if (conditionsToAverage.length > 0) {
-                    const sum = conditionsToAverage.reduce((acc, curr) => acc + curr, 0);
-                    const averageValue = sum / conditionsToAverage.length;
-                    overallConditionFromForm = conditionValueToString(averageValue);
+            if (!buildingNameVal || !roomIdentifierVal) {
+                const msg = 'Building Name and Room Identifier are required.';
+                console.warn("[RoomFormSubmit] Validation failed:", msg);
+                if (feedbackMessage) {
+                    feedbackMessage.textContent = msg;
+                    feedbackMessage.className = 'feedback error';
                 } else {
-                    overallConditionFromForm = '';
+                    alert(msg);
                 }
+                const currentAddRoomView = document.getElementById('AddRoomView');
+                if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+                return;
             }
-            newRoomData.conditionValues = {
-                ceiling: formData.get('ceilingCondition'),
-                ceilingComment: formData.get('ceilingConditionComment').trim(),
-                walls: formData.get('wallsCondition'),
-                wallsComment: formData.get('wallsConditionComment').trim(),
-                furniture: formData.get('furnitureCondition'),
-                furnitureComment: formData.get('furnitureConditionComment').trim(),
-                floor: formData.get('floorCondition'),
-                floorComment: formData.get('floorConditionComment').trim(),
-                overall: overallConditionFromForm,
-                overallComment: overallConditionComment
-            };
 
-            console.log("[RoomFormSubmit] Data collection complete. Room data object:", newRoomData);
-
-            addRoomToStorageInternal(newRoomData, currentRoomId);
-            console.log("[RoomFormSubmit] addRoomToStorageInternal completed successfully.");
-
-            setLastUsedBuilding(buildingNameVal); // Save last used building for dropdown convenience
-            
-            // Update lastInputValues with the data from the saved room
-            lastInputValues.buildingName = newRoomData.buildingName;
-            // lastInputValues.roomIdentifier = ''; // Typically not remembered
-            lastInputValues.roomPurpose = newRoomData.roomPurpose;
-            lastInputValues.roomPurposeOther = newRoomData.roomPurposeOther;
-            if (newRoomData.roomMakeup) {
-                lastInputValues.walls = newRoomData.roomMakeup.walls;
-                lastInputValues.wallsOther = newRoomData.roomMakeup.wallsOther;
-                if (newRoomData.roomMakeup.ceiling) {
-                    lastInputValues.ceilingType = newRoomData.roomMakeup.ceiling.type;
-                    lastInputValues.ceilingTypeOther = newRoomData.roomMakeup.ceiling.typeOther;
+            const existingRoomWithSameIdentifiers = findRoom(buildingNameVal, roomIdentifierVal);
+            if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
+                const msg = `Error: Room "${escapeHtml(buildingNameVal)} - ${escapeHtml(roomIdentifierVal)}" already exists.`;
+                console.warn("[RoomFormSubmit] Validation failed: Duplicate room.", { buildingNameVal, roomIdentifierVal });
+                if (feedbackMessage) {
+                    feedbackMessage.textContent = msg;
+                    feedbackMessage.className = 'feedback error';
+                } else {
+                    alert(msg);
                 }
-                if (newRoomData.roomMakeup.floor) {
-                    lastInputValues.floorType = newRoomData.roomMakeup.floor.type;
-                    lastInputValues.floorTypeOther = newRoomData.roomMakeup.floor.typeOther;
+                const currentAddRoomView = document.getElementById('AddRoomView');
+                if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+                return;
+            }
+
+            try {
+                console.log("[RoomFormSubmit] Starting data collection and save operation for room:", { buildingNameVal, roomIdentifierVal, currentRoomId });
+                const newRoomData = getCurrentRoomDataFromForm(); // Use helper to get data
+                console.log("[RoomFormSubmit] Data collection complete. Room data object:", newRoomData);
+
+                addRoomToStorageInternal(newRoomData, currentRoomId);
+                console.log("[RoomFormSubmit] addRoomToStorageInternal completed successfully.");
+
+                setLastUsedBuilding(buildingNameVal); // Save last used building for dropdown convenience
+                
+                // Update lastInputValues with the data from the saved room
+                lastInputValues.buildingName = newRoomData.buildingName;
+                // lastInputValues.roomIdentifier = ''; // Typically not remembered
+                lastInputValues.roomPurpose = newRoomData.roomPurpose;
+                lastInputValues.roomPurposeOther = newRoomData.roomPurposeOther;
+                if (newRoomData.roomMakeup) {
+                    lastInputValues.walls = newRoomData.roomMakeup.walls;
+                    lastInputValues.wallsOther = newRoomData.roomMakeup.wallsOther;
+                    if (newRoomData.roomMakeup.ceiling) {
+                        lastInputValues.ceilingType = newRoomData.roomMakeup.ceiling.type;
+                        lastInputValues.ceilingTypeOther = newRoomData.roomMakeup.ceiling.typeOther;
+                    }
+                    if (newRoomData.roomMakeup.floor) {
+                        lastInputValues.floorType = newRoomData.roomMakeup.floor.type;
+                        lastInputValues.floorTypeOther = newRoomData.roomMakeup.floor.typeOther;
+                    }
                 }
+                if (newRoomData.lightFixtures && newRoomData.lightFixtures.length > 0) {
+                    // Store the first light fixture as a template for the next new room's first fixture
+                    lastInputValues.lightFixtures = [{ 
+                        type: newRoomData.lightFixtures[0].type,
+                        quantity: 1, // Default to 1 for next entry
+                        style: newRoomData.lightFixtures[0].style,
+                        typeOtherSpecify: newRoomData.lightFixtures[0].typeOtherSpecify,
+                        styleOtherSpecify: newRoomData.lightFixtures[0].styleOtherSpecify
+                    }];
+                } else {
+                    delete lastInputValues.lightFixtures; // Or set to a default empty template
+                }
+                lastInputValues.heatingCooling = newRoomData.heatingCooling;
+                lastInputValues.heatingCoolingOther = newRoomData.heatingCoolingOther;
+                // Note: Checkboxes, radio groups, and other dynamic lists are not included in this simple "remember" for now.
+                saveLastInputValues(); // Persist these remembered values
+
+                console.log("[RoomFormSubmit] Last input values updated and saved.");
+
+
+                if (feedbackMessage) {
+                    feedbackMessage.textContent = currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!';
+                    feedbackMessage.className = 'feedback success';
+                    console.log("[RoomFormSubmit] Success feedback displayed to user.");
+                } else {
+                    console.warn("[RoomFormSubmit] feedbackMessage element not found, but operation was successful.");
+                    alert(currentRoomId ? 'Room information updated successfully! (Feedback area not found)' : 'Room information saved successfully! (Feedback area not found)');
+                }
+
+                const isEditing = !!currentRoomId;
+                editingRoomIdInput.value = ''; // Clear editing ID *before* resetting form for new entry
+                resetRoomFormToDefault(); // Reset form, which will now apply new lastInputValues
+
+                if (isEditing) {
+                    setTimeout(() => {
+                        if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView');
+                        console.log("[RoomFormSubmit] Navigated to ViewRoomsView (after edit).");
+                    }, 1500);
+                } else {
+                    // For a new room, stay on AddRoomView, form is prepped by resetRoomFormToDefault
+                    // Optionally, navigate away after a short delay if preferred:
+                    // setTimeout(() => {
+                    //     if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView');
+                    // }, 1500);
+                }
+
+            } catch (error) {
+                console.error('[RoomFormSubmit] CRITICAL ERROR during room save process:', error);
+                const errorMsg = 'Failed to save room information. An unexpected error occurred. Please try again. If the problem persists, check the console for more details.';
+                if (feedbackMessage) {
+                    feedbackMessage.textContent = errorMsg;
+                    feedbackMessage.className = 'feedback error';
+                } else {
+                    alert(errorMsg);
+                }
+                const currentAddRoomView = document.getElementById('AddRoomView');
+                if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
             }
-            if (newRoomData.lightFixtures && newRoomData.lightFixtures.length > 0) {
-                // Store the first light fixture as a template for the next new room's first fixture
-                lastInputValues.lightFixtures = [{ 
-                    type: newRoomData.lightFixtures[0].type,
-                    quantity: 1, // Default to 1 for next entry
-                    style: newRoomData.lightFixtures[0].style,
-                    typeOtherSpecify: newRoomData.lightFixtures[0].typeOtherSpecify,
-                    styleOtherSpecify: newRoomData.lightFixtures[0].styleOtherSpecify
-                }];
-            } else {
-                delete lastInputValues.lightFixtures; // Or set to a default empty template
-            }
-            lastInputValues.heatingCooling = newRoomData.heatingCooling;
-            lastInputValues.heatingCoolingOther = newRoomData.heatingCoolingOther;
-            // Note: Checkboxes, radio groups, and other dynamic lists are not included in this simple "remember" for now.
-            saveLastInputValues(); // Persist these remembered values
+        });
+    }
 
-            console.log("[RoomFormSubmit] Last input values updated and saved.");
-
-
+    // --- "Copy Current Room JSON" Button Functionality ---
+    if (copyCurrentRoomJsonBtn) {
+        copyCurrentRoomJsonBtn.addEventListener('click', function() {
             if (feedbackMessage) {
-                feedbackMessage.textContent = currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!';
-                feedbackMessage.className = 'feedback success';
-                console.log("[RoomFormSubmit] Success feedback displayed to user.");
-            } else {
-                console.warn("[RoomFormSubmit] feedbackMessage element not found, but operation was successful.");
-                alert(currentRoomId ? 'Room information updated successfully! (Feedback area not found)' : 'Room information saved successfully! (Feedback area not found)');
+                feedbackMessage.textContent = '';
+                feedbackMessage.className = 'feedback';
             }
+            try {
+                const roomData = getCurrentRoomDataFromForm();
+                // Optionally, add a temporary ID and savedAt timestamp if desired for the copied JSON
+                // roomData.id = `temp_room_${Date.now()}`; 
+                // roomData.savedAt = new Date().toISOString();
 
-            const isEditing = !!currentRoomId;
-            editingRoomIdInput.value = ''; // Clear editing ID *before* resetting form for new entry
-            resetRoomFormToDefault(); // Reset form, which will now apply new lastInputValues
+                const jsonString = JSON.stringify(roomData, null, 4); // Pretty print
 
-            if (isEditing) {
-                setTimeout(() => {
-                    if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView');
-                    console.log("[RoomFormSubmit] Navigated to ViewRoomsView (after edit).");
-                }, 1500);
-            } else {
-                 // For a new room, stay on AddRoomView, form is prepped by resetRoomFormToDefault
-                 // Optionally, navigate away after a short delay if preferred:
-                // setTimeout(() => {
-                //     if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView');
-                // }, 1500);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(jsonString).then(() => {
+                        if (feedbackMessage) {
+                            feedbackMessage.textContent = 'Room data (JSON) copied to clipboard!';
+                            feedbackMessage.className = 'feedback success';
+                        } else {
+                            alert('Room data (JSON) copied to clipboard!');
+                        }
+                    }).catch(err => {
+                        console.error('Async clipboard copy failed:', err);
+                        // Fallback to execCommand
+                        fallbackCopyTextToClipboard(jsonString);
+                    });
+                } else {
+                    // Fallback for older browsers
+                    fallbackCopyTextToClipboard(jsonString);
+                }
+            } catch (error) {
+                console.error('Error preparing JSON for copying:', error);
+                if (feedbackMessage) {
+                    feedbackMessage.textContent = 'Error copying room data. See console.';
+                    feedbackMessage.className = 'feedback error';
+                } else {
+                    alert('Error copying room data. See console.');
+                }
             }
+        });
+    }
 
-        } catch (error) {
-            console.error('[RoomFormSubmit] CRITICAL ERROR during room save process:', error);
-            const errorMsg = 'Failed to save room information. An unexpected error occurred. Please try again. If the problem persists, check the console for more details.';
+    function fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        // Avoid scrolling to bottom
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            const successful = document.execCommand('copy');
+            const msg = successful ? 'Room data (JSON) copied to clipboard! (fallback)' : 'Fallback copy failed.';
             if (feedbackMessage) {
-                feedbackMessage.textContent = errorMsg;
+                feedbackMessage.textContent = msg;
+                feedbackMessage.className = successful ? 'feedback success' : 'feedback error';
+            } else {
+                alert(msg);
+            }
+        } catch (err) {
+            console.error('Fallback copy execCommand failed:', err);
+            if (feedbackMessage) {
+                feedbackMessage.textContent = 'Fallback copy failed. See console.';
                 feedbackMessage.className = 'feedback error';
             } else {
-                alert(errorMsg);
+                alert('Fallback copy failed. See console.');
             }
-            const currentAddRoomView = document.getElementById('AddRoomView');
-            if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
         }
-    });
-}
+        document.body.removeChild(textArea);
+    }
+
 
     if(cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => {
@@ -1120,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (roomPurposeOtherInputEl && room.roomPurpose === 'Other') {
             roomPurposeOtherInputEl.value = room.roomPurposeOther || '';
         }
-        // ... (rest of the population logic for all fields, unchanged) ...
+        
          if (room.roomMakeup) {
             const makeup = room.roomMakeup;
             const wallsEl = roomForm.querySelector('#walls');
@@ -1179,6 +1267,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
+
+        // Populate Condition Values
+        if (room.conditionValues) {
+            const cv = room.conditionValues;
+            const ceilingConditionEl = roomForm.querySelector('#ceilingCondition');
+            if(ceilingConditionEl) ceilingConditionEl.value = cv.ceiling || '1 - Excellent';
+            const ceilingConditionCommentEl = roomForm.querySelector('#ceilingConditionComment');
+            if(ceilingConditionCommentEl) ceilingConditionCommentEl.value = cv.ceilingComment || '';
+            const wallsConditionEl = roomForm.querySelector('#wallsCondition');
+            if(wallsConditionEl) wallsConditionEl.value = cv.walls || '1 - Excellent';
+            const wallsConditionCommentEl = roomForm.querySelector('#wallsConditionComment');
+            if(wallsConditionCommentEl) wallsConditionCommentEl.value = cv.wallsComment || '';
+            const furnitureConditionEl = roomForm.querySelector('#furnitureCondition');
+            if(furnitureConditionEl) furnitureConditionEl.value = cv.furniture || '1 - Excellent';
+            const furnitureConditionCommentEl = roomForm.querySelector('#furnitureConditionComment');
+            if(furnitureConditionCommentEl) furnitureConditionCommentEl.value = cv.furnitureComment || '';
+            const floorConditionEl = roomForm.querySelector('#floorCondition');
+            if(floorConditionEl) floorConditionEl.value = cv.floor || '1 - Excellent';
+            const floorConditionCommentEl = roomForm.querySelector('#floorConditionComment');
+            if(floorConditionCommentEl) floorConditionCommentEl.value = cv.floorComment || '';
+            const overallConditionEl = roomForm.querySelector('#overallCondition');
+            if(overallConditionEl) overallConditionEl.value = cv.overall || '';
+            const overallConditionCommentEl = roomForm.querySelector('#overallConditionComment');
+            if(overallConditionCommentEl) overallConditionCommentEl.value = cv.overallComment || '';
+        }
+
+
         if (lightFixturesContainer) lightFixturesContainer.innerHTML = ''; // Clear first
         if (room.lightFixtures && room.lightFixtures.length > 0) {
             room.lightFixtures.forEach(fixture => appendNewLightFixtureEntry(fixture, false)); // false: not from remembered source
@@ -1240,30 +1355,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(techOtherText) techOtherText.value = room.technologyOtherSpecify || '';
             }
         }
-        if (room.conditionValues) {
-            const cv = room.conditionValues;
-            const ceilingConditionEl = roomForm.querySelector('#ceilingCondition');
-            if(ceilingConditionEl) ceilingConditionEl.value = cv.ceiling || '1 - Excellent';
-            const ceilingConditionCommentEl = roomForm.querySelector('#ceilingConditionComment');
-            if(ceilingConditionCommentEl) ceilingConditionCommentEl.value = cv.ceilingComment || '';
-            const wallsConditionEl = roomForm.querySelector('#wallsCondition');
-            if(wallsConditionEl) wallsConditionEl.value = cv.walls || '1 - Excellent';
-            const wallsConditionCommentEl = roomForm.querySelector('#wallsConditionComment');
-            if(wallsConditionCommentEl) wallsConditionCommentEl.value = cv.wallsComment || '';
-            const furnitureConditionEl = roomForm.querySelector('#furnitureCondition');
-            if(furnitureConditionEl) furnitureConditionEl.value = cv.furniture || '1 - Excellent';
-            const furnitureConditionCommentEl = roomForm.querySelector('#furnitureConditionComment');
-            if(furnitureConditionCommentEl) furnitureConditionCommentEl.value = cv.furnitureComment || '';
-            const floorConditionEl = roomForm.querySelector('#floorCondition');
-            if(floorConditionEl) floorConditionEl.value = cv.floor || '1 - Excellent';
-            const floorConditionCommentEl = roomForm.querySelector('#floorConditionComment');
-            if(floorConditionCommentEl) floorConditionCommentEl.value = cv.floorComment || '';
-            const overallConditionEl = roomForm.querySelector('#overallCondition');
-            if(overallConditionEl) overallConditionEl.value = cv.overall || '';
-            const overallConditionCommentEl = roomForm.querySelector('#overallConditionComment');
-            if(overallConditionCommentEl) overallConditionCommentEl.value = cv.overallComment || '';
-        }
-
+        
         refreshConditionalFormUI(roomForm); // Update visibility of conditional fields
         setActiveView('AddRoomView'); // Switch to the form view
         roomForm.querySelector('#roomIdentifier').focus(); // Focus on a field
@@ -1433,6 +1525,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else {  html += '<p><strong>Floor Type:</strong> N/A</p>'; }
         } else html += '<p>N/A</p>';
+
+        html += `<h3><i class="fas fa-star-half-alt"></i> Condition Values</h3>`;
+        if (room.conditionValues) {
+            const cv = room.conditionValues;
+            html += `<p><strong>Ceiling:</strong> ${escapeHtml(cv.ceiling) || 'N/A'}</p>`;
+            if(cv.ceilingComment) html += `<p class="condition-comment">${escapeHtml(cv.ceilingComment)}</p>`;
+            html += `<p><strong>Walls:</strong> ${escapeHtml(cv.walls) || 'N/A'}</p>`;
+            if(cv.wallsComment) html += `<p class="condition-comment">${escapeHtml(cv.wallsComment)}</p>`;
+            html += `<p><strong>Furniture:</strong> ${escapeHtml(cv.furniture) || 'N/A'}</p>`;
+            if(cv.furnitureComment) html += `<p class="condition-comment">${escapeHtml(cv.furnitureComment)}</p>`;
+            html += `<p><strong>Floor:</strong> ${escapeHtml(cv.floor) || 'N/A'}</p>`;
+            if(cv.floorComment) html += `<p class="condition-comment">${escapeHtml(cv.floorComment)}</p>`;
+            html += `<p><strong>Overall Room:</strong> ${escapeHtml(cv.overall) || 'N/A (Not Set/Calculated)'}</p>`;
+            if(cv.overallComment) html += `<p class="condition-comment">${escapeHtml(cv.overallComment)}</p>`;
+        } else html += '<p>N/A</p>';
+
         html += `<h3><i class="fas fa-lightbulb"></i> Room Fixtures</h3>`;
         if (room.lightFixtures && room.lightFixtures.length > 0) {
             html += `<p><strong>Light Fixtures:</strong></p><ul>`;
@@ -1472,20 +1580,7 @@ document.addEventListener('DOMContentLoaded', function () {
             html += `<ul>${room.technology.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>`;
              if (room.technologyOtherSpecify) html += `<p><em>Other:</em> ${escapeHtml(room.technologyOtherSpecify)}</p>`;
         } else html += '<p>N/A</p>';
-        html += `<h3><i class="fas fa-star-half-alt"></i> Condition Values</h3>`;
-        if (room.conditionValues) {
-            const cv = room.conditionValues;
-            html += `<p><strong>Ceiling:</strong> ${escapeHtml(cv.ceiling) || 'N/A'}</p>`;
-            if(cv.ceilingComment) html += `<p class="condition-comment">${escapeHtml(cv.ceilingComment)}</p>`;
-            html += `<p><strong>Walls:</strong> ${escapeHtml(cv.walls) || 'N/A'}</p>`;
-            if(cv.wallsComment) html += `<p class="condition-comment">${escapeHtml(cv.wallsComment)}</p>`;
-            html += `<p><strong>Furniture:</strong> ${escapeHtml(cv.furniture) || 'N/A'}</p>`;
-            if(cv.furnitureComment) html += `<p class="condition-comment">${escapeHtml(cv.furnitureComment)}</p>`;
-            html += `<p><strong>Floor:</strong> ${escapeHtml(cv.floor) || 'N/A'}</p>`;
-            if(cv.floorComment) html += `<p class="condition-comment">${escapeHtml(cv.floorComment)}</p>`;
-            html += `<p><strong>Overall Room:</strong> ${escapeHtml(cv.overall) || 'N/A (Not Set/Calculated)'}</p>`;
-            if(cv.overallComment) html += `<p class="condition-comment">${escapeHtml(cv.overallComment)}</p>`;
-        } else html += '<p>N/A</p>';
+        
         roomDetailContent.innerHTML = html;
         roomDetailModal.style.display = 'block';
         if(closeModalBtn) closeModalBtn.focus();
@@ -2040,4 +2135,72 @@ document.addEventListener('DOMContentLoaded', function () {
     setActiveView('ViewRoomsView'); 
 
     console.log("App Initial Setup: Complete.");
+});
+
+const CACHE_NAME = 'roomfolio-cache-v1'; // Increment this version number when you update your cached assets
+const urlsToCache = [
+  // IMPORTANT: For GitHub Pages, all paths must include your repository name
+  '/Roomfolio/',             // The root of your app (index.html is implicitly covered)
+  '/Roomfolio/index.html',   // Explicitly list your main HTML file
+  '/Roomfolio/style.css',   // Your CSS file
+  '/Roomfolio/script.js',    // Your JavaScript file
+  '/Roomfolio/icon-192x192.png', // Your 192x192 icon
+  '/Roomfolio/icon-512x512.png'  // Your 512x512 icon
+  // Add any other static assets your app needs to function offline
+  // e.g., other HTML pages, more images, fonts, etc.
+];
+
+// Install event: Caches all the assets listed in urlsToCache
+self.addEventListener('install', (event) => {
+  console.log('[Service Worker] Installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('[Service Worker] Caching assets');
+        return cache.addAll(urlsToCache);
+      })
+      .catch((error) => {
+        console.error('[Service Worker] Cache addAll failed:', error);
+      })
+  );
+});
+
+// Fetch event: Intercepts network requests and serves from cache if available
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // If the asset is found in the cache, return it
+        if (response) {
+          console.log('[Service Worker] Serving from cache:', event.request.url);
+          return response;
+        }
+        // Otherwise, fetch from the network
+        console.log('[Service Worker] Fetching from network:', event.request.url);
+        return fetch(event.request);
+      })
+      .catch((error) => {
+        console.error('[Service Worker] Fetch failed:', error);
+        // You might want to serve a custom offline page here if the fetch fails
+      })
+  );
+});
+
+// Activate event: Cleans up old caches when the service worker is updated
+self.addEventListener('activate', (event) => {
+  console.log('[Service Worker] Activating...');
+  const cacheWhitelist = [CACHE_NAME]; // Only keep the current cache version
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            // Delete old caches
+            console.log('[Service Worker] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
 });

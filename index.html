@@ -36,8 +36,7 @@
                             <label for="buildingName">Building Name:</label>
                             <select id="buildingName" name="buildingName" required>
                                 <option value="">-- Select Building --</option>
-                                <!-- Options populated by JS -->
-                            </select>
+                                </select>
                         </div>
                         <div class="input-group">
                             <label for="roomIdentifier">Room Identifier:</label>
@@ -65,9 +64,9 @@
                     </section>
 
                     <section class="form-section">
-                        <h2><i class="fas fa-paint-roller"></i> 2. Makeup of the Room</h2>
+                        <h2><i class="fas fa-paint-roller"></i> 2. Makeup of the Room & Condition</h2>
                         <div class="input-group">
-                            <label for="walls">Walls:</label>
+                            <label for="walls">Walls Type:</label>
                             <select id="walls" name="walls">
                                 <option value="Drywall">Drywall</option>
                                 <option value="Plaster">Plaster</option>
@@ -78,6 +77,19 @@
                             <label for="wallsOther" class="visually-hidden">Specify other wall type</label>
                             <input type="text" id="wallsOther" name="wallsOther" class="conditional-other" placeholder="Specify other wall type">
                         </div>
+                        <div class="input-group">
+                            <label for="wallsCondition">Walls Condition:</label>
+                            <select id="wallsCondition" name="wallsCondition">
+                                <option value="1 - Excellent">1 - Excellent</option>
+                                <option value="2 - Good">2 - Good</option>
+                                <option value="3 - Fair">3 - Fair</option>
+                                <option value="4 - Poor">4 - Poor</option>
+                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
+                            </select>
+                            <label for="wallsConditionComment" class="visually-hidden">Walls Condition Comments</label>
+                            <textarea id="wallsConditionComment" name="wallsConditionComment" rows="2" placeholder="Optional comments for walls condition..."></textarea>
+                        </div>
+
                         <div class="input-group">
                             <label for="ceilingType">Ceiling Type:</label>
                             <select id="ceilingType" name="ceilingType">
@@ -100,6 +112,19 @@
                                 </div>
                             </fieldset>
                         </div>
+                        <div class="input-group">
+                            <label for="ceilingCondition">Ceiling Condition:</label>
+                            <select id="ceilingCondition" name="ceilingCondition">
+                                <option value="1 - Excellent">1 - Excellent</option>
+                                <option value="2 - Good">2 - Good</option>
+                                <option value="3 - Fair">3 - Fair</option>
+                                <option value="4 - Poor">4 - Poor</option>
+                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
+                            </select>
+                            <label for="ceilingConditionComment" class="visually-hidden">Ceiling Condition Comments</label>
+                            <textarea id="ceilingConditionComment" name="ceilingConditionComment" rows="2" placeholder="Optional comments for ceiling condition..."></textarea>
+                        </div>
+
                         <div class="input-group">
                             <label for="floorType">Floor Type:</label>
                             <select id="floorType" name="floorType">
@@ -127,15 +152,55 @@
                                 <input type="text" id="floorTileSizeOther" name="floorTileSizeOther" class="conditional-other" placeholder="Specify other tile size" style="display:none;">
                             </fieldset>
                         </div>
+                        <div class="input-group">
+                            <label for="floorCondition">Floor Condition:</label>
+                            <select id="floorCondition" name="floorCondition">
+                                <option value="1 - Excellent">1 - Excellent</option>
+                                <option value="2 - Good">2 - Good</option>
+                                <option value="3 - Fair">3 - Fair</option>
+                                <option value="4 - Poor">4 - Poor</option>
+                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
+                            </select>
+                            <label for="floorConditionComment" class="visually-hidden">Floor Condition Comments</label>
+                            <textarea id="floorConditionComment" name="floorConditionComment" rows="2" placeholder="Optional comments for floor condition..."></textarea>
+                        </div>
                     </section>
 
                     <section class="form-section">
-                        <h2><i class="fas fa-lightbulb"></i> 3. Room Fixtures</h2>
+                        <h2><i class="fas fa-star-half-alt"></i> 3. Other Conditions & Overall</h2>
+                        <div class="input-group">
+                            <label for="furnitureCondition">Furniture Condition:</label>
+                            <select id="furnitureCondition" name="furnitureCondition">
+                                <option value="1 - Excellent">1 - Excellent</option>
+                                <option value="2 - Good">2 - Good</option>
+                                <option value="3 - Fair">3 - Fair</option>
+                                <option value="4 - Poor">4 - Poor</option>
+                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
+                            </select>
+                            <label for="furnitureConditionComment" class="visually-hidden">Furniture Condition Comments</label>
+                            <textarea id="furnitureConditionComment" name="furnitureConditionComment" rows="2" placeholder="Optional comments for furniture condition..."></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label for="overallCondition">Overall Room Condition:</label>
+                            <select id="overallCondition" name="overallCondition">
+                                <option value="">N/A - Calculate Automatically</option>
+                                <option value="1 - Excellent">1 - Excellent</option>
+                                <option value="2 - Good">2 - Good</option>
+                                <option value="3 - Fair">3 - Fair</option>
+                                <option value="4 - Poor">4 - Poor</option>
+                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
+                            </select>
+                            <label for="overallConditionComment" class="visually-hidden">Overall Room Condition Comments</label>
+                            <textarea id="overallConditionComment" name="overallConditionComment" rows="2" placeholder="Optional comments for overall room condition..."></textarea>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <h2><i class="fas fa-lightbulb"></i> 4. Room Fixtures</h2>
                         <fieldset class="input-group">
                             <legend class="group-label">Light Fixtures</legend>
                             <div id="lightFixturesContainer">
-                                <!-- Light fixture entries populated by JS -->
-                            </div>
+                                </div>
                             <button type="button" id="addLightFixtureBtn" class="action-button secondary-button" style="margin-top: 5px; font-size: 0.9em; padding: 0.5em 1em;"><i class="fas fa-plus"></i> Add Light Fixture Type</button>
                         </fieldset>
                         <fieldset class="input-group">
@@ -197,7 +262,7 @@
                     </section>
 
                     <section class="form-section">
-                        <h2><i class="fas fa-couch"></i> 4. Furniture</h2>
+                        <h2><i class="fas fa-couch"></i> 5. Furniture</h2>
                         <fieldset class="input-group">
                             <legend class="visually-hidden">Furniture types</legend>
                             <div class="checkbox-group" role="group" aria-label="Furniture types">
@@ -205,6 +270,7 @@
                                 <label for="furnitureChairs"><input type="checkbox" id="furnitureChairs" name="furniture" value="Chairs"> Chairs</label>
                                 <label for="furnitureTablets"><input type="checkbox" id="furnitureTablets" name="furniture" value="Tablets"> Tablets (arm chairs)</label>
                                 <label for="furnitureLecterns"><input type="checkbox" id="furnitureLecterns" name="furniture" value="Lecterns"> Lecterns</label>
+                                <label for="furnitureShelving"><input type="checkbox" id="furnitureShelving" name="furniture" value="Shelving"> Shelving</label>
                                 <div class="other-field-wrapper">
                                     <label for="furnitureSpecialtyEquipCheckbox">
                                         <input type="checkbox" id="furnitureSpecialtyEquipCheckbox" name="furniture" value="Specialty Equipment" class="other-checkbox"> Specialty Eq.
@@ -224,7 +290,7 @@
                     </section>
 
                     <section class="form-section">
-                        <h2><i class="fas fa-thermometer-half"></i> 5. Heating/Cooling</h2>
+                        <h2><i class="fas fa-thermometer-half"></i> 6. Heating/Cooling</h2>
                         <div class="input-group">
                             <label for="heatingCooling">Type:</label>
                             <select id="heatingCooling" name="heatingCooling">
@@ -241,15 +307,14 @@
                         </div>
                     </section>
                     <section class="form-section">
-                        <h2><i class="fas fa-door-open"></i> 6. Doors Within the Room</h2>
+                        <h2><i class="fas fa-door-open"></i> 7. Doors Within the Room</h2>
                         <div id="doorsContainer">
-                            <!-- Door entries populated by JS -->
-                        </div>
+                            </div>
                         <button type="button" id="addDoorBtn" class="action-button secondary-button"><i class="fas fa-plus"></i> Add Door</button>
                     </section>
 
                     <section class="form-section">
-                        <h2><i class="fas fa-tv"></i> 7. Technology</h2>
+                        <h2><i class="fas fa-tv"></i> 8. Technology</h2>
                          <fieldset class="input-group">
                             <legend class="visually-hidden">Technology types</legend>
                             <div class="checkbox-group" role="group" aria-label="Technology types">
@@ -269,73 +334,11 @@
                         </fieldset>
                     </section>
 
-                    <section class="form-section">
-                        <h2><i class="fas fa-star-half-alt"></i> 8. Condition Values</h2>
-                        <div class="input-group">
-                            <label for="ceilingCondition">Ceiling Condition:</label>
-                            <select id="ceilingCondition" name="ceilingCondition">
-                                <option value="1 - Excellent">1 - Excellent</option>
-                                <option value="2 - Good">2 - Good</option>
-                                <option value="3 - Fair">3 - Fair</option>
-                                <option value="4 - Poor">4 - Poor</option>
-                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
-                            </select>
-                            <label for="ceilingConditionComment" class="visually-hidden">Ceiling Condition Comments</label>
-                            <textarea id="ceilingConditionComment" name="ceilingConditionComment" rows="2" placeholder="Optional comments for ceiling condition..."></textarea>
-                        </div>
-                        <div class="input-group">
-                            <label for="wallsCondition">Walls Condition:</label>
-                            <select id="wallsCondition" name="wallsCondition">
-                                <option value="1 - Excellent">1 - Excellent</option>
-                                <option value="2 - Good">2 - Good</option>
-                                <option value="3 - Fair">3 - Fair</option>
-                                <option value="4 - Poor">4 - Poor</option>
-                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
-                            </select>
-                            <label for="wallsConditionComment" class="visually-hidden">Walls Condition Comments</label>
-                            <textarea id="wallsConditionComment" name="wallsConditionComment" rows="2" placeholder="Optional comments for walls condition..."></textarea>
-                        </div>
-                        <div class="input-group">
-                            <label for="furnitureCondition">Furniture Condition:</label>
-                            <select id="furnitureCondition" name="furnitureCondition">
-                                <option value="1 - Excellent">1 - Excellent</option>
-                                <option value="2 - Good">2 - Good</option>
-                                <option value="3 - Fair">3 - Fair</option>
-                                <option value="4 - Poor">4 - Poor</option>
-                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
-                            </select>
-                            <label for="furnitureConditionComment" class="visually-hidden">Furniture Condition Comments</label>
-                            <textarea id="furnitureConditionComment" name="furnitureConditionComment" rows="2" placeholder="Optional comments for furniture condition..."></textarea>
-                        </div>
-                        <div class="input-group">
-                            <label for="floorCondition">Floor Condition:</label>
-                            <select id="floorCondition" name="floorCondition">
-                                <option value="1 - Excellent">1 - Excellent</option>
-                                <option value="2 - Good">2 - Good</option>
-                                <option value="3 - Fair">3 - Fair</option>
-                                <option value="4 - Poor">4 - Poor</option>
-                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
-                            </select>
-                            <label for="floorConditionComment" class="visually-hidden">Floor Condition Comments</label>
-                            <textarea id="floorConditionComment" name="floorConditionComment" rows="2" placeholder="Optional comments for floor condition..."></textarea>
-                        </div>
-                        <div class="input-group">
-                            <label for="overallCondition">Overall Room Condition:</label>
-                            <select id="overallCondition" name="overallCondition">
-                                <option value="">N/A - Calculate Automatically</option>
-                                <option value="1 - Excellent">1 - Excellent</option>
-                                <option value="2 - Good">2 - Good</option>
-                                <option value="3 - Fair">3 - Fair</option>
-                                <option value="4 - Poor">4 - Poor</option>
-                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
-                            </select>
-                            <label for="overallConditionComment" class="visually-hidden">Overall Room Condition Comments</label>
-                            <textarea id="overallConditionComment" name="overallConditionComment" rows="2" placeholder="Optional comments for overall room condition..."></textarea>
-                        </div>
-                    </section>
-
-                    <button type="submit" id="saveRoomBtn" class="action-button primary-button"><i class="fas fa-save"></i> Save Room Information</button>
-                    <button type="button" id="cancelEditBtn" class="action-button danger-button" style="display:none;"><i class="fas fa-times"></i> Cancel Edit</button>
+                    <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
+                        <button type="submit" id="saveRoomBtn" class="action-button primary-button" style="flex-grow: 1;"><i class="fas fa-save"></i> Save Room Information</button>
+                        <button type="button" id="copyCurrentRoomJsonBtn" class="action-button secondary-button" style="flex-grow: 1;"><i class="fas fa-copy"></i> Copy Room Data (JSON)</button>
+                        <button type="button" id="cancelEditBtn" class="action-button danger-button" style="display:none; flex-grow: 1;"><i class="fas fa-times"></i> Cancel Edit</button>
+                    </div>
                     <p id="feedbackMessage" class="feedback"></p>
                 </form>
             </div>
@@ -345,8 +348,7 @@
                     <h1><i class="fas fa-eye"></i> View Saved Rooms</h1>
                 </header>
                 <div id="roomListContainer">
-                    <!-- Room cards populated by JS -->
-                </div>
+                    </div>
             </div>
 
             <div id="FilterView" class="view-section">
@@ -358,8 +360,7 @@
                         <label for="filterBuildingName">Building Name:</label>
                         <select id="filterBuildingName" name="filterBuildingName">
                             <option value="">-- Any Building --</option>
-                            <!-- Options populated by JS -->
-                        </select>
+                            </select>
                     </div>
                     <div class="input-group">
                         <label for="filterRoomIdentifier">Room Identifier (Starts with):</label>
@@ -433,8 +434,7 @@
                     <p id="filterFeedback" class="feedback"></p>
                 </form>
                 <div id="filterResultsContainer">
-                    <!-- Filter results populated by JS -->
-                </div>
+                    </div>
             </div>
 
 
@@ -461,8 +461,7 @@
                             <label for="renameOldBuildingNameSelect">Select Building to Rename:</label>
                             <select id="renameOldBuildingNameSelect" name="renameOldBuildingNameSelect">
                                 <option value="">-- Select Building --</option>
-                                <!-- Options populated by JS -->
-                            </select>
+                                </select>
                         </div>
                         <div class="input-group">
                             <label for="renameNewBuildingNameInput">New Name for Building:</label>
@@ -503,8 +502,7 @@
                         <label for="massUpdateOldBuildingNameSelect">Select Current Building Name (from Room Data):</label>
                         <select id="massUpdateOldBuildingNameSelect" name="massUpdateOldBuildingNameSelect">
                              <option value="">-- Select Building to Reassign From --</option>
-                             <!-- Options populated by JS -->
-                        </select>
+                             </select>
                     </div>
                     <div class="input-group">
                         <label for="massUpdateNewBuildingNameInput">New Building Name (for these Rooms):</label>
@@ -524,17 +522,13 @@
                     </div>
                     <p id="exportFeedback" class="feedback"></p>
                 </section>
-            </div> <!-- Closing DataView -->
-        </main>
-    </div> <!-- Closing app-container -->
-
-    <div id="roomDetailModal" class="modal">
+            </div> </main>
+    </div> <div id="roomDetailModal" class="modal">
         <div class="modal-content">
             <span class="close-modal-btn" role="button" tabindex="0" aria-label="Close room details">&times;</span>
             <h2>Room Details</h2>
             <div id="roomDetailContent">
-                <!-- Room details populated by JS -->
-            </div>
+                </div>
         </div>
     </div>
 
@@ -548,14 +542,12 @@
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-file-import"></i> Importing Room Data:</h4>
                         <div id="importingRoomDetailsPreview" class="room-details-preview">
-                            <!-- Importing room details by JS -->
-                        </div>
+                            </div>
                     </div>
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-database"></i> Existing Room Data:</h4>
                         <div id="existingRoomDetailsPreview" class="room-details-preview">
-                            <!-- Existing room details by JS -->
-                        </div>
+                            </div>
                     </div>
                 </div>
             </div>
@@ -582,7 +574,6 @@
     </div>
 
     <script src="script.js"></script>
-    <!-- Inline script for simple DOM manipulations that don't need full app context -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
           // This script handles the "Other" checkbox behavior for specialty/other text inputs
@@ -603,7 +594,7 @@
                 // Special handling for the "Other Fixture" group which has a details container
                 if (container.classList.contains('fixture-item-group-other')) {
                     const detailsContainer = container.querySelector('.other-details-container');
-                    if (detailsContainer) detailsContainer.style.display = 'flex'; 
+                    if (detailsContainer) detailsContainer.style.display = 'flex';
                 }
 
               } else {
