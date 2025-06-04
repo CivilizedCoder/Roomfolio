@@ -1871,7 +1871,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (importJsonFileBtn && jsonImportFile) {
         importJsonFileBtn.addEventListener('click', () => {
             if (jsonImportFile.files.length === 0) {
-                if(importFeedback){ importFeedback.textContent = 'Please select a JSON file.'; importFeedback.className = 'feedback error'; }
+                if(importFeedback){ importFeedback.textContent = 'Please select a JSON or TXT file.'; importFeedback.className = 'feedback error'; }
                 return;
             }
             const file = jsonImportFile.files[0];
