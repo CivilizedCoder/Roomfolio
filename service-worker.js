@@ -1,62 +1,79 @@
-const CACHE_NAME = 'roomfolio-cache-v1'; // Increment this version number when you update your cached assets
-const urlsToCache = [
-  // IMPORTANT: For GitHub Pages, all paths must include your repository name
-  '/Roomfolio/',             // The root of your app (index.html is implicitly covered)
-  '/Roomfolio/index.html',   // Explicitly list your main HTML file
-  '/Roomfolio/style.css',   // Your CSS file
-  '/Roomfolio/script.js',    // Your JavaScript file
-  '/Roomfolio/icon-192x192.png', // Your 192x192 icon
-  '/Roomfolio/icon-512x512.png'  // Your 512x512 icon
-  // Add any other static assets your app needs to function offline
-  // e.g., other HTML pages, more images, fonts, etc.
+const APP_CACHE_NAME = 'roomfolio-cache-v2'; // New version for app shell
+const STATIC_ASSETS_CACHE_NAME = 'roomfolio-static-assets-v2'; // New version for external assets
+
+const APP_SHELL_URLS = [
+  '/Roomfolio/',
+  '/Roomfolio/index.html',
+  '/Roomfolio/style.css',
+  '/Roomfolio/script.js',
+  '/Roomfolio/manifest.json',
+  '/Roomfolio/icon-192x192.png',
+  '/Roomfolio/icon-512x512.png'
 ];
 
-// Install event: Caches all the assets listed in urlsToCache
+const STATIC_ASSET_URLS = [
+    'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap',
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
+];
+
+// Install event: Caches all assets
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[Service Worker] Caching assets');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((error) => {
-        console.error('[Service Worker] Cache addAll failed:', error);
-      })
+    Promise.all([
+        caches.open(APP_CACHE_NAME).then((cache) => {
+            console.log('[Service Worker] Caching App Shell');
+            return cache.addAll(APP_SHELL_URLS);
+        }),
+        caches.open(STATIC_ASSETS_CACHE_NAME).then((cache) => {
+            console.log('[Service Worker] Caching Static Assets');
+            return cache.addAll(STATIC_ASSET_URLS);
+        })
+    ]).catch((error) => {
+      console.error('[Service Worker] Cache addAll failed:', error);
+    })
   );
 });
 
-// Fetch event: Intercepts network requests and serves from cache if available
+// Fetch event: Serves from cache, falls back to network
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // If the asset is found in the cache, return it
-        if (response) {
-          console.log('[Service Worker] Serving from cache:', event.request.url);
-          return response;
-        }
-        // Otherwise, fetch from the network
-        console.log('[Service Worker] Fetching from network:', event.request.url);
-        return fetch(event.request);
-      })
-      .catch((error) => {
-        console.error('[Service Worker] Fetch failed:', error);
-        // You might want to serve a custom offline page here if the fetch fails
-      })
-  );
+    const { hostname } = new URL(event.request.url);
+
+    // For external assets (fonts, icons), use a cache-first strategy
+    if (hostname === 'fonts.googleapis.com' || hostname === 'cdnjs.cloudflare.com') {
+        event.respondWith(
+            caches.match(event.request).then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return fetch(event.request).then((networkResponse) => {
+                    // Optionally, update the cache with the new version
+                    return caches.open(STATIC_ASSETS_CACHE_NAME).then((cache) => {
+                        cache.put(event.request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                });
+            })
+        );
+    } else {
+        // For the app shell, serve from cache first
+        event.respondWith(
+            caches.match(event.request).then((response) => {
+                return response || fetch(event.request);
+            })
+        );
+    }
 });
 
-// Activate event: Cleans up old caches when the service worker is updated
+// Activate event: Cleans up old caches
 self.addEventListener('activate', (event) => {
   console.log('[Service Worker] Activating...');
-  const cacheWhitelist = [CACHE_NAME]; // Only keep the current cache version
+  const cacheWhitelist = [APP_CACHE_NAME, STATIC_ASSETS_CACHE_NAME]; 
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // Delete old caches
             console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }

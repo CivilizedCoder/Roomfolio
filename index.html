@@ -523,36 +523,42 @@
                     </div>
                     <p id="exportFeedback" class="feedback"></p>
                 </section>
-            </div> <div id="duplicateResolutionView" class="view-section">
+            </div> 
+            
+            <div id="duplicateResolutionView" class="view-section">
                 <header class="view-header">
-                    <h1><i class="fas fa-exclamation-triangle" style="color: var(--accent-color);"></i> Resolve Room Conflict</h1>
+                    <h1 style="color: var(--accent-color);"><i class="fas fa-exclamation-triangle"></i> Action Required: Room Conflict</h1>
                 </header>
-                <p class="data-management-description" style="text-align: center;">A room with the same <strong>Building Name</strong> and <strong>Room Identifier</strong> already exists. Please choose how to proceed.</p>
+                <p class="data-management-description" style="text-align: center; font-size: 1.1rem;">
+                    <strong>STOP:</strong> A room with this Building Name and Room ID already exists.
+                    <br>
+                    To prevent accidentally overwriting data, please review both sets of information below and choose an action.
+                </p>
                 
                 <div class="conflict-resolution-container">
                     <div id="attemptedDataPanel" class="conflict-panel">
-                        <h3><i class="fas fa-file-alt"></i> Data You Were Trying to Save</h3>
+                        <h3><i class="fas fa-file-alt"></i> Your Unsaved Data</h3>
                         <div id="attemptedDataPreview" class="room-details-preview">
                             </div>
                         <div class="actions" style="margin-top: 15px;">
-                            <button type="button" id="editAttemptedBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Edit This Data</button>
+                            <button type="button" id="editAttemptedBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Continue Editing</button>
                             <button type="button" id="discardAttemptedBtn" class="action-button secondary-button"><i class="fas fa-times-circle"></i> Discard This Data</button>
                         </div>
                     </div>
             
                     <div id="existingDataPanel" class="conflict-panel">
-                        <h3><i class="fas fa-database"></i> Existing Room Data</h3>
+                        <h3><i class="fas fa-database"></i> Existing Saved Room</h3>
                         <div id="existingDataPreview" class="room-details-preview">
                             </div>
                         <div class="actions" style="margin-top: 15px;">
-                            <button type="button" id="editExistingConflictBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Edit Existing</button>
-                            <button type="button" id="deleteExistingConflictBtn" class="action-button danger-button"><i class="fas fa-trash-alt"></i> Delete Existing</button>
+                            <button type="button" id="editExistingConflictBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Edit Existing Room</button>
+                            <button type="button" id="deleteExistingConflictBtn" class="action-button danger-button"><i class="fas fa-trash-alt"></i> Delete Existing Room</button>
                         </div>
                     </div>
                 </div>
                 <p id="duplicateResolutionFeedback" class="feedback"></p>
                 <div style="text-align: center; margin-top: 25px;">
-                    <button type="button" id="cancelDuplicateResolutionBtn" class="action-button"><i class="fas fa-arrow-left"></i> Back to Room List</button>
+                    <button type="button" id="cancelDuplicateResolutionBtn" class="action-button"><i class="fas fa-arrow-left"></i> Back to Main Room List</button>
                 </div>
             </div>
 
