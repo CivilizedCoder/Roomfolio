@@ -607,7 +607,7 @@
             </div>
             <p><strong>How would you like to resolve this?</strong></p>
             <div class="form-section" style="padding:15px; margin-top:10px; border-color: var(--accent-color);">
-                <h4 style="margin-bottom:10px; color: var(--primary-color);">Option 1: Modify Importing Room's Identifiers</h4>
+                <h4 style="margin-bottom:10px; color: var(--primary-color);">Option 1: Modify Importing Room's Identifiers & Save</h4>
                 <div class="input-group">
                     <label for="conflictBuildingNew">New Building Name for Importing Room:</label>
                     <input type="text" id="conflictBuildingNew" name="conflictBuildingNew">
@@ -623,6 +623,9 @@
             <div class="conflict-actions" style="text-align: center; margin-top: 20px; display:flex; justify-content:space-around; flex-wrap:wrap; gap:10px;">
                 <button id="replaceConflictBtn" class="action-button secondary-button"><i class="fas fa-sync-alt"></i> Option 2: Replace Existing Room</button>
                 <button id="skipConflictBtn" class="action-button danger-button"><i class="fas fa-forward"></i> Option 3: Skip This Importing Room</button>
+                <!-- NEW BUTTONS FOR MASS ACTIONS -->
+                <button id="massReplaceAllConflictBtn" class="action-button" style="background-color: var(--success-color); color: white; order: 1; /* Puts it visually first in flex row if desired */"><i class="fas fa-check-double"></i> Mass Replace All Subsequent</button>
+                <button id="massSkipAllConflictBtn" class="action-button" style="background-color: var(--accent-color); color: white; order: 2;"><i class="fas fa-ban"></i> Mass Skip All Subsequent</button>
             </div>
         </div>
     </div>

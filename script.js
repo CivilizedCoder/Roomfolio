@@ -59,6 +59,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const replaceConflictBtn = document.getElementById('replaceConflictBtn');
     const saveModifiedConflictBtn = document.getElementById('saveModifiedConflictBtn');
     const modifyConflictFeedback = document.getElementById('modifyConflictFeedback');
+    // New buttons for mass actions in conflict modal
+    const massReplaceAllConflictBtn = document.getElementById('massReplaceAllConflictBtn');
+    const massSkipAllConflictBtn = document.getElementById('massSkipAllConflictBtn');
+
 
     // Duplicate Save Conflict Resolution View elements
     const duplicateResolutionView = document.getElementById('duplicateResolutionView');
@@ -118,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let replacedCount = 0;
     let currentConflictingRoom = null; // For import conflict
     let currentExistingRoom = null;    // For import conflict
+    let importConflictResolutionMode = 'manual'; // 'manual', 'replaceAll', 'skipAll'
 
     // Duplicate Save Conflict variables
     let currentAttemptedSaveData = null;
@@ -877,7 +882,7 @@ document.addEventListener('DOMContentLoaded', function () {
         newRoomData.furnitureOtherSpecify = newRoomData.furniture.includes('Other') ? (formData.get('furnitureOtherSpecify') || '').trim() : '';
 
         newRoomData.heatingCooling = formData.get('heatingCooling');
-        newRoomData.heatingCoolingOther = formData.get('heatingCooling') === 'Other' ? formData.get('heatingCoolingOther').trim() : '';
+        newRoomData.heatingCoolingOther = formData.get('heatingCooling') === 'Other' ? (formData.get('heatingCoolingOther') || '').trim() : '';
 
         newRoomData.doors = [];
         if (doorsContainer) {
@@ -926,7 +931,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     feedbackMessage.textContent = msg;
                     feedbackMessage.className = 'feedback error';
                 } else {
-                    alert(msg);
+                    alert(msg); // Fallback, should ideally not be used.
                 }
                 const currentAddRoomView = document.getElementById('AddRoomView');
                 if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
@@ -982,7 +987,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     feedbackMessage.textContent = currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!';
                     feedbackMessage.className = 'feedback success';
                 } else {
-                    alert(currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!');
+                    alert(currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!'); // Fallback
                 }
 
                 const isEditing = !!currentRoomId;
@@ -1004,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     feedbackMessage.textContent = errorMsg;
                     feedbackMessage.className = 'feedback error';
                 } else {
-                    alert(errorMsg);
+                    alert(errorMsg); // Fallback
                 }
                 const currentAddRoomView = document.getElementById('AddRoomView');
                 if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
@@ -1027,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             feedbackMessage.textContent = 'Room data (JSON) copied to clipboard!';
                             feedbackMessage.className = 'feedback success';
                         } else {
-                            alert('Room data (JSON) copied to clipboard!');
+                            alert('Room data (JSON) copied to clipboard!'); // Fallback
                         }
                     }).catch(err => {
                         console.error('Async clipboard copy failed:', err);
@@ -1042,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     feedbackMessage.textContent = 'Error copying room data. See console.';
                     feedbackMessage.className = 'feedback error';
                 } else {
-                    alert('Error copying room data. See console.');
+                    alert('Error copying room data. See console.'); // Fallback
                 }
             }
         });
@@ -1064,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 feedbackMessage.textContent = msg;
                 feedbackMessage.className = successful ? 'feedback success' : 'feedback error';
             } else {
-                alert(msg);
+                alert(msg); // Fallback
             }
         } catch (err) {
             console.error('Fallback copy execCommand failed:', err);
@@ -1072,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 feedbackMessage.textContent = 'Fallback copy failed. See console.';
                 feedbackMessage.className = 'feedback error';
             } else {
-                alert('Fallback copy failed. See console.');
+                alert('Fallback copy failed. See console.'); // Fallback
             }
         }
         document.body.removeChild(textArea);
@@ -1081,18 +1086,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if(cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => {
+            // No window.confirm here, using standard confirm
             if (confirm("Are you sure you want to cancel editing? Any unsaved changes will be lost.")) {
                 const returnToConflictView = cameFromDuplicateResolutionView;
 
                 editingRoomIdInput.value = ''; 
-                // isResolvingAttemptedDataInput is reset by resetRoomFormToDefault
                 resetRoomFormToDefault(); 
 
                 if (returnToConflictView) {
-                    cameFromDuplicateResolutionView = false; // Reset the specific flag for this flow
+                    cameFromDuplicateResolutionView = false; 
                     setActiveView('duplicateResolutionView', { preserveScroll: true });
                 } else {
-                    cameFromDuplicateResolutionView = false; // Ensure it's reset for normal cancel too
+                    cameFromDuplicateResolutionView = false; 
                     setActiveView('ViewRoomsView');
                 }
             }
@@ -1145,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if(saveRoomBtn) saveRoomBtn.innerHTML = '<i class="fas fa-save"></i> Update Room Information';
             if(cancelEditBtn) cancelEditBtn.style.display = 'inline-flex';
         } else { 
-            editingRoomIdInput.value = room.id || ''; // Keep temp ID if present from attemptedData, else empty
+            editingRoomIdInput.value = room.id || ''; 
             isResolvingAttemptedDataInput.value = 'true'; 
             if(addEditRoomTitle) addEditRoomTitle.innerHTML = `<i class="fas fa-pencil-alt"></i> Edit Data for New Room`;
             if(saveRoomBtn) saveRoomBtn.innerHTML = '<i class="fas fa-save"></i> Save Room Information';
@@ -1303,7 +1308,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const cb = roomForm.querySelector(`input[name="technology"][value="${tItem}"]`);
                 if (cb) cb.checked = true;
             });
-            if (room.technology.includes('Other')) {
+            if (room.technologyOtherSpecify) {
                 const techOtherText = roomForm.querySelector('#technologyOtherSpecifyText');
                 if(techOtherText) techOtherText.value = room.technologyOtherSpecify || '';
             }
@@ -1419,6 +1424,7 @@ document.addEventListener('DOMContentLoaded', function () {
             populateFormForEditing(roomId);
         } else if (targetButton.classList.contains('delete-room-btn')) {
             const room = findRoomById(roomId);
+            // No window.confirm here, using standard confirm
             if (confirm(`Are you sure you want to delete room: ${escapeHtml(room?.roomIdentifier)} in ${escapeHtml(room?.buildingName)}? This action cannot be undone.`)) {
                 deleteRoom(roomId);
             }
@@ -1640,6 +1646,7 @@ document.addEventListener('DOMContentLoaded', function () {
         deleteExistingConflictBtn.addEventListener('click', () => {
             if (currentExistingRoomForSaveConflict) {
                 const room = currentExistingRoomForSaveConflict;
+                // No window.confirm here
                 if (confirm(`Are you sure you want to delete the existing room: ${escapeHtml(room.roomIdentifier)} in ${escapeHtml(room.buildingName)}? This action cannot be undone.`)) {
                     deleteRoom(room.id, true); 
                 }
@@ -1708,6 +1715,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 buildingManagementFeedback.textContent = `A building named "${escapeHtml(newName)}" already exists. Cannot rename.`;
                 buildingManagementFeedback.className = 'feedback error'; return;
             }
+            // No window.confirm here
             if (confirm(`Are you sure you want to rename building "${escapeHtml(oldName)}" to "${escapeHtml(newName)}"? This will update the building name in all associated rooms.`)) {
                 const buildingIndex = buildings.findIndex(b => b === oldName);
                 if (buildingIndex > -1) {
@@ -1758,6 +1766,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             let buildings = getStoredBuildings();
             if (!buildings.some(b => b.toLowerCase() === newName.toLowerCase())) {
+                // No window.confirm here
                 if (!confirm(`The building "${escapeHtml(newName)}" does not exist. Do you want to add it and then reassign rooms?`)) {
                     massUpdateFeedback.textContent = 'Mass update cancelled. Target building does not exist.';
                     massUpdateFeedback.className = 'feedback info'; return;
@@ -1778,6 +1787,7 @@ document.addEventListener('DOMContentLoaded', function () {
                      massUpdateFeedback.className = 'feedback error'; return;
                 }
             }
+            // No window.confirm here
             if (confirm(`Are you sure you want to reassign ${roomsInSelectedBuilding.length} room(s) from building "${escapeHtml(oldName)}" to "${escapeHtml(newName)}"?`)) {
                 let updatedCount = 0;
                 const updatedRooms = rooms.map(room => {
@@ -1864,7 +1874,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
             }
-            window.getSelection().removeAllRanges();
+            if (window.getSelection) { // Deselect text
+                window.getSelection().removeAllRanges();
+            } else if (document.selection) { // IE <9
+                document.selection.empty();
+            }
         });
     }
 
@@ -1898,30 +1912,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function tryMigrateRoomTileData(roomObject) {
         if (roomObject && roomObject.roomMakeup && roomObject.roomMakeup.floor && roomObject.roomMakeup.floor.type === 'Tile' &&
-            !roomObject.roomMakeup.floor.tileSize &&
-            roomObject.roomMakeup.ceiling && roomObject.roomMakeup.ceiling.tileSize) { 
+            !roomObject.roomMakeup.floor.tileSize && // Only if new field doesn't exist
+            roomObject.roomMakeup.ceiling && roomObject.roomMakeup.ceiling.tileSize) { // And old field exists
+            // This was a specific data migration case, it seems ceiling.tileSize was mistakenly used for floor.
+            // This function attempts to correct it if floor.tileSize is missing and ceiling.tileSize is present.
             const oldCeilingTileSize = String(roomObject.roomMakeup.ceiling.tileSize);
             if (oldCeilingTileSize === "9") roomObject.roomMakeup.floor.tileSize = "9x9";
             else if (oldCeilingTileSize === "12") roomObject.roomMakeup.floor.tileSize = "12x12";
+            // delete roomObject.roomMakeup.ceiling.tileSize; // Optionally remove the incorrect old field
+            console.log("Migrated tile data for room:", roomObject.roomIdentifier);
         }
     }
 
     function processImportedJsonString(jsonString) {
         if(importFeedback) {importFeedback.className = 'feedback'; importFeedback.textContent = '';}
+        importConflictResolutionMode = 'manual'; // Reset mode for new import session
         try {
             const data = JSON.parse(jsonString);
-            if (!Array.isArray(data)) throw new Error('JSON must be an array.');
+            if (!Array.isArray(data)) throw new Error('JSON must be an array of room objects.');
+            
             const currentBuildings = getStoredBuildings();
             let newBuildingsFound = false;
+            
             data.forEach(room => {
-                if (room && room.buildingName && !currentBuildings.includes(room.buildingName)) {
-                    currentBuildings.push(room.buildingName);
-                    newBuildingsFound = true;
+                if (room && typeof room === 'object') {
+                    if (room.buildingName && !currentBuildings.includes(room.buildingName)) {
+                        currentBuildings.push(room.buildingName);
+                        newBuildingsFound = true;
+                    }
+                    tryMigrateRoomTileData(room); // Apply migration to each room object
                 }
-                tryMigrateRoomTileData(room);
             });
+
             if (newBuildingsFound) storeBuildings(currentBuildings);
+            
             importedRoomsQueue = data.filter(r => r && typeof r === 'object' && r.buildingName && r.roomIdentifier);
+            
             if (importedRoomsQueue.length === 0) {
                 importFeedback.textContent = 'No valid room objects with buildingName and roomIdentifier found in JSON.';
                 importFeedback.className = 'feedback error'; return;
@@ -1938,23 +1964,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function processImportQueue() {
         if(modifyConflictFeedback){modifyConflictFeedback.className='feedback';modifyConflictFeedback.textContent='';}
+        
         if (currentImportIndex >= importedRoomsQueue.length) {
             let summary = `Import complete. Successfully imported: ${successfullyImportedCount}. Replaced: ${replacedCount}. Skipped: ${skippedCount}.`;
             importFeedback.textContent = summary;
             importFeedback.className = (successfullyImportedCount > 0 || replacedCount > 0) ? 'feedback success' : 'feedback info';
             renderRoomList(); populateBuildingDropdowns();
             if (jsonImportFile) jsonImportFile.value = ''; if (jsonPasteArea) jsonPasteArea.value = '';
+            importConflictResolutionMode = 'manual'; // Reset mode at the end of the queue
             return;
         }
+
         const roomToImport = { ...importedRoomsQueue[currentImportIndex] }; 
         delete roomToImport.id; delete roomToImport.savedAt; 
         currentExistingRoom = findRoom(roomToImport.buildingName, roomToImport.roomIdentifier);
+
         if (currentExistingRoom) {
-            currentConflictingRoom = roomToImport;
-            showConflictModal(currentConflictingRoom, currentExistingRoom);
-        } else {
+            if (importConflictResolutionMode === 'replaceAll') {
+                console.log(`[ImportQueue] Mass Replacing: ${roomToImport.buildingName} - ${roomToImport.roomIdentifier}`);
+                tryMigrateRoomTileData(roomToImport); // Ensure data migration
+                roomToImport.id = currentExistingRoom.id;
+                addRoomToStorageInternal(roomToImport, currentExistingRoom.id);
+                replacedCount++;
+                currentImportIndex++;
+                processImportQueue(); // Continue directly
+                return; 
+            } else if (importConflictResolutionMode === 'skipAll') {
+                console.log(`[ImportQueue] Mass Skipping: ${roomToImport.buildingName} - ${roomToImport.roomIdentifier}`);
+                skippedCount++;
+                currentImportIndex++;
+                processImportQueue(); // Continue directly
+                return; 
+            } else { // 'manual' mode
+                currentConflictingRoom = roomToImport;
+                showConflictModal(currentConflictingRoom, currentExistingRoom);
+                // Modal interaction will advance currentImportIndex and recall processImportQueue via button handlers
+            }
+        } else { // No conflict
             addRoomToStorageInternal(roomToImport);
-            successfullyImportedCount++; currentImportIndex++; processImportQueue();
+            successfullyImportedCount++; 
+            currentImportIndex++; 
+            processImportQueue();
         }
     }
 
@@ -1963,7 +2013,10 @@ document.addEventListener('DOMContentLoaded', function () {
         importingRoomDetailsPreview.innerHTML = formatRoomDataForPreview(newRoom);
         existingRoomDetailsPreview.innerHTML = formatRoomDataForPreview(existingRoom); 
         conflictBuildingNew.value = newRoom.buildingName; conflictRoomIDNew.value = newRoom.roomIdentifier;
-        conflictModal.style.display = 'block'; conflictBuildingNew.focus();
+        conflictModal.style.display = 'block'; 
+        // Focus management could be improved, e.g., focus first interactive element.
+        // For now, focusing one of the new inputs or a button.
+        if(massReplaceAllConflictBtn) massReplaceAllConflictBtn.focus(); else conflictBuildingNew.focus();
     }
 
     function closeConflictModal() {
@@ -1972,23 +2025,73 @@ document.addEventListener('DOMContentLoaded', function () {
         if (modifyConflictFeedback) {modifyConflictFeedback.className='feedback';modifyConflictFeedback.textContent='';}
     }
 
-    if(closeConflictModalBtn) closeConflictModalBtn.onclick = () => { skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue(); };
-    if(skipConflictBtn) skipConflictBtn.onclick = () => { skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue(); };
-    if(replaceConflictBtn) replaceConflictBtn.onclick = () => {
-        if (currentConflictingRoom && currentExistingRoom) {
-            tryMigrateRoomTileData(currentConflictingRoom);
-            currentConflictingRoom.id = currentExistingRoom.id; 
-            addRoomToStorageInternal(currentConflictingRoom, currentExistingRoom.id); 
-            replacedCount++;
-        }
-        currentImportIndex++; closeConflictModal(); processImportQueue();
-    };
+    if(closeConflictModalBtn) {
+        closeConflictModalBtn.onclick = () => { 
+            skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue(); 
+        };
+    }
+    if(skipConflictBtn) {
+        skipConflictBtn.onclick = () => { 
+            skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue(); 
+        };
+    }
+    if(replaceConflictBtn) {
+        replaceConflictBtn.onclick = () => {
+            if (currentConflictingRoom && currentExistingRoom) {
+                tryMigrateRoomTileData(currentConflictingRoom); // Ensure data migration consistency
+                currentConflictingRoom.id = currentExistingRoom.id; 
+                addRoomToStorageInternal(currentConflictingRoom, currentExistingRoom.id); 
+                replacedCount++;
+            }
+            currentImportIndex++; closeConflictModal(); processImportQueue();
+        };
+    }
+
+    // Event listeners for NEW mass action buttons
+    if (massReplaceAllConflictBtn) {
+        massReplaceAllConflictBtn.addEventListener('click', () => {
+            importConflictResolutionMode = 'replaceAll';
+            if (modifyConflictFeedback) {
+                modifyConflictFeedback.textContent = 'Mass Replace All Subsequent selected. Current conflict will be replaced.';
+                modifyConflictFeedback.className = 'feedback info';
+            }
+            // Handle the current conflict with "replace"
+            if (currentConflictingRoom && currentExistingRoom) {
+                tryMigrateRoomTileData(currentConflictingRoom);
+                currentConflictingRoom.id = currentExistingRoom.id;
+                addRoomToStorageInternal(currentConflictingRoom, currentExistingRoom.id);
+                replacedCount++;
+            }
+            currentImportIndex++;
+            closeConflictModal(); 
+            processImportQueue(); 
+        });
+    }
+
+    if (massSkipAllConflictBtn) {
+        massSkipAllConflictBtn.addEventListener('click', () => {
+            importConflictResolutionMode = 'skipAll';
+            if (modifyConflictFeedback) {
+                modifyConflictFeedback.textContent = 'Mass Skip All Subsequent selected. Current conflict will be skipped.';
+                modifyConflictFeedback.className = 'feedback info';
+            }
+            // Handle the current conflict with "skip"
+            skippedCount++;
+            currentImportIndex++;
+            closeConflictModal(); 
+            processImportQueue(); 
+        });
+    }
+
+
     if(saveModifiedConflictBtn) {
         saveModifiedConflictBtn.onclick = () => {
             if (!currentConflictingRoom || !conflictBuildingNew || !conflictRoomIDNew || !modifyConflictFeedback) return;
             const newBuilding = conflictBuildingNew.value.trim(); const newRoomIdVal = conflictRoomIDNew.value.trim();
             if (!newBuilding || !newRoomIdVal) { modifyConflictFeedback.textContent = 'Building Name and Room ID cannot be empty.'; modifyConflictFeedback.className = 'feedback error'; return; }
+            
             const stillExisting = findRoom(newBuilding, newRoomIdVal);
+            
             if (stillExisting && stillExisting.id !== currentExistingRoom?.id) { 
                 modifyConflictFeedback.textContent = 'Conflict: Modified identifiers match another existing room.';
                 modifyConflictFeedback.className = 'feedback error';
@@ -1998,14 +2101,27 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (currentExistingRoom && 
                        newBuilding.toLowerCase() === currentExistingRoom.buildingName.toLowerCase() &&
                        newRoomIdVal.toLowerCase() === currentExistingRoom.roomIdentifier.toLowerCase()) {
-                modifyConflictFeedback.textContent = 'Identifiers still match the original conflicting room. Please change them or choose another option.';
-                modifyConflictFeedback.className = 'feedback error'; return;
+                // This check means they tried to save with the *original conflicting* identifiers without changing them.
+                // This is okay if the user intends to replace, but this button is for *modifying and then saving as new*.
+                // However, the more critical check is if it matches *another* existing room.
+                // If it still matches currentExistingRoom, and they didn't change, it's a bit ambiguous for this button.
+                // For simplicity, we can allow it, and it will be saved as new, effectively orphaning the original `currentExistingRoom` if no other action is taken on it.
+                // A better approach might be to guide them to "Replace" if identifiers are unchanged.
+                // For now, let's assume they intend to save as new, even if identifiers are same as original (implies they want a duplicate entry if they go this route)
+                // The check for `stillExisting && stillExisting.id !== currentExistingRoom?.id` covers other conflicts.
+                // Let's refine: this button should only proceed if the new identifiers *don't* match any *other* room *or* if they are different from the original conflict.
+                 if (stillExisting && stillExisting.id === currentExistingRoom?.id) {
+                     modifyConflictFeedback.textContent = 'Identifiers are the same as the original conflicting room. Change them to save as new, or choose "Replace".';
+                     modifyConflictFeedback.className = 'feedback error';
+                     return;
+                 }
             }
+
             currentConflictingRoom.buildingName = newBuilding;
             currentConflictingRoom.roomIdentifier = newRoomIdVal;
-            delete currentConflictingRoom.id; 
+            delete currentConflictingRoom.id; // Ensure it's treated as a new room if IDs were modified
             tryMigrateRoomTileData(currentConflictingRoom); 
-            addRoomToStorageInternal(currentConflictingRoom);
+            addRoomToStorageInternal(currentConflictingRoom); // Saved as a new entry
             successfullyImportedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
         };
     }
@@ -2088,7 +2204,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (room.roomMakeup.ceiling.asbestosInCeiling !== asbestosCeilingFilter) {
                         match = false;
                     }
-                } else { 
+                } else { // If not drop ceiling, it cannot match a specific asbestos value
                     match = false;
                 }
             }
@@ -2121,6 +2237,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+
     if (clearFilterBtn) {
         clearFilterBtn.addEventListener('click', function() {
             if (filterForm) filterForm.reset();
@@ -2138,21 +2255,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.onkeydown = eventArgument => {
         if (eventArgument.key==='Escape') {
-            if (conflictModal?.style.display==='block') { 
+            if (conflictModal?.style.display==='block' && importConflictResolutionMode === 'manual') { 
+                // Only allow Esc to skip if in manual mode for the current conflict.
+                // If a mass mode was just chosen, the modal should have closed.
                 skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
             } else if (roomDetailModal?.style.display==='block') {
                 closeModal();
             } else if (duplicateResolutionView?.classList.contains('active-view')) {
-                cameFromDuplicateResolutionView = false; // Reset flag
+                cameFromDuplicateResolutionView = false; 
                 setActiveView('ViewRoomsView'); 
             } else if (editingRoomIdInput.value && document.getElementById('AddRoomView')?.classList.contains('active-view')) {
-                if(cancelEditBtn) cancelEditBtn.click();
+                if(cancelEditBtn) cancelEditBtn.click(); // Simulate click to get confirm dialog
             }
         }
     };
     window.onclick = eventArgument => {
         if (eventArgument.target==roomDetailModal) closeModal();
-        else if (eventArgument.target==conflictModal) { 
+        else if (eventArgument.target==conflictModal && importConflictResolutionMode === 'manual') { 
+            // Similar to Esc, only allow background click to skip if in manual mode.
             skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
         }
     };
