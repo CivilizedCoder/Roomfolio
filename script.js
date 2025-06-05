@@ -506,9 +506,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (selectEl && otherEl) {
                 const shouldBeVisible = selectEl.value === 'Other';
                 otherEl.style.display = shouldBeVisible ? 'block' : 'none';
-                // if (!shouldBeVisible && !otherEl.classList.contains('remembered-input')) {
-                // otherEl.value = ''; // Preserve remembered
-                // }
             }
         }
 
@@ -531,7 +528,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!showFloorTileOptions) {
                 formElement.querySelectorAll('input[name="floorTileSize"]').forEach(radio => radio.checked = false);
                 if (floorTileSizeOtherEl) {
-                    // floorTileSizeOtherEl.value = ''; // Preserve remembered
                     floorTileSizeOtherEl.style.display = 'none';
                 }
             } else {
@@ -540,7 +536,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     let selectedRadio = formElement.querySelector('input[name="floorTileSize"]:checked');
                     const showOtherInput = selectedRadio && selectedRadio.value === 'Other';
                     floorTileSizeOtherInput.style.display = showOtherInput ? 'block' : 'none';
-                    // if (!showOtherInput) floorTileSizeOtherInput.value = ''; // Preserve remembered
                 }
             }
         }
@@ -556,7 +551,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (specificCheckbox && otherTextInput) {
                 const shouldBeVisible = specificCheckbox.checked;
                 otherTextInput.style.display = shouldBeVisible ? (otherTextInput.classList.contains('inline-other') ? 'inline-block' : 'block') : 'none';
-                // if (!shouldBeVisible) otherTextInput.value = ''; // Preserve remembered
             }
         });
     }
@@ -2298,32 +2292,39 @@ document.addEventListener('DOMContentLoaded', function () {
     function getRoomTextContent(room) {
         let content = [];
         
-        // A list of all simple properties to search through.
+        const processValue = (value) => {
+            if (value !== undefined && value !== null) { 
+                if (Array.isArray(value)) {
+                    content.push(value.join(' ').toLowerCase());
+                } else {
+                    content.push(String(value).toLowerCase());
+                }
+            }
+        };
+
         const simpleSearchPaths = [
             'roomIdentifier', 'roomPurpose', 'roomPurposeOther',
             'roomMakeup.walls', 'roomMakeup.wallsOther',
-            'roomMakeup.ceiling.type', 'roomMakeup.ceiling.typeOther',
+            'roomMakeup.ceiling.type', 'roomMakeup.ceiling.typeOther', 'roomMakeup.ceiling.asbestosInCeiling',
             'roomMakeup.floor.type', 'roomMakeup.floor.typeOther', 'roomMakeup.floor.tileSize', 'roomMakeup.floor.tileSizeOther',
             'conditionValues.walls', 'conditionValues.ceiling', 'conditionValues.floor', 'conditionValues.furniture', 'conditionValues.overall',
             'conditionValues.wallsComment', 'conditionValues.ceilingComment', 'conditionValues.floorComment', 'conditionValues.furnitureComment', 'conditionValues.overallComment',
-            'furniture', 'furnitureSpecialtySpecify', 'furnitureOtherSpecify',
-            'technology', 'technologyOtherSpecify',
+            'furniture', 
+            'furnitureSpecialtySpecify', 'furnitureOtherSpecify',
+            'technology', 
+            'technologyOtherSpecify',
             'heatingCooling', 'heatingCoolingOther'
         ];
 
         simpleSearchPaths.forEach(path => {
-            const value = getProperty(room, path);
-            if (value) {
-                content.push(Array.isArray(value) ? value.join(' ') : String(value));
-            }
+            processValue(getProperty(room, path));
         });
 
-        // Add text from complex objects like fixtures and doors.
-        room.otherFixtures?.forEach(f => content.push(f.type, f.specify));
-        room.lightFixtures?.forEach(f => content.push(f.type, f.style, f.typeOtherSpecify, f.styleOtherSpecify));
-        room.doors?.forEach(d => content.push(d.identifier, d.type, d.lockType, d.typeOther, d.lockTypeOther));
-
-        return content.join(' ').toLowerCase();
+        room.otherFixtures?.forEach(f => { processValue(f.type); processValue(f.specify); });
+        room.lightFixtures?.forEach(f => { processValue(f.type); processValue(f.style); processValue(f.typeOtherSpecify); processValue(f.styleOtherSpecify); });
+        room.doors?.forEach(d => { processValue(d.identifier); processValue(d.type); processValue(d.lockType); processValue(d.typeOther); processValue(d.lockTypeOther); });
+        
+        return content.filter(s => s.trim() !== "").join(' '); 
     }
 
     function checkCondition(condition, room, roomTextContent) {
@@ -2331,62 +2332,88 @@ document.addEventListener('DOMContentLoaded', function () {
         let [key, ...valueParts] = condition.split(':');
         let value = valueParts.join(':').trim();
 
-        // If there's no value after a colon, it's not a valid targeted search.
         if (condition.includes(':') && !value) return false;
 
-        // Targeted search like "key:value"
         if (value) { 
-            key = key.trim().toLowerCase().replace(/\s/g, ''); // Normalize key
+            key = key.trim().toLowerCase().replace(/\s/g, ''); 
             const propertyPath = filterFieldMap[key];
             if (propertyPath) {
                 const roomValue = getProperty(room, propertyPath);
-                const searchTerm = value.replace(/^"|"$/g, '').toLowerCase(); // Remove quotes
+                const searchTerm = value.replace(/^"|"$/g, '').toLowerCase(); 
                 return roomValue !== undefined && String(roomValue).toLowerCase().includes(searchTerm);
             }
-            return false; // Key not found in map
+            return false; 
         } 
-        // Global search for a term
         else { 
-            const term = key.replace(/^"|"$/g, '').toLowerCase(); // Remove quotes
+            const term = key.replace(/^"|"$/g, '').toLowerCase(); 
             return roomTextContent.includes(term);
         }
     }
     
-    function evaluateQuery(query, room) {
-        const roomTextContent = getRoomTextContent(room); // Generate searchable text once.
+    function evaluateQuery(query, room, precomputedRoomTextContent = null) {
+        const roomTextContent = precomputedRoomTextContent || getRoomTextContent(room);
 
-        // This function handles parentheses by recursively evaluating sub-queries.
         while (query.includes('(')) {
             let startIndex = query.lastIndexOf('(');
             let endIndex = query.indexOf(')', startIndex);
-            if (endIndex === -1) { throw new Error("Mismatched parentheses in query."); };
+            if (endIndex === -1) { throw new Error("Mismatched parentheses in query."); }
             
             let subQuery = query.substring(startIndex + 1, endIndex);
-            let result = evaluateQuery(subQuery, room); // Recursion happens here
-            query = query.substring(0, startIndex) + result + query.substring(endIndex + 1);
+            let subQueryResult = evaluateQuery(subQuery, room, roomTextContent); 
+            query = query.substring(0, startIndex) + subQueryResult + query.substring(endIndex + 1);
         }
 
-        // Now evaluate AND/OR logic on the simplified query.
         const andParts = query.split(/ AND /i);
         for (const andPart of andParts) {
-            if (!andPart.trim()) continue;
-            const orParts = andPart.split(/ OR /i);
-            let orResult = false;
-            for (const orPart of orParts) {
-                if (!orPart.trim()) continue;
-                let term = orPart.trim();
+            if (!andPart.trim()) {
+                 if (query.toUpperCase().includes("AND AND") || query.trim().toUpperCase().startsWith("AND") || query.trim().toUpperCase().endsWith("AND")) {
+                    if (andPart.trim() === "") continue;
+                 } else if (andPart.trim() === "") {
+                     return false; 
+                 }
+            }
 
-                if (term === 'true') { orResult = true; break; }
-                if (term === 'false') continue;
+            const orParts = andPart.split(/ OR /i);
+            let orClauseIsTrue = false;
+            for (const orPart of orParts) {
+                if (!orPart.trim()) {
+                     if (andPart.toUpperCase().includes("OR OR") || andPart.trim().toUpperCase().startsWith("OR") || andPart.trim().toUpperCase().endsWith("OR")) {
+                        if (orPart.trim() === "") continue;
+                     } else if (orPart.trim() === "") {
+                        continue;
+                     }
+                }
                 
-                if (checkCondition(term, room, roomTextContent)) {
-                    orResult = true;
-                    break;
+                let term = orPart.trim();
+                let negate = false;
+
+                const notMatch = term.match(/^\s*NOT\s+(.+)/i);
+                if (notMatch) {
+                    negate = true;
+                    term = notMatch[1].trim();
+                }
+                
+                let currentTermResult;
+                if (term === 'true') { 
+                    currentTermResult = true;
+                } else if (term === 'false') { 
+                    currentTermResult = false;
+                } else {
+                    currentTermResult = checkCondition(term, room, roomTextContent);
+                }
+
+                if (negate) {
+                    currentTermResult = !currentTermResult;
+                }
+
+                if (currentTermResult) {
+                    orClauseIsTrue = true;
+                    break; 
                 }
             }
-            if (!orResult) return false; // An AND-group failed.
+            if (!orClauseIsTrue) return false; 
         }
-        return true; // All AND-groups passed.
+        return true; 
     }
 
     function applyFilters() {
@@ -2405,7 +2432,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (buildingNameFilter && room.buildingName !== buildingNameFilter) return false;
                 if (roomIdentifierFilter && (!room.roomIdentifier || !room.roomIdentifier.toLowerCase().startsWith(roomIdentifierFilter))) return false;
                 if (globalQuery && !evaluateQuery(globalQuery, room)) return false;
-                return true; // Room passes all filters
+                return true; 
             });
             
              if (filteredRooms.length > 0) {
@@ -2419,11 +2446,12 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("Filter query parsing error:", e);
             filterFeedback.textContent = `Error in filter query syntax: ${e.message}`;
             filterFeedback.className = 'feedback error';
-            filteredRooms = []; // Show no results if query is invalid
+            filteredRooms = []; 
         }
         
         renderRoomList(filteredRooms, filterResultsContainer, true);
     }    
+    // --- END OF NEW FILTER LOGIC ---
     
     if (filterForm) {
         filterForm.addEventListener('submit', function(event) {
