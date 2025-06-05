@@ -2430,7 +2430,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.onkeydown = eventArgument => {
         if (eventArgument.key==='Escape') {
-            if (conflictModal?.style.display==='block' && importConflictResolutionMode === 'manual') {
+            if (conflictModal?.style.display==='block' && importConflictResolutionMode === 'manual') { //same as full cancel. 
                 skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
             } else if (roomDetailModal?.style.display==='block') {
                 closeModal();
