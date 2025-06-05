@@ -1083,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
                 console.warn("[RoomFormSubmit] Duplicate room detected. Presenting resolution options.");
+                showAppNotification('Room Conflict Detected', `Room "${newRoomDataFromForm.buildingName} - ${newRoomDataFromForm.roomIdentifier}" already exists. Please resolve in the app.`);
                 presentDuplicateRoomResolution(newRoomDataFromForm, existingRoomWithSameIdentifiers);
                 return; 
             }
