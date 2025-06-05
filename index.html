@@ -201,8 +201,7 @@
                         <fieldset class="input-group">
                             <legend class="group-label">Light Fixtures</legend>
                             <div id="lightFixturesContainer">
-                                <!-- Light fixture entries will be added here by JS -->
-                            </div>
+                                </div>
                             <button type="button" id="addLightFixtureBtn" class="action-button secondary-button" style="margin-top: 5px; font-size: 0.9em; padding: 0.5em 1em;"><i class="fas fa-plus"></i> Add Light Fixture Type</button>
                         </fieldset>
                         <fieldset class="input-group">
@@ -311,8 +310,7 @@
                     <section class="form-section">
                         <h2><i class="fas fa-door-open"></i> 7. Doors Within the Room</h2>
                         <div id="doorsContainer">
-                            <!-- Door entries will be added here by JS -->
-                        </div>
+                            </div>
                         <button type="button" id="addDoorBtn" class="action-button secondary-button"><i class="fas fa-plus"></i> Add Door</button>
                     </section>
 
@@ -351,8 +349,7 @@
                     <h1><i class="fas fa-eye"></i> View Saved Rooms</h1>
                 </header>
                 <div id="roomListContainer">
-                    <!-- Room cards will be displayed here -->
-                </div>
+                    </div>
             </div>
 
             <div id="FilterView" class="view-section">
@@ -364,8 +361,7 @@
                         <label for="filterBuildingName">Building Name:</label>
                         <select id="filterBuildingName" name="filterBuildingName">
                             <option value="">-- Any Building --</option>
-                            <!-- Options populated by JS -->
-                        </select>
+                            </select>
                     </div>
                     <div class="input-group">
                         <label for="filterRoomIdentifier">Room Identifier (Starts with):</label>
@@ -439,8 +435,7 @@
                     <p id="filterFeedback" class="feedback"></p>
                 </form>
                 <div id="filterResultsContainer">
-                    <!-- Filtered room cards will be displayed here -->
-                </div>
+                    </div>
             </div>
 
 
@@ -467,8 +462,7 @@
                             <label for="renameOldBuildingNameSelect">Select Building to Rename:</label>
                             <select id="renameOldBuildingNameSelect" name="renameOldBuildingNameSelect">
                                 <option value="">-- Select Building --</option>
-                                <!-- Options populated by JS -->
-                            </select>
+                                </select>
                         </div>
                         <div class="input-group">
                             <label for="renameNewBuildingNameInput">New Name for Building:</label>
@@ -509,8 +503,7 @@
                         <label for="massUpdateOldBuildingNameSelect">Select Current Building Name (from Room Data):</label>
                         <select id="massUpdateOldBuildingNameSelect" name="massUpdateOldBuildingNameSelect">
                              <option value="">-- Select Building to Reassign From --</option>
-                             <!-- Options populated by JS -->
-                        </select>
+                             </select>
                     </div>
                     <div class="input-group">
                         <label for="massUpdateNewBuildingNameInput">New Building Name (for these Rooms):</label>
@@ -530,10 +523,7 @@
                     </div>
                     <p id="exportFeedback" class="feedback"></p>
                 </section>
-            </div> <!-- End DataView -->
-
-            <!-- New View Section for Duplicate Room Resolution -->
-            <div id="duplicateResolutionView" class="view-section">
+            </div> <div id="duplicateResolutionView" class="view-section">
                 <header class="view-header">
                     <h1><i class="fas fa-exclamation-triangle" style="color: var(--accent-color);"></i> Resolve Room Conflict</h1>
                 </header>
@@ -543,8 +533,7 @@
                     <div id="attemptedDataPanel" class="conflict-panel">
                         <h3><i class="fas fa-file-alt"></i> Data You Were Trying to Save</h3>
                         <div id="attemptedDataPreview" class="room-details-preview">
-                            <!-- Content populated by JS -->
-                        </div>
+                            </div>
                         <div class="actions" style="margin-top: 15px;">
                             <button type="button" id="editAttemptedBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Edit This Data</button>
                             <button type="button" id="discardAttemptedBtn" class="action-button secondary-button"><i class="fas fa-times-circle"></i> Discard This Data</button>
@@ -554,8 +543,7 @@
                     <div id="existingDataPanel" class="conflict-panel">
                         <h3><i class="fas fa-database"></i> Existing Room Data</h3>
                         <div id="existingDataPreview" class="room-details-preview">
-                            <!-- Content populated by JS -->
-                        </div>
+                            </div>
                         <div class="actions" style="margin-top: 15px;">
                             <button type="button" id="editExistingConflictBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Edit Existing</button>
                             <button type="button" id="deleteExistingConflictBtn" class="action-button danger-button"><i class="fas fa-trash-alt"></i> Delete Existing</button>
@@ -570,20 +558,15 @@
 
 
         </main>
-    </div> <!-- End app-container -->
-    
-    <!-- Modal for Room Details -->
-    <div id="roomDetailModal" class="modal">
+    </div> <div id="roomDetailModal" class="modal">
         <div class="modal-content">
             <span class="close-modal-btn" role="button" tabindex="0" aria-label="Close room details">&times;</span>
             <h2>Room Details</h2>
             <div id="roomDetailContent">
-                <!-- Content populated by JS -->
-            </div>
+                </div>
         </div>
     </div>
 
-    <!-- Modal for Import Conflicts -->
     <div id="conflictModal" class="modal">
         <div class="modal-content" style="max-width: 750px;">
             <span id="closeConflictModalBtn" class="close-modal-btn" role="button" tabindex="0" aria-label="Close conflict resolution">&times;</span>
@@ -594,14 +577,12 @@
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-file-import"></i> Importing Room Data:</h4>
                         <div id="importingRoomDetailsPreview" class="room-details-preview">
-                            <!-- Content populated by JS -->
-                        </div>
+                            </div>
                     </div>
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-database"></i> Existing Room Data:</h4>
                         <div id="existingRoomDetailsPreview" class="room-details-preview">
-                            <!-- Content populated by JS -->
-                        </div>
+                            </div>
                     </div>
                 </div>
             </div>
@@ -623,13 +604,13 @@
             <div class="conflict-actions" style="text-align: center; margin-top: 20px; display:flex; justify-content:space-around; flex-wrap:wrap; gap:10px;">
                 <button id="replaceConflictBtn" class="action-button secondary-button"><i class="fas fa-sync-alt"></i> Option 2: Replace Existing Room</button>
                 <button id="skipConflictBtn" class="action-button danger-button"><i class="fas fa-forward"></i> Option 3: Skip This Importing Room</button>
-                <!-- NEW BUTTONS FOR MASS ACTIONS -->
                 <button id="massReplaceAllConflictBtn" class="action-button" style="background-color: var(--success-color); color: white; order: 1; /* Puts it visually first in flex row if desired */"><i class="fas fa-check-double"></i> Mass Replace All Subsequent</button>
                 <button id="massSkipAllConflictBtn" class="action-button" style="background-color: var(--accent-color); color: white; order: 2;"><i class="fas fa-ban"></i> Mass Skip All Subsequent</button>
             </div>
         </div>
     </div>
 
+    <script src="capacitor.js"></script>
     <script src="script.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {

@@ -1,6 +1,96 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log("App DOMContentLoaded: Initializing...");
 
+    // --- Notification Helper (Updated for Android Channels) ---
+
+    // This new function creates the required notification channel on Android.
+    async function createNotificationChannel() {
+        // This is only required for Android.
+        if (window.Capacitor && window.Capacitor.getPlatform() === 'android') {
+            try {
+                console.log("Creating notification channel for Android...");
+                await window.Capacitor.Plugins.LocalNotifications.createChannel({
+                    id: 'roomfolio_channel',
+                    name: 'Roomfolio Notifications',
+                    description: 'General notifications for the Roomfolio app',
+                    importance: 4, // Importance level: 4 is 'Default'
+                    visibility: 1, // Show on lock screen
+                    vibration: true,
+                });
+                console.log("Notification channel created successfully.");
+            } catch (e) {
+                console.error("Error creating notification channel: ", e);
+            }
+        }
+    }
+    
+    async function requestNotificationPermission() {
+        console.log("Attempting to request notification permission...");
+        if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+            try {
+                console.log("Capacitor LocalNotifications plugin found. Checking permissions.");
+                let permStatus = await window.Capacitor.Plugins.LocalNotifications.checkPermissions();
+                console.log("Current permission status:", permStatus.display);
+                if (permStatus.display === 'prompt') {
+                    console.log("Permission not yet granted, requesting...");
+                    permStatus = await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
+                    console.log("Permission request result:", permStatus.display);
+                }
+                if (permStatus.display !== 'granted') {
+                    console.warn('User did not grant notification permissions. Notifications will fallback to alerts.');
+                }
+                return permStatus.display === 'granted';
+            } catch (e) {
+                console.error("Error requesting notification permission:", e);
+                return false;
+            }
+        }
+        console.log("Not a native platform or LocalNotifications plugin not available. Web alerts will be used.");
+        return false; // Not a native platform or plugin not available
+    }
+
+    async function showAppNotification(title, body) {
+        console.log(`showAppNotification called with title: "${title}"`);
+        if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+            try {
+                console.log("Attempting to show a native notification.");
+                let permStatus = await window.Capacitor.Plugins.LocalNotifications.checkPermissions();
+                if (permStatus.display !== 'granted') {
+                     console.warn('Notification permission not granted. Falling back to alert.');
+                     alert(`${title}\n${body}`);
+                     return;
+                }
+                
+                console.log("Scheduling native notification on channel 'roomfolio_channel'...");
+                await window.Capacitor.Plugins.LocalNotifications.schedule({
+                    notifications: [
+                        {
+                            title: title,
+                            body: body,
+                            id: new Date().getTime(),
+                            schedule: { at: new Date(Date.now() + 100) },
+                            channelId: 'roomfolio_channel', // Assign to the created channel
+                        }
+                    ]
+                });
+                console.log("Native notification scheduled successfully.");
+            } catch (e) {
+                console.error("Error showing native notification:", e);
+                alert(`${title}\n${body}`);
+            }
+        } else {
+            console.log("Using web fallback alert for notification.");
+            alert(`${title}\n${body}`);
+        }
+    }
+    
+    // Request notification permissions on startup
+    requestNotificationPermission();
+    // Create the notification channel required for Android 8+
+    createNotificationChannel();
+    // Send a notification on startup for debugging purposes
+    showAppNotification("App Opened", "The notification system is working.");
+
     // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
     const views = document.querySelectorAll('.view-section');
@@ -916,6 +1006,10 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
             console.log("[RoomFormSubmit] Form submission initiated.");
 
+            const currentAddRoomView = document.getElementById('AddRoomView');
+            // User request: Always scroll to top on submission attempt
+            if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+
             if (feedbackMessage) {
                 feedbackMessage.textContent = '';
                 feedbackMessage.className = 'feedback';
@@ -930,12 +1024,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (feedbackMessage) {
                     feedbackMessage.textContent = msg;
                     feedbackMessage.className = 'feedback error';
-                } else {
-                    alert(msg); // Fallback, should ideally not be used.
                 }
-                const currentAddRoomView = document.getElementById('AddRoomView');
-                if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
-                return; 
+                // User request: show notification on unsuccessful save
+                showAppNotification('Save Unsuccessful', msg);
+                return;
             }
             
             const newRoomDataFromForm = getCurrentRoomDataFromForm(true); 
@@ -986,8 +1078,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (feedbackMessage) {
                     feedbackMessage.textContent = currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!';
                     feedbackMessage.className = 'feedback success';
-                } else {
-                    alert(currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!'); // Fallback
                 }
 
                 const isEditing = !!currentRoomId;
@@ -1008,11 +1098,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (feedbackMessage) {
                     feedbackMessage.textContent = errorMsg;
                     feedbackMessage.className = 'feedback error';
-                } else {
-                    alert(errorMsg); // Fallback
                 }
-                const currentAddRoomView = document.getElementById('AddRoomView');
-                if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+                // User request: show notification on unsuccessful save
+                showAppNotification('Save Failed', errorMsg);
             }
         });
     }
@@ -1969,6 +2057,10 @@ document.addEventListener('DOMContentLoaded', function () {
             let summary = `Import complete. Successfully imported: ${successfullyImportedCount}. Replaced: ${replacedCount}. Skipped: ${skippedCount}.`;
             importFeedback.textContent = summary;
             importFeedback.className = (successfullyImportedCount > 0 || replacedCount > 0) ? 'feedback success' : 'feedback info';
+            
+            // User request: show notification with import summary
+            showAppNotification('Import Complete', summary);
+            
             renderRoomList(); populateBuildingDropdowns();
             if (jsonImportFile) jsonImportFile.value = ''; if (jsonPasteArea) jsonPasteArea.value = '';
             importConflictResolutionMode = 'manual'; // Reset mode at the end of the queue
