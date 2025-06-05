@@ -1,14 +1,14 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log("App DOMContentLoaded: Initializing...");
 
-    // --- Notification Helper (Updated for Android Channels) ---
+    // --- Notification Helper (Updated for Android Channels & Web Notifications API) ---
 
     // This new function creates the required notification channel on Android.
     async function createNotificationChannel() {
-        // This is only required for Android.
-        if (window.Capacitor && window.Capacitor.getPlatform() === 'android') {
+        // This is only required for Android when using Capacitor.
+        if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android' && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
             try {
-                console.log("Creating notification channel for Android...");
+                console.log("Creating notification channel for Android (Capacitor)...");
                 await window.Capacitor.Plugins.LocalNotifications.createChannel({
                     id: 'roomfolio_channel',
                     name: 'Roomfolio Notifications',
@@ -17,79 +17,125 @@ document.addEventListener('DOMContentLoaded', function () {
                     visibility: 1, // Show on lock screen
                     vibration: true,
                 });
-                console.log("Notification channel created successfully.");
+                console.log("Notification channel created successfully (Capacitor).");
             } catch (e) {
-                console.error("Error creating notification channel: ", e);
+                console.error("Error creating notification channel (Capacitor): ", e);
             }
         }
     }
     
     async function requestNotificationPermission() {
         console.log("Attempting to request notification permission...");
+    
+        // First, try Capacitor for native-built apps
         if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
             try {
                 console.log("Capacitor LocalNotifications plugin found. Checking permissions.");
                 let permStatus = await window.Capacitor.Plugins.LocalNotifications.checkPermissions();
-                console.log("Current permission status:", permStatus.display);
+                console.log("Current Capacitor permission status:", permStatus.display);
                 if (permStatus.display === 'prompt') {
-                    console.log("Permission not yet granted, requesting...");
+                    console.log("Capacitor permission not yet granted, requesting...");
                     permStatus = await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
-                    console.log("Permission request result:", permStatus.display);
+                    console.log("Capacitor permission request result:", permStatus.display);
                 }
-                if (permStatus.display !== 'granted') {
-                    console.warn('User did not grant notification permissions. Notifications will fallback to alerts.');
+                if (permStatus.display === 'granted') {
+                    return true; // Success with Capacitor
                 }
-                return permStatus.display === 'granted';
+                console.warn('User did not grant Capacitor notification permissions. Trying next method.');
             } catch (e) {
-                console.error("Error requesting notification permission:", e);
+                console.error("Error requesting Capacitor notification permission, trying next method:", e);
+            }
+        }
+    
+        // If Capacitor isn't available or fails, try standard Web Notifications API for PWAs
+        if ('Notification' in window) {
+            try {
+                console.log("Using standard Web Notifications API. Requesting permission.");
+                const permission = await Notification.requestPermission();
+                console.log("Web Notifications API permission status:", permission);
+                if (permission === 'granted') {
+                    return true; // Success with Web API
+                } else {
+                    console.warn('User did not grant Web Notifications API permissions.');
+                    return false;
+                }
+            } catch (e) {
+                console.error("Error requesting Web Notifications API permission:", e);
                 return false;
             }
         }
-        console.log("Not a native platform or LocalNotifications plugin not available. Web alerts will be used.");
-        return false; // Not a native platform or plugin not available
+    
+        console.log("Neither Capacitor nor the Web Notifications API are available or permission was denied.");
+        return false;
     }
 
     async function showAppNotification(title, body) {
         console.log(`showAppNotification called with title: "${title}"`);
+    
+        // 1. Try Capacitor Local Notifications first (for native builds)
         if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
             try {
-                console.log("Attempting to show a native notification.");
                 let permStatus = await window.Capacitor.Plugins.LocalNotifications.checkPermissions();
-                if (permStatus.display !== 'granted') {
-                     console.warn('Notification permission not granted. Falling back to alert.');
-                     alert(`${title}\n${body}`);
-                     return;
-                }
-                
-                console.log("Scheduling native notification on channel 'roomfolio_channel'...");
-                await window.Capacitor.Plugins.LocalNotifications.schedule({
-                    notifications: [
-                        {
+                if (permStatus.display === 'granted') {
+                    console.log("Scheduling Capacitor native notification on channel 'roomfolio_channel'...");
+                    await window.Capacitor.Plugins.LocalNotifications.schedule({
+                        notifications: [{
                             title: title,
                             body: body,
-                            id: new Date().getTime(),
-                            schedule: { at: new Date(Date.now() + 100) },
-                            channelId: 'roomfolio_channel', // Assign to the created channel
-                        }
-                    ]
-                });
-                console.log("Native notification scheduled successfully.");
+                            id: new Date().getTime(), // Unique ID for the notification
+                            schedule: { at: new Date(Date.now() + 100) }, // Show almost immediately
+                            channelId: 'roomfolio_channel', // Required for Android 8+
+                        }]
+                    });
+                    console.log("Capacitor native notification scheduled successfully.");
+                    return; // Exit if successful
+                }
             } catch (e) {
-                console.error("Error showing native notification:", e);
-                alert(`${title}\n${body}`);
+                console.error("Error showing Capacitor native notification:", e);
+                // Continue to next method if Capacitor fails
             }
-        } else {
-            console.log("Using web fallback alert for notification.");
-            alert(`${title}\n${body}`);
         }
+    
+        // 2. Try standard PWA/Web Notifications API as a fallback
+        if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+                console.log("Attempting to show a standard Web Notification via Service Worker.");
+                // Get the service worker registration.
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    // Use the service worker to show the notification.
+                    registration.showNotification(title, {
+                        body: body,
+                        icon: '/Roomfolio/icon-192x192.png' // Optional: path to an icon
+                        // You can add more options here like 'badge', 'image', 'actions', etc.
+                    });
+                    console.log("Standard Web Notification shown successfully.");
+                    return; // Exit if successful
+                } else {
+                    console.warn("Service worker registration not found. Cannot show Web Notification via SW.");
+                    // Fallback to basic client-side notification if SW not available (less ideal but better than nothing)
+                    new Notification(title, { body: body, icon: '/Roomfolio/icon-192x192.png' });
+                    console.log("Standard Web Notification shown (client-side fallback).");
+                    return;
+                }
+            } catch(e) {
+                console.error("Error showing standard Web Notification:", e);
+                // Continue to next method if Web API fails
+            }
+        }
+    
+        // 3. Final fallback to a simple alert if all else fails
+        console.log("Using web fallback alert because no notification permissions or APIs are available.");
+        alert(`${title}\n${body}`);
     }
     
     // Request notification permissions on startup
     requestNotificationPermission();
-    // Create the notification channel required for Android 8+
+    // Create the notification channel required for Android 8+ (if using Capacitor)
     createNotificationChannel();
-    // Send a notification on startup for debugging purposes
-    showAppNotification("App Opened", "The notification system is working.");
+    // Send a notification on startup with instructions
+    showAppNotification("Welcome to Roomfolio!", "To get started, go to 'Add Room' to enter new room details or visit 'Data Management' to import existing data.");
+
 
     // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
