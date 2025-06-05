@@ -1,11 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log("App DOMContentLoaded: Initializing...");
 
-    // --- Notification Helper (REMOVED as per user request) ---
-    // createNotificationChannel, requestNotificationPermission, showAppNotification functions removed.
-
-    // --- Original code without client-side notification functions ---
-
     // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
     const views = document.querySelectorAll('.view-section');
@@ -14,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Room Form elements
     const roomForm = document.getElementById('roomForm');
     const editingRoomIdInput = document.getElementById('editingRoomId');
-    const isResolvingAttemptedDataInput = document.getElementById('isResolvingAttemptedData'); // For duplicate save conflict
+    const isResolvingAttemptedDataInput = document.getElementById('isResolvingAttemptedData');
     const buildingNameSelect = document.getElementById('buildingName');
     const feedbackMessage = document.getElementById('feedbackMessage');
     const doorsContainer = document.getElementById('doorsContainer');
@@ -57,14 +52,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const conflictModal = document.getElementById('conflictModal');
     const closeConflictModalBtn = document.getElementById('closeConflictModalBtn');
     const importingRoomDetailsPreview = document.getElementById('importingRoomDetailsPreview');
-    const existingRoomDetailsPreview = document.getElementById('existingRoomDetailsPreview'); // For import conflict
+    const existingRoomDetailsPreview = document.getElementById('existingRoomDetailsPreview');
     const conflictBuildingNew = document.getElementById('conflictBuildingNew');
     const conflictRoomIDNew = document.getElementById('conflictRoomIDNew');
     const skipConflictBtn = document.getElementById('skipConflictBtn');
     const replaceConflictBtn = document.getElementById('replaceConflictBtn');
     const saveModifiedConflictBtn = document.getElementById('saveModifiedConflictBtn');
     const modifyConflictFeedback = document.getElementById('modifyConflictFeedback');
-    // New buttons for mass actions in conflict modal
     const massReplaceAllConflictBtn = document.getElementById('massReplaceAllConflictBtn');
     const massSkipAllConflictBtn = document.getElementById('massSkipAllConflictBtn');
 
@@ -72,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Duplicate Save Conflict Resolution View elements
     const duplicateResolutionView = document.getElementById('duplicateResolutionView');
     const attemptedDataPreview = document.getElementById('attemptedDataPreview');
-    // Note: The existing data preview in duplicateResolutionView has id="existingDataPreview"
     const editAttemptedBtn = document.getElementById('editAttemptedBtn');
     const discardAttemptedBtn = document.getElementById('discardAttemptedBtn');
     const editExistingConflictBtn = document.getElementById('editExistingConflictBtn');
@@ -85,14 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterForm = document.getElementById('filterForm');
     const filterBuildingNameInput = document.getElementById('filterBuildingName');
     const filterRoomIdentifierInput = document.getElementById('filterRoomIdentifier');
-    const filterRoomPurposeSelect = document.getElementById('filterRoomPurpose');
-    const filterRoomPurposeOther = document.getElementById('filterRoomPurposeOther');
-    const filterLightFixtureTypeSelect = document.getElementById('filterLightFixtureType');
-    const filterLightFixtureTypeOther = document.getElementById('filterLightFixtureTypeOther');
-    const filterOverallConditionSelect = document.getElementById('filterOverallCondition');
-    const filterHasAsbestosCeilingSelect = document.getElementById('filterHasAsbestosCeiling');
-    const filterFloorTypeSelect = document.getElementById('filterFloorType');
-    const filterFloorTypeOther = document.getElementById('filterFloorTypeOther');
+    const globalQueryInput = document.getElementById('globalQuery');
     const clearFilterBtn = document.getElementById('clearFilterBtn');
     const filterResultsContainer = document.getElementById('filterResultsContainer');
     const filterFeedback = document.getElementById('filterFeedback');
@@ -103,8 +89,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const LAST_USED_BUILDING_KEY = 'roomAppData_lastUsedBuilding';
     const LAST_INPUT_VALUES_KEY = 'roomAppData_lastInputValues';
 
-    // For "remember last input" feature
+    // State variables
     let lastInputValues = {};
+    let importedRoomsQueue = [];
+    let currentImportIndex = 0;
+    let successfullyImportedCount = 0;
+    let skippedCount = 0;
+    let replacedCount = 0;
+    let currentConflictingRoom = null;
+    let currentExistingRoom = null;
+    let importConflictResolutionMode = 'manual';
+    let currentAttemptedSaveData = null;
+    let currentExistingRoomForSaveConflict = null;
+    let cameFromDuplicateResolutionView = false;
+    let focusedButtonBeforeModal = null;
 
     // Default buildings list
     const DEFAULT_BUILDINGS = [
@@ -118,25 +116,6 @@ document.addEventListener('DOMContentLoaded', function () {
         "Lakeside 115 (Kappa Sig)", "Lakeside 117 (Kappa Sig)", "Lakeside 125 (DELTA House)", "Lakeside 127 (Mace)",
         "Lakeside 133 (Phi Tau)", "Lakeside 135", "Lakeside 137 (RA Housing)", 'Lakeside 141 (Phi Psi)', "Lakeside 151 (Ulster)"
     ];
-
-    // Import process variables
-    let importedRoomsQueue = [];
-    let currentImportIndex = 0;
-    let successfullyImportedCount = 0;
-    let skippedCount = 0;
-    let replacedCount = 0;
-    let currentConflictingRoom = null; // For import conflict
-    let currentExistingRoom = null;    // For import conflict
-    let importConflictResolutionMode = 'manual'; // 'manual', 'replaceAll', 'skipAll'
-
-    // Duplicate Save Conflict variables
-    let currentAttemptedSaveData = null;
-    let currentExistingRoomForSaveConflict = null;
-    let cameFromDuplicateResolutionView = false; // Flag to track if editing originated from conflict resolution
-
-
-    // For modal focus restoration
-    let focusedButtonBeforeModal = null;
 
     // --- "Remember Last Input" Feature ---
     function loadLastInputValues() {
@@ -348,9 +327,6 @@ document.addEventListener('DOMContentLoaded', function () {
              isResolvingAttemptedDataInput.value = 'false';
         } else if (targetViewId === 'FilterView') {
             if(filterForm) filterForm.reset();
-            if(filterRoomPurposeOther) { filterRoomPurposeOther.style.display = 'none'; filterRoomPurposeOther.value = ''; }
-            if(filterLightFixtureTypeOther) { filterLightFixtureTypeOther.style.display = 'none'; filterLightFixtureTypeOther.value = ''; }
-            if(filterFloorTypeOther) { filterFloorTypeOther.style.display = 'none'; filterFloorTypeOther.value = ''; }
             if(filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
             if(filterFeedback) {filterFeedback.textContent = ''; filterFeedback.className = 'feedback';}
             populateBuildingDropdowns();
@@ -366,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
         clearFormAndDynamicElements(roomForm);
         editingRoomIdInput.value = '';
         isResolvingAttemptedDataInput.value = 'false';
-        // cameFromDuplicateResolutionView is reset by the specific flows that use it.
+        cameFromDuplicateResolutionView = false; 
 
         if(addEditRoomTitle) addEditRoomTitle.innerHTML = '<i class="fas fa-pencil-alt"></i> Add New Room Information';
         if(saveRoomBtn) saveRoomBtn.innerHTML = '<i class="fas fa-save"></i> Save Room Information';
@@ -405,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 editingRoomIdInput.value = '';
                 isResolvingAttemptedDataInput.value = 'false';
-                cameFromDuplicateResolutionView = false; // Reset flag when navigating away
+                cameFromDuplicateResolutionView = false; 
                 resetRoomFormToDefault();
             }
             setActiveView(targetViewId);
@@ -530,9 +506,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (selectEl && otherEl) {
                 const shouldBeVisible = selectEl.value === 'Other';
                 otherEl.style.display = shouldBeVisible ? 'block' : 'none';
-                if (!shouldBeVisible && !otherEl.classList.contains('remembered-input')) {
-                    // otherEl.value = ''; // Commented out to preserve "remembered" values even if not visible
-                }
+                // if (!shouldBeVisible && !otherEl.classList.contains('remembered-input')) {
+                // otherEl.value = ''; // Preserve remembered
+                // }
             }
         }
 
@@ -1736,13 +1712,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const room = currentExistingRoomForSaveConflict;
                 if (confirm(`Are you sure you want to DELETE the existing room and REPLACE it with your new data? This action cannot be undone.`)) {
                     try {
-                        // This is the core fix. We delete the old room and immediately save the new one.
-                        // First, delete the old room from storage.
                         const allRooms = getStoredRooms();
                         const roomsWithoutOld = allRooms.filter(r => r.id !== room.id);
                         storeRooms(roomsWithoutOld);
 
-                        // Now, add the new room data to storage.
                         addRoomToStorageInternal(currentAttemptedSaveData);
                         
                         if (duplicateResolutionFeedback) {
@@ -1750,7 +1723,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             duplicateResolutionFeedback.className = 'feedback success';
                         }
                         
-                        // Clean up and navigate away
                         currentAttemptedSaveData = null;
                         currentExistingRoomForSaveConflict = null;
                         cameFromDuplicateResolutionView = false;
@@ -1779,7 +1751,7 @@ document.addEventListener('DOMContentLoaded', function () {
         cancelDuplicateResolutionBtn.addEventListener('click', () => {
             currentAttemptedSaveData = null;
             currentExistingRoomForSaveConflict = null;
-            cameFromDuplicateResolutionView = false; // Reset flag
+            cameFromDuplicateResolutionView = false; 
             setActiveView('ViewRoomsView');
         });
     }
@@ -2301,26 +2273,120 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
-    function setupFilterConditionalInput(selectElement, otherInputElement) {
-        if (selectElement && otherInputElement) {
-            const update = () => {
-                const shouldBeVisible = selectElement.value === 'Other';
-                otherInputElement.style.display = shouldBeVisible ? 'block' : 'none';
-                if (!shouldBeVisible) otherInputElement.value = '';
-            };
-            selectElement.addEventListener('change', update);
-            update();
-        }
+    // --- NEW FILTER LOGIC ---
+    
+    // Helper to get a nested property from an object using a string path safely.
+    function getProperty(obj, path) {
+        return path.split('.').reduce((o, key) => (o && o[key] !== undefined && o[key] !== null) ? o[key] : undefined, obj);
     }
 
-    if (filterRoomPurposeSelect && filterRoomPurposeOther) {
-        setupFilterConditionalInput(filterRoomPurposeSelect, filterRoomPurposeOther);
+    // A map of user-friendly keys to actual data paths for targeted searches.
+    const filterFieldMap = {
+        'purpose': 'roomPurpose',
+        'wallstype': 'roomMakeup.walls',
+        'ceilingtype': 'roomMakeup.ceiling.type',
+        'asbestos': 'roomMakeup.ceiling.asbestosInCeiling',
+        'floortype': 'roomMakeup.floor.type',
+        'wallscondition': 'conditionValues.walls',
+        'ceilingcondition': 'conditionValues.ceiling',
+        'floorcondition': 'conditionValues.floor',
+        'furniturecondition': 'conditionValues.furniture',
+        'overallcondition': 'conditionValues.overall',
+    };
+    
+    // A single function to aggregate all searchable text from a room into one string.
+    function getRoomTextContent(room) {
+        let content = [];
+        
+        // A list of all simple properties to search through.
+        const simpleSearchPaths = [
+            'roomIdentifier', 'roomPurpose', 'roomPurposeOther',
+            'roomMakeup.walls', 'roomMakeup.wallsOther',
+            'roomMakeup.ceiling.type', 'roomMakeup.ceiling.typeOther',
+            'roomMakeup.floor.type', 'roomMakeup.floor.typeOther', 'roomMakeup.floor.tileSize', 'roomMakeup.floor.tileSizeOther',
+            'conditionValues.walls', 'conditionValues.ceiling', 'conditionValues.floor', 'conditionValues.furniture', 'conditionValues.overall',
+            'conditionValues.wallsComment', 'conditionValues.ceilingComment', 'conditionValues.floorComment', 'conditionValues.furnitureComment', 'conditionValues.overallComment',
+            'furniture', 'furnitureSpecialtySpecify', 'furnitureOtherSpecify',
+            'technology', 'technologyOtherSpecify',
+            'heatingCooling', 'heatingCoolingOther'
+        ];
+
+        simpleSearchPaths.forEach(path => {
+            const value = getProperty(room, path);
+            if (value) {
+                content.push(Array.isArray(value) ? value.join(' ') : String(value));
+            }
+        });
+
+        // Add text from complex objects like fixtures and doors.
+        room.otherFixtures?.forEach(f => content.push(f.type, f.specify));
+        room.lightFixtures?.forEach(f => content.push(f.type, f.style, f.typeOtherSpecify, f.styleOtherSpecify));
+        room.doors?.forEach(d => content.push(d.identifier, d.type, d.lockType, d.typeOther, d.lockTypeOther));
+
+        return content.join(' ').toLowerCase();
     }
-    if (filterLightFixtureTypeSelect && filterLightFixtureTypeOther) {
-        setupFilterConditionalInput(filterLightFixtureTypeSelect, filterLightFixtureTypeOther);
+
+    function checkCondition(condition, room, roomTextContent) {
+        condition = condition.trim();
+        let [key, ...valueParts] = condition.split(':');
+        let value = valueParts.join(':').trim();
+
+        // If there's no value after a colon, it's not a valid targeted search.
+        if (condition.includes(':') && !value) return false;
+
+        // Targeted search like "key:value"
+        if (value) { 
+            key = key.trim().toLowerCase().replace(/\s/g, ''); // Normalize key
+            const propertyPath = filterFieldMap[key];
+            if (propertyPath) {
+                const roomValue = getProperty(room, propertyPath);
+                const searchTerm = value.replace(/^"|"$/g, '').toLowerCase(); // Remove quotes
+                return roomValue !== undefined && String(roomValue).toLowerCase().includes(searchTerm);
+            }
+            return false; // Key not found in map
+        } 
+        // Global search for a term
+        else { 
+            const term = key.replace(/^"|"$/g, '').toLowerCase(); // Remove quotes
+            return roomTextContent.includes(term);
+        }
     }
-    if (filterFloorTypeSelect && filterFloorTypeOther) {
-        setupFilterConditionalInput(filterFloorTypeSelect, filterFloorTypeOther);
+    
+    function evaluateQuery(query, room) {
+        const roomTextContent = getRoomTextContent(room); // Generate searchable text once.
+
+        // This function handles parentheses by recursively evaluating sub-queries.
+        while (query.includes('(')) {
+            let startIndex = query.lastIndexOf('(');
+            let endIndex = query.indexOf(')', startIndex);
+            if (endIndex === -1) { throw new Error("Mismatched parentheses in query."); };
+            
+            let subQuery = query.substring(startIndex + 1, endIndex);
+            let result = evaluateQuery(subQuery, room); // Recursion happens here
+            query = query.substring(0, startIndex) + result + query.substring(endIndex + 1);
+        }
+
+        // Now evaluate AND/OR logic on the simplified query.
+        const andParts = query.split(/ AND /i);
+        for (const andPart of andParts) {
+            if (!andPart.trim()) continue;
+            const orParts = andPart.split(/ OR /i);
+            let orResult = false;
+            for (const orPart of orParts) {
+                if (!orPart.trim()) continue;
+                let term = orPart.trim();
+
+                if (term === 'true') { orResult = true; break; }
+                if (term === 'false') continue;
+                
+                if (checkCondition(term, room, roomTextContent)) {
+                    orResult = true;
+                    break;
+                }
+            }
+            if (!orResult) return false; // An AND-group failed.
+        }
+        return true; // All AND-groups passed.
     }
 
     function applyFilters() {
@@ -2328,83 +2394,37 @@ document.addEventListener('DOMContentLoaded', function () {
         filterFeedback.textContent = '';
         filterFeedback.className = 'feedback';
 
-        const buildingNameFilter = filterBuildingNameInput.value.trim().toLowerCase();
+        const buildingNameFilter = filterBuildingNameInput.value;
         const roomIdentifierFilter = filterRoomIdentifierInput.value.trim().toLowerCase();
-        const roomPurposeFilter = filterRoomPurposeSelect.value;
-        const roomPurposeOtherFilter = filterRoomPurposeOther.value.trim().toLowerCase();
-        const lightFixtureTypeFilter = filterLightFixtureTypeSelect.value;
-        const lightFixtureTypeOtherFilter = filterLightFixtureTypeOther.value.trim().toLowerCase();
-        const overallConditionFilter = filterOverallConditionSelect.value;
-        const asbestosCeilingFilter = filterHasAsbestosCeilingSelect.value;
-        const floorTypeFilter = filterFloorTypeSelect.value;
-        const floorTypeOtherFilter = filterFloorTypeOther.value.trim().toLowerCase();
+        const globalQuery = globalQueryInput.value.trim();
 
-
-        const allRooms = getStoredRooms();
-        const filteredRooms = allRooms.filter(room => {
-            let match = true;
-
-            if (buildingNameFilter && (!room.buildingName || !room.buildingName.toLowerCase().includes(buildingNameFilter))) {
-                match = false;
+        let filteredRooms = [];
+        try {
+            const allRooms = getStoredRooms();
+            filteredRooms = allRooms.filter(room => {
+                if (buildingNameFilter && room.buildingName !== buildingNameFilter) return false;
+                if (roomIdentifierFilter && (!room.roomIdentifier || !room.roomIdentifier.toLowerCase().startsWith(roomIdentifierFilter))) return false;
+                if (globalQuery && !evaluateQuery(globalQuery, room)) return false;
+                return true; // Room passes all filters
+            });
+            
+             if (filteredRooms.length > 0) {
+                filterFeedback.textContent = `Found ${filteredRooms.length} room(s) matching your criteria.`;
+                filterFeedback.className = 'feedback success';
+            } else {
+                filterFeedback.textContent = 'No rooms found matching your criteria.';
+                filterFeedback.className = 'feedback info';
             }
-            if (match && roomIdentifierFilter && (!room.roomIdentifier || !room.roomIdentifier.toLowerCase().startsWith(roomIdentifierFilter))) {
-                match = false;
-            }
-            if (match && roomPurposeFilter) {
-                if (roomPurposeFilter === 'Other') {
-                    if (!(room.roomPurpose === 'Other' && room.roomPurposeOther && room.roomPurposeOther.toLowerCase().includes(roomPurposeOtherFilter))) {
-                        match = false;
-                    }
-                } else if (room.roomPurpose !== roomPurposeFilter) {
-                    match = false;
-                }
-            }
-            if (match && lightFixtureTypeFilter) {
-                if (lightFixtureTypeFilter === 'Other') {
-                    if (!room.lightFixtures || !room.lightFixtures.some(fixture =>
-                        fixture.type === 'Other' && fixture.typeOtherSpecify && fixture.typeOtherSpecify.toLowerCase().includes(lightFixtureTypeOtherFilter))) {
-                        match = false;
-                    }
-                } else {
-                    if (!room.lightFixtures || !room.lightFixtures.some(fixture => fixture.type === lightFixtureTypeFilter)) {
-                        match = false;
-                    }
-                }
-            }
-            if (match && overallConditionFilter && (!room.conditionValues || room.conditionValues.overall !== overallConditionFilter)) {
-                match = false;
-            }
-            if (match && asbestosCeilingFilter) {
-                if (room.roomMakeup?.ceiling?.type === 'Drop Ceiling') {
-                    if (room.roomMakeup.ceiling.asbestosInCeiling !== asbestosCeilingFilter) {
-                        match = false;
-                    }
-                } else { 
-                    match = false;
-                }
-            }
-            if (match && floorTypeFilter) {
-                if (floorTypeFilter === 'Other') {
-                    if (!(room.roomMakeup?.floor?.type === 'Other' && room.roomMakeup.floor.typeOther && room.roomMakeup.floor.typeOther.toLowerCase().includes(floorTypeOtherFilter))) {
-                        match = false;
-                    }
-                } else if (!room.roomMakeup?.floor || room.roomMakeup.floor.type !== floorTypeFilter) {
-                    match = false;
-                }
-            }
-            return match;
-        });
-
-        renderRoomList(filteredRooms, filterResultsContainer, true);
-        if (filteredRooms.length > 0) {
-            filterFeedback.textContent = `Found ${filteredRooms.length} room(s) matching your criteria.`;
-            filterFeedback.className = 'feedback success';
-        } else {
-            filterFeedback.textContent = 'No rooms found matching your criteria.';
-            filterFeedback.className = 'feedback info';
+        } catch (e) {
+            console.error("Filter query parsing error:", e);
+            filterFeedback.textContent = `Error in filter query syntax: ${e.message}`;
+            filterFeedback.className = 'feedback error';
+            filteredRooms = []; // Show no results if query is invalid
         }
-    }
-
+        
+        renderRoomList(filteredRooms, filterResultsContainer, true);
+    }    
+    
     if (filterForm) {
         filterForm.addEventListener('submit', function(event) {
             event.preventDefault();
@@ -2412,14 +2432,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-
     if (clearFilterBtn) {
         clearFilterBtn.addEventListener('click', function() {
             if (filterForm) filterForm.reset();
-            if (filterRoomPurposeOther) { filterRoomPurposeOther.style.display = 'none'; filterRoomPurposeOther.value = ''; }
-            if (filterLightFixtureTypeOther) { filterLightFixtureTypeOther.style.display = 'none'; filterLightFixtureTypeOther.value = ''; }
-            if (filterFloorTypeOther) { filterFloorTypeOther.style.display = 'none'; filterFloorTypeOther.value = ''; }
-
             if (filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
             if (filterFeedback) {
                 filterFeedback.textContent = '';
@@ -2430,7 +2445,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.onkeydown = eventArgument => {
         if (eventArgument.key==='Escape') {
-            if (conflictModal?.style.display==='block' && importConflictResolutionMode === 'manual') { //same as full cancel. 
+            if (conflictModal?.style.display==='block' && importConflictResolutionMode === 'manual') {
                 skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
             } else if (roomDetailModal?.style.display==='block') {
                 closeModal();
@@ -2455,6 +2470,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     populateBuildingDropdowns();
     setActiveView('ViewRoomsView');
-    // Removed welcome notification
     console.log("App Initial Setup: Complete. Welcome to Roomfolio! To get started, go to 'Add Room' to enter new room details or visit 'Data Management' to import existing data.");
 });

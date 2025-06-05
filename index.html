@@ -365,69 +365,12 @@
                     </div>
                     <div class="input-group">
                         <label for="filterRoomIdentifier">Room Identifier (Starts with):</label>
-                        <input type="text" id="filterRoomIdentifier" name="filterRoomIdentifier" placeholder="e.g., 3 for 3rd floor rooms">
+                        <input type="text" id="filterRoomIdentifier" name="filterRoomIdentifier" placeholder="e.g., 2 for 2nd floor rooms">
                     </div>
                     <div class="input-group">
-                        <label for="filterRoomPurpose">Room Purpose:</label>
-                        <select id="filterRoomPurpose" name="filterRoomPurpose">
-                            <option value="">-- Any Purpose --</option>
-                            <option value="Lab">Lab</option>
-                            <option value="Classroom">Classroom</option>
-                            <option value="Specialty">Specialty</option>
-                            <option value="Office">Office</option>
-                            <option value="Storage">Storage</option>
-                            <option value="Common">Common</option>
-                            <option value="Other">Other</option>
-                        </select>
-                        <input type="text" id="filterRoomPurposeOther" name="filterRoomPurposeOther" class="conditional-other filter-other-specify" placeholder="Specify other purpose to search" style="display:none;">
-                    </div>
-                     <div class="input-group">
-                        <label for="filterLightFixtureType">Light Fixture Type:</label>
-                        <select id="filterLightFixtureType" name="filterLightFixtureType">
-                            <option value="">-- Any Light Type --</option>
-                            <option value="Fluorescent T8">Fluorescent T8</option>
-                            <option value="Fluorescent T5">Fluorescent T5</option>
-                            <option value="Fluorescent T12">Fluorescent T12</option>
-                            <option value="Incandescent">Incandescent</option>
-                            <option value="LED">LED</option>
-                            <option value="Sodium">Sodium</option>
-                            <option value="Metal Halide">Metal Halide</option>
-                            <option value="Other">Other</option>
-                        </select>
-                        <input type="text" id="filterLightFixtureTypeOther" name="filterLightFixtureTypeOther" class="conditional-other filter-other-specify" placeholder="Specify other light type to search" style="display:none;">
-                    </div>
-                    <div class="input-group">
-                        <label for="filterOverallCondition">Overall Room Condition:</label>
-                        <select id="filterOverallCondition" name="filterOverallCondition">
-                            <option value="">-- Any Condition --</option>
-                            <option value="1 - Excellent">1 - Excellent</option>
-                            <option value="2 - Good">2 - Good</option>
-                            <option value="3 - Fair">3 - Fair</option>
-                            <option value="4 - Poor">4 - Poor</option>
-                            <option value="5 - Needs Replacement">5 - Needs Replacement</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label for="filterHasAsbestosCeiling">Asbestos in Ceiling (Drop Ceiling Only):</label>
-                        <select id="filterHasAsbestosCeiling" name="filterHasAsbestosCeiling">
-                            <option value="">-- Any --</option>
-                            <option value="Yes">Yes</option>
-                            <option value="No">No</option>
-                            <option value="Unknown">Unknown</option>
-                        </select>
-                    </div>
-                     <div class="input-group">
-                        <label for="filterFloorType">Floor Type:</label>
-                        <select id="filterFloorType" name="filterFloorType">
-                            <option value="">-- Any Floor Type --</option>
-                            <option value="Carpet">Carpet</option>
-                            <option value="Tile">Tile</option>
-                            <option value="VCT">VCT</option>
-                            <option value="Concrete">Concrete</option>
-                            <option value="Wood">Wood</option>
-                            <option value="Other">Other</option>
-                        </select>
-                        <input type="text" id="filterFloorTypeOther" name="filterFloorTypeOther" class="conditional-other filter-other-specify" placeholder="Specify other floor type to search" style="display:none;">
+                        <label for="globalQuery">Global Search:</label>
+                        <input type="text" id="globalQuery" name="globalQuery" placeholder='e.g., poor AND tile OR (purpose:Lab AND "broken tiles")'>
+                        <small>Use AND, OR, (), "exact phrases", and targeted searches like `purpose:Lab` or `floorcondition:Poor`.</small>
                     </div>
 
                     <button type="submit" id="applyFilterBtn" class="action-button primary-button"><i class="fas fa-filter"></i> Apply Filters</button>
@@ -552,7 +495,7 @@
                             </div>
                         <div class="actions" style="margin-top: 15px;">
                             <button type="button" id="editExistingConflictBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Edit Existing Room</button>
-                            <button type="button" id="deleteExistingConflictBtn" class="action-button danger-button"><i class="fas fa-trash-alt"></i> Delete Existing Room</button>
+                            <button type="button" id="deleteExistingConflictBtn" class="action-button danger-button"><i class="fas fa-trash-alt"></i> Delete & Replace</button>
                         </div>
                     </div>
                 </div>
