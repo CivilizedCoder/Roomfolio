@@ -89,6 +89,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                     console.log("Capacitor native notification scheduled successfully.");
                     return; // Exit if successful
+                } else {
+                    console.warn("Capacitor permission not granted for LocalNotifications.");
                 }
             } catch (e) {
                 console.error("Error showing Capacitor native notification:", e);
@@ -100,8 +102,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if ('Notification' in window && Notification.permission === 'granted') {
             try {
                 console.log("Attempting to show a standard Web Notification via Service Worker.");
-                // Get the service worker registration.
-                const registration = await navigator.serviceWorker.getRegistration();
+                // Wait for the service worker to be ready and get its registration.
+                const registration = await navigator.serviceWorker.ready; 
                 if (registration) {
                     // Use the service worker to show the notification.
                     registration.showNotification(title, {
@@ -109,11 +111,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         icon: '/Roomfolio/icon-192x192.png' // Optional: path to an icon
                         // You can add more options here like 'badge', 'image', 'actions', etc.
                     });
-                    console.log("Standard Web Notification shown successfully.");
+                    console.log("Standard Web Notification shown successfully via Service Worker.");
                     return; // Exit if successful
                 } else {
-                    console.warn("Service worker registration not found. Cannot show Web Notification via SW.");
-                    // Fallback to basic client-side notification if SW not available (less ideal but better than nothing)
+                    // This case should be less likely now with `navigator.serviceWorker.ready`
+                    console.warn("Service worker registration not found even after 'ready'. Falling back to client-side Notification.");
                     new Notification(title, { body: body, icon: '/Roomfolio/icon-192x192.png' });
                     console.log("Standard Web Notification shown (client-side fallback).");
                     return;
@@ -125,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     
         // 3. Final fallback to a simple alert if all else fails
-        console.log("Using web fallback alert because no notification permissions or APIs are available.");
+        console.log("Using web fallback alert because no notification permissions or APIs are available, or they failed.");
         alert(`${title}\n${body}`);
     }
     
