@@ -147,8 +147,9 @@ body {
 }
 
 .view-section.active-view {
-    display: block !important;
+    display: block; /* CORRECTED: Removed !important */
 }
+
 /* For the app container itself */
 .app-container.active-view {
     display: flex !important;
