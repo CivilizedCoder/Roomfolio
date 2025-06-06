@@ -10,7 +10,32 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
+
+    <!-- Login View - Shown when user is logged out -->
+    <div id="LoginView" class="view-section active-view">
+        <div class="login-container">
+            <header class="view-header" style="text-align: center; border-bottom: none; margin-bottom: 20px;">
+                <h1><i class="fas fa-building"></i> Welcome to Roomfolio</h1>
+            </header>
+            <form id="loginForm">
+                <p class="data-management-description" style="text-align: center;">Please sign in to continue.</p>
+                <div class="input-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" name="loginEmail" required>
+                </div>
+                <div class="input-group">
+                    <label for="loginPassword">Password:</label>
+                    <input type="password" id="loginPassword" name="loginPassword" required>
+                </div>
+                <button type="submit" class="action-button primary-button" style="width: 100%;">Sign In</button>
+                <p id="loginFeedback" class="feedback"></p>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Main App Container - Shown when user is logged in -->
+    <div class="app-container" id="AppContainer" style="display: none;">
         <nav class="main-nav">
             <div class="nav-logo">
                 <i class="fas fa-building"></i> Roomfolio
@@ -21,6 +46,10 @@
                 <li><a href="#" id="navFilter" class="nav-link"><i class="fas fa-filter"></i> Filter Rooms</a></li>
                 <li><a href="#" id="navData" class="nav-link"><i class="fas fa-database"></i> Data Management</a></li>
             </ul>
+             <div class="user-status">
+                <span id="userEmailDisplay"></span>
+                <button id="signOutBtn" class="action-button danger-button" style="display: none;"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+            </div>
         </nav>
 
         <main class="content-area">
@@ -535,8 +564,9 @@
         window.firebaseApp = app;
     </script>
 
-    <!-- Firestore SDK -->
+    <!-- Firestore & Auth SDKs -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
     
     <!-- Your App's Script (as a module) -->
     <script src="script.js" type="module"></script>

@@ -32,6 +32,27 @@ body {
     overscroll-behavior-y: contain;
 }
 
+/* --- Login View --- */
+#LoginView {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.login-container {
+    max-width: 400px;
+    width: 100%;
+    padding: 30px;
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+#loginForm .input-group {
+    margin-bottom: 25px;
+}
+
 .app-container {
     display: flex;
     flex-direction: column;
@@ -90,6 +111,22 @@ body {
     color: #fff;
 }
 
+.user-status {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+#userEmailDisplay {
+    font-size: 0.9em;
+    font-weight: 500;
+    opacity: 0.9;
+}
+#signOutBtn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
 
 /* --- Main Content Area --- */
 .content-area {
@@ -111,9 +148,12 @@ body {
 
 .view-section.active-view {
     display: block !important;
-    max-height: calc(100vh - var(--nav-height) - 40px); /* Adjust based on actual nav height and padding */
-    overflow-y: auto; /* Enable scrolling for the active view */
 }
+/* For the app container itself */
+.app-container.active-view {
+    display: flex !important;
+}
+
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -225,6 +265,8 @@ fieldset.sub-group legend {
 
 input[type="text"],
 input[type="number"],
+input[type="email"],
+input[type="password"],
 select,
 textarea,
 input[type="file"] {
@@ -261,6 +303,8 @@ textarea {
 
 input[type="text"]:focus,
 input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
 select:focus,
 textarea:focus,
 input[type="file"]:focus {
@@ -911,6 +955,9 @@ select.remembered-input option {
     .main-nav .nav-link {
         padding: 8px 12px;
         font-size: 0.9rem;
+    }
+    .user-status {
+        margin-top: 10px;
     }
     .content-area {
         padding: 15px;
