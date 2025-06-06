@@ -1091,11 +1091,55 @@ document.addEventListener('DOMContentLoaded', function () {
 
         return newRoomData;
     }
-    
-    // --- The rest of the script from this point on is unchanged. ---
-    // All functions from `validateConditionalFields` to the end of the file
-    // are identical to the previous version and are included for completeness.
 
+    function validateConditionalFields() {
+        const otherSelects = [
+            { selectId: 'roomPurpose', otherId: 'roomPurposeOther', name: 'Room Purpose' },
+            { selectId: 'walls', otherId: 'wallsOther', name: 'Walls Type' },
+            { selectId: 'ceilingType', otherId: 'ceilingTypeOther', name: 'Ceiling Type' },
+            { selectId: 'floorType', otherId: 'floorTypeOther', name: 'Floor Type' },
+            { selectId: 'heatingCooling', otherId: 'heatingCoolingOther', name: 'Heating/Cooling' }
+        ];
+        for (const item of otherSelects) {
+            const select = document.getElementById(item.selectId);
+            const other = document.getElementById(item.otherId);
+            if (select && other && select.value === 'Other' && !other.value.trim()) {
+                other.focus();
+                return `When selecting "Other" for ${item.name}, you must provide a specific description.`;
+            }
+        }
+        const otherCheckboxes = [
+            { checkboxValue: 'Specialty Equipment', textInputId: 'furnitureSpecialtySpecifyText', groupName: 'furniture', name: 'Specialty Equipment' },
+            { checkboxValue: 'Other', textInputId: 'furnitureOtherSpecifyText', groupName: 'furniture', name: 'Other Furniture' },
+            { checkboxValue: 'Other', textInputId: 'technologyOtherSpecifyText', groupName: 'technology', name: 'Other Technology' },
+            { checkboxValue: 'Other', textInputId: 'otherFixturesSpecifyText', groupName: 'otherFixturePresent', name: 'Other Fixture' }
+        ];
+        for (const item of otherCheckboxes) {
+            const checkbox = document.querySelector(`input[name="${item.groupName}"][value="${item.checkboxValue}"]`);
+            const textInput = document.getElementById(item.textInputId);
+            if (checkbox && textInput && checkbox.checked && !textInput.value.trim()) {
+                textInput.focus();
+                return `When checking "${item.name}", you must provide a specific description.`;
+            }
+        }
+        const lightFixtureEntries = lightFixturesContainer.querySelectorAll('.light-fixture-entry');
+        for (const entry of lightFixtureEntries) {
+            const typeSelect = entry.querySelector('select[name="lightFixtureType"]');
+            const typeOther = entry.querySelector('input[name="lightFixtureTypeOtherSpecify"]');
+            const styleSelect = entry.querySelector('select[name="lightFixtureStyle"]');
+            const styleOther = entry.querySelector('input[name="lightFixtureStyleOtherSpecify"]');
+            if (typeSelect.value === 'Other' && !typeOther.value.trim()) {
+                typeOther.focus();
+                return 'For light fixtures with type "Other", you must specify the type.';
+            }
+            if (styleSelect.value === 'Other' && !styleOther.value.trim()) {
+                styleOther.focus();
+                return 'For light fixtures with style "Other", you must specify the style.';
+            }
+        }
+        return null;
+    }
+    
     if (roomForm) {
         roomForm.addEventListener('submit', async function (event) {
             event.preventDefault();
