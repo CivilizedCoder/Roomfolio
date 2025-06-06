@@ -31,23 +31,21 @@
                 <form id="roomForm">
                     <input type="hidden" id="editingRoomId" name="editingRoomId">
                     <input type="hidden" id="isResolvingAttemptedData" name="isResolvingAttemptedData" value="false">
+                    
+                    <!-- Section 1: Identification -->
                     <section class="form-section">
-                        <h2><i class="fas fa-landmark"></i> Building & Room ID</h2>
+                        <h2><i class="fas fa-id-card"></i> 1. Identification</h2>
                         <div class="input-group">
                             <label for="buildingName">Building Name:</label>
                             <select id="buildingName" name="buildingName" required>
                                 <option value="">-- Select Building --</option>
-                                </select>
+                            </select>
                         </div>
                         <div class="input-group">
                             <label for="roomIdentifier">Room Identifier:</label>
                             <input type="text" id="roomIdentifier" name="roomIdentifier" required placeholder="e.g., 203A or 2nd Floor East Hallway">
                             <small>For hallways, please use cardinal directions (e.g., "North Corridor").</small>
                         </div>
-                    </section>
-
-                    <section class="form-section">
-                        <h2><i class="fas fa-map-pin"></i> 1. Purpose of the Room</h2>
                         <div class="input-group">
                             <label for="roomPurpose">Purpose:</label>
                             <select id="roomPurpose" name="roomPurpose">
@@ -64,8 +62,9 @@
                         </div>
                     </section>
 
+                    <!-- Section 2: Structural Components -->
                     <section class="form-section">
-                        <h2><i class="fas fa-paint-roller"></i> 2. Makeup of the Room & Condition</h2>
+                        <h2><i class="fas fa-ruler-combined"></i> 2. Structural Components</h2>
                         <div class="input-group">
                             <label for="walls">Walls Type:</label>
                             <select id="walls" name="walls">
@@ -89,41 +88,6 @@
                             </select>
                             <label for="wallsConditionComment" class="visually-hidden">Walls Condition Comments</label>
                             <textarea id="wallsConditionComment" name="wallsConditionComment" rows="2" placeholder="Optional comments for walls condition..."></textarea>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="ceilingType">Ceiling Type:</label>
-                            <select id="ceilingType" name="ceilingType">
-                                <option value="Drop Ceiling">Drop Ceiling</option>
-                                <option value="Hard Ceiling">Hard Ceiling</option>
-                                <option value="Plaster">Plaster</option>
-                                <option value="None">None</option>
-                                <option value="Other">Other</option>
-                            </select>
-                            <label for="ceilingTypeOther" class="visually-hidden">Specify other ceiling type</label>
-                            <input type="text" id="ceilingTypeOther" name="ceilingTypeOther" class="conditional-other" placeholder="Specify other ceiling type">
-                        </div>
-                        <div id="dropCeilingOptions" class="conditional-section">
-                             <fieldset class="sub-group">
-                                <legend class="group-label" id="ceilingAsbestosLabel">Asbestos in Ceiling? (for Drop Ceiling)</legend>
-                                <div class="radio-group" role="radiogroup" aria-labelledby="ceilingAsbestosLabel">
-                                    <label><input type="radio" name="ceilingAsbestos" value="Yes"> Yes</label>
-                                    <label><input type="radio" name="ceilingAsbestos" value="No" checked> No</label>
-                                    <label><input type="radio" name="ceilingAsbestos" value="Unknown"> Unknown</label>
-                                </div>
-                            </fieldset>
-                        </div>
-                        <div class="input-group">
-                            <label for="ceilingCondition">Ceiling Condition:</label>
-                            <select id="ceilingCondition" name="ceilingCondition">
-                                <option value="1 - Excellent">1 - Excellent</option>
-                                <option value="2 - Good">2 - Good</option>
-                                <option value="3 - Fair">3 - Fair</option>
-                                <option value="4 - Poor">4 - Poor</option>
-                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
-                            </select>
-                            <label for="ceilingConditionComment" class="visually-hidden">Ceiling Condition Comments</label>
-                            <textarea id="ceilingConditionComment" name="ceilingConditionComment" rows="2" placeholder="Optional comments for ceiling condition..."></textarea>
                         </div>
 
                         <div class="input-group">
@@ -165,10 +129,111 @@
                             <label for="floorConditionComment" class="visually-hidden">Floor Condition Comments</label>
                             <textarea id="floorConditionComment" name="floorConditionComment" rows="2" placeholder="Optional comments for floor condition..."></textarea>
                         </div>
+
+                        <div class="input-group">
+                            <label for="ceilingType">Ceiling Type:</label>
+                            <select id="ceilingType" name="ceilingType">
+                                <option value="Drop Ceiling">Drop Ceiling</option>
+                                <option value="Hard Ceiling">Hard Ceiling</option>
+                                <option value="Plaster">Plaster</option>
+                                <option value="None">None</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <label for="ceilingTypeOther" class="visually-hidden">Specify other ceiling type</label>
+                            <input type="text" id="ceilingTypeOther" name="ceilingTypeOther" class="conditional-other" placeholder="Specify other ceiling type">
+                        </div>
+                        <div class="input-group">
+                            <label for="ceilingCondition">Ceiling Condition:</label>
+                            <select id="ceilingCondition" name="ceilingCondition">
+                                <option value="1 - Excellent">1 - Excellent</option>
+                                <option value="2 - Good">2 - Good</option>
+                                <option value="3 - Fair">3 - Fair</option>
+                                <option value="4 - Poor">4 - Poor</option>
+                                <option value="5 - Needs Replacement">5 - Needs Replacement</option>
+                            </select>
+                            <label for="ceilingConditionComment" class="visually-hidden">Ceiling Condition Comments</label>
+                            <textarea id="ceilingConditionComment" name="ceilingConditionComment" rows="2" placeholder="Optional comments for ceiling condition..."></textarea>
+                        </div>
+                        
+                        <div id="doorsContainer"></div>
+                        <button type="button" id="addDoorBtn" class="action-button secondary-button"><i class="fas fa-plus"></i> Add Door</button>
                     </section>
 
+                    <!-- Section 3: Systems & Utilities -->
                     <section class="form-section">
-                        <h2><i class="fas fa-star-half-alt"></i> 3. Other Conditions & Overall</h2>
+                        <h2><i class="fas fa-cogs"></i> 3. Systems & Utilities</h2>
+                        <fieldset class="input-group">
+                            <legend class="group-label">Light Fixtures</legend>
+                            <div id="lightFixturesContainer"></div>
+                            <button type="button" id="addLightFixtureBtn" class="action-button secondary-button" style="margin-top: 5px; font-size: 0.9em; padding: 0.5em 1em;"><i class="fas fa-plus"></i> Add Light Fixture Type</button>
+                        </fieldset>
+                        <fieldset class="input-group">
+                            <legend class="group-label" id="otherFixturesGroupLabel">Other Fixtures (Specify quantity if present)</legend>
+                            <div class="other-fixtures-grid" role="group" aria-labelledby="otherFixturesGroupLabel">
+                                <div class="fixture-item-group"><label for="otherFixtureSinkPresent" class="fixture-checkbox-label"><input type="checkbox" id="otherFixtureSinkPresent" name="otherFixturePresent" value="Sink/Faucet" class="fixture-present-checkbox"> Sink/Faucet</label><input type="number" id="otherFixtureSinkCount" name="otherFixtureSinkCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;"></div>
+                                <div class="fixture-item-group"><label for="otherFixtureShowerPresent" class="fixture-checkbox-label"><input type="checkbox" id="otherFixtureShowerPresent" name="otherFixturePresent" value="Shower" class="fixture-present-checkbox"> Shower</label><input type="number" id="otherFixtureShowerCount" name="otherFixtureShowerCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;"></div>
+                                <div class="fixture-item-group"><label for="otherFixtureToiletPresent" class="fixture-checkbox-label"><input type="checkbox" id="otherFixtureToiletPresent" name="otherFixturePresent" value="Toilet" class="fixture-present-checkbox"> Toilet</label><input type="number" id="otherFixtureToiletCount" name="otherFixtureToiletCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;"></div>
+                                <div class="fixture-item-group"><label for="otherFixtureGasPresent" class="fixture-checkbox-label"><input type="checkbox" id="otherFixtureGasPresent" name="otherFixturePresent" value="Gas Supply" class="fixture-present-checkbox"> Gas Supply</label><input type="number" id="otherFixtureGasCount" name="otherFixtureGasCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;"></div>
+                                <div class="fixture-item-group"><label for="otherFixtureCompAirPresent" class="fixture-checkbox-label"><input type="checkbox" id="otherFixtureCompAirPresent" name="otherFixturePresent" value="Compressed Air" class="fixture-present-checkbox"> Compressed Air</label><input type="number" id="otherFixtureCompAirCount" name="otherFixtureCompAirCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;"></div>
+                                <div class="fixture-item-group"><label for="otherFixtureSuctionPresent" class="fixture-checkbox-label"><input type="checkbox" id="otherFixtureSuctionPresent" name="otherFixturePresent" value="Suction Air" class="fixture-present-checkbox"> Suction Air</label><input type="number" id="otherFixtureSuctionCount" name="otherFixtureSuctionCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;"></div>
+                                <div class="fixture-item-group"><label for="otherFixtureLabHoodPresent" class="fixture-checkbox-label"><input type="checkbox" id="otherFixtureLabHoodPresent" name="otherFixturePresent" value="Lab Hood" class="fixture-present-checkbox"> Lab Hood</label><input type="number" id="otherFixtureLabHoodCount" name="otherFixtureLabHoodCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;"></div>
+                                <div class="fixture-item-group fixture-item-group-other"><label for="otherFixturesOtherPresent" class="fixture-checkbox-label"><input type="checkbox" id="otherFixturesOtherPresent" name="otherFixturePresent" value="Other" class="fixture-present-checkbox other-checkbox"> Other Fixture</label><div class="other-details-container" style="display:none;"><input type="text" id="otherFixturesSpecifyText" name="otherFixturesSpecify" class="conditional-other" placeholder="Specify other type"><input type="number" id="otherFixturesOtherCount" name="otherFixturesOtherCount" class="fixture-count-input" placeholder="Qty" min="1"></div></div>
+                            </div>
+                        </fieldset>
+                        <div class="input-group">
+                            <label for="heatingCooling">Heating/Cooling Type:</label>
+                            <select id="heatingCooling" name="heatingCooling">
+                                <option value="Forced Air">Forced Air</option>
+                                <option value="Hot Water Radiators/Baseboard">Hot Water Radiators/Baseboard</option>
+                                <option value="Steam Radiators">Steam Radiators</option>
+                                <option value="Cold Water (chilled beams)">Cold Water (chilled beams)</option>
+                                <option value="No Air Conditioning">No Air Conditioning</option>
+                                <option value="No Heating">No Heating</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <label for="heatingCoolingOther" class="visually-hidden">Specify other heating/cooling</label>
+                            <input type="text" id="heatingCoolingOther" name="heatingCoolingOther" class="conditional-other" placeholder="Specify other heating/cooling">
+                        </div>
+                        <fieldset class="input-group">
+                            <legend class="visually-hidden">Technology types</legend>
+                            <div class="checkbox-group" role="group" aria-label="Technology types">
+                                <label for="techProjector"><input type="checkbox" id="techProjector" name="technology" value="Projector"> Projector</label>
+                                <label for="techTV"><input type="checkbox" id="techTV" name="technology" value="Wall-mount TV"> Wall-mount TV</label>
+                                <label for="techSound"><input type="checkbox" id="techSound" name="technology" value="Sound System"> Sound System</label>
+                                <label for="techInteractiveWB"><input type="checkbox" id="techInteractiveWB" name="technology" value="Interactive Whiteboard/Smartboard"> Interactive WB/Smartboard</label>
+                                <label for="techPrinters"><input type="checkbox" id="techPrinters" name="technology" value="Printers"> Printers</label>
+                                <label for="techComputerStations"><input type="checkbox" id="techComputerStations" name="technology" value="Computer Station(s)"> Computer Station(s)</label>
+                                <div class="other-field-wrapper">
+                                    <label for="technologyOtherCheckbox"><input type="checkbox" id="technologyOtherCheckbox" name="technology" value="Other" class="other-checkbox"> Other</label>
+                                    <input type="text" id="technologyOtherSpecifyText" name="technologyOtherSpecify" class="conditional-other inline-other" placeholder="Specify other" aria-label="Specify other technology">
+                                </div>
+                            </div>
+                        </fieldset>
+                    </section>
+
+                    <!-- Section 4: Furnishings & Equipment -->
+                    <section class="form-section">
+                        <h2><i class="fas fa-couch"></i> 4. Furnishings & Equipment</h2>
+                        <fieldset class="input-group">
+                            <legend class="visually-hidden">Furniture types</legend>
+                            <div class="checkbox-group" role="group" aria-label="Furniture types">
+                                <label for="furnitureTables"><input type="checkbox" id="furnitureTables" name="furniture" value="Tables"> Tables</label>
+                                <label for="furnitureChairs"><input type="checkbox" id="furnitureChairs" name="furniture" value="Chairs"> Chairs</label>
+                                <label for="furnitureTablets"><input type="checkbox" id="furnitureTablets" name="furniture" value="Tablets"> Tablets (arm chairs)</label>
+                                <label for="furnitureLecterns"><input type="checkbox" id="furnitureLecterns" name="furniture" value="Lecterns"> Lecterns</label>
+                                <label for="furnitureShelving"><input type="checkbox" id="furnitureShelving" name="furniture" value="Shelving"> Shelving</label>
+                                <div class="other-field-wrapper">
+                                    <label for="furnitureSpecialtyEquipCheckbox"><input type="checkbox" id="furnitureSpecialtyEquipCheckbox" name="furniture" value="Specialty Equipment" class="other-checkbox"> Specialty Eq.</label>
+                                    <input type="text" id="furnitureSpecialtySpecifyText" name="furnitureSpecialtySpecify" class="conditional-other inline-other" placeholder="Specify specialty" aria-label="Specify specialty equipment">
+                                </div>
+                                <label for="furnitureWhiteboard"><input type="checkbox" id="furnitureWhiteboard" name="furniture" value="Whiteboard"> Whiteboard</label>
+                                <label for="furnitureChalkboard"><input type="checkbox" id="furnitureChalkboard" name="furniture" value="Chalkboard"> Chalkboard</label>
+                                <div class="other-field-wrapper">
+                                    <label for="furnitureOtherCheckbox"><input type="checkbox" id="furnitureOtherCheckbox" name="furniture" value="Other" class="other-checkbox"> Other</label>
+                                    <input type="text" id="furnitureOtherSpecifyText" name="furnitureOtherSpecify" class="conditional-other inline-other" placeholder="Specify other" aria-label="Specify other furniture">
+                                </div>
+                            </div>
+                        </fieldset>
                         <div class="input-group">
                             <label for="furnitureCondition">Furniture Condition:</label>
                             <select id="furnitureCondition" name="furnitureCondition">
@@ -181,6 +246,34 @@
                             <label for="furnitureConditionComment" class="visually-hidden">Furniture Condition Comments</label>
                             <textarea id="furnitureConditionComment" name="furnitureConditionComment" rows="2" placeholder="Optional comments for furniture condition..."></textarea>
                         </div>
+                    </section>
+                    
+                    <!-- Section 5: Safety & Compliance -->
+                    <section class="form-section">
+                        <h2><i class="fas fa-shield-alt"></i> 5. Safety & Compliance</h2>
+                        <div class="input-group">
+                            <label for="smokeDetectors">Number of Smoke Detectors:</label>
+                            <input type="number" id="smokeDetectors" name="smokeDetectors" min="0" placeholder="e.g., 1">
+                        </div>
+                        <div class="input-group">
+                            <label for="maxOccupancy">Maximum Room Occupancy:</label>
+                            <input type="number" id="maxOccupancy" name="maxOccupancy" min="0" placeholder="e.g., 25">
+                        </div>
+                        <div id="dropCeilingOptions" class="conditional-section">
+                            <fieldset class="sub-group">
+                               <legend class="group-label" id="ceilingAsbestosLabel">Asbestos in Ceiling? (for Drop Ceiling)</legend>
+                               <div class="radio-group" role="radiogroup" aria-labelledby="ceilingAsbestosLabel">
+                                   <label><input type="radio" name="ceilingAsbestos" value="Yes"> Yes</label>
+                                   <label><input type="radio" name="ceilingAsbestos" value="No" checked> No</label>
+                                   <label><input type="radio" name="ceilingAsbestos" value="Unknown"> Unknown</label>
+                               </div>
+                           </fieldset>
+                       </div>
+                    </section>
+
+                    <!-- Section 6: Overall Room Condition -->
+                    <section class="form-section">
+                        <h2><i class="fas fa-clipboard-check"></i> 6. Overall Room Condition</h2>
                         <div class="input-group">
                             <label for="overallCondition">Overall Room Condition:</label>
                             <select id="overallCondition" name="overallCondition">
@@ -194,145 +287,6 @@
                             <label for="overallConditionComment" class="visually-hidden">Overall Room Condition Comments</label>
                             <textarea id="overallConditionComment" name="overallConditionComment" rows="2" placeholder="Optional comments for overall room condition..."></textarea>
                         </div>
-                    </section>
-
-                    <section class="form-section">
-                        <h2><i class="fas fa-lightbulb"></i> 4. Room Fixtures</h2>
-                        <fieldset class="input-group">
-                            <legend class="group-label">Light Fixtures</legend>
-                            <div id="lightFixturesContainer">
-                                </div>
-                            <button type="button" id="addLightFixtureBtn" class="action-button secondary-button" style="margin-top: 5px; font-size: 0.9em; padding: 0.5em 1em;"><i class="fas fa-plus"></i> Add Light Fixture Type</button>
-                        </fieldset>
-                        <fieldset class="input-group">
-                            <legend class="group-label" id="otherFixturesGroupLabel">Other Fixtures (Specify quantity if present)</legend>
-                            <div class="other-fixtures-grid" role="group" aria-labelledby="otherFixturesGroupLabel">
-                                <div class="fixture-item-group">
-                                    <label for="otherFixtureSinkPresent" class="fixture-checkbox-label">
-                                        <input type="checkbox" id="otherFixtureSinkPresent" name="otherFixturePresent" value="Sink/Faucet" class="fixture-present-checkbox"> Sink/Faucet
-                                    </label>
-                                    <input type="number" id="otherFixtureSinkCount" name="otherFixtureSinkCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;">
-                                </div>
-                                <div class="fixture-item-group">
-                                    <label for="otherFixtureShowerPresent" class="fixture-checkbox-label">
-                                        <input type="checkbox" id="otherFixtureShowerPresent" name="otherFixturePresent" value="Shower" class="fixture-present-checkbox"> Shower
-                                    </label>
-                                    <input type="number" id="otherFixtureShowerCount" name="otherFixtureShowerCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;">
-                                </div>
-                                <div class="fixture-item-group">
-                                    <label for="otherFixtureToiletPresent" class="fixture-checkbox-label">
-                                        <input type="checkbox" id="otherFixtureToiletPresent" name="otherFixturePresent" value="Toilet" class="fixture-present-checkbox"> Toilet
-                                    </label>
-                                    <input type="number" id="otherFixtureToiletCount" name="otherFixtureToiletCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;">
-                                </div>
-                                <div class="fixture-item-group">
-                                    <label for="otherFixtureGasPresent" class="fixture-checkbox-label">
-                                        <input type="checkbox" id="otherFixtureGasPresent" name="otherFixturePresent" value="Gas Supply" class="fixture-present-checkbox"> Gas Supply
-                                    </label>
-                                    <input type="number" id="otherFixtureGasCount" name="otherFixtureGasCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;">
-                                </div>
-                                <div class="fixture-item-group">
-                                    <label for="otherFixtureCompAirPresent" class="fixture-checkbox-label">
-                                        <input type="checkbox" id="otherFixtureCompAirPresent" name="otherFixturePresent" value="Compressed Air" class="fixture-present-checkbox"> Compressed Air
-                                    </label>
-                                    <input type="number" id="otherFixtureCompAirCount" name="otherFixtureCompAirCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;">
-                                </div>
-                                <div class="fixture-item-group">
-                                    <label for="otherFixtureSuctionPresent" class="fixture-checkbox-label">
-                                        <input type="checkbox" id="otherFixtureSuctionPresent" name="otherFixturePresent" value="Suction Air" class="fixture-present-checkbox"> Suction Air
-                                    </label>
-                                    <input type="number" id="otherFixtureSuctionCount" name="otherFixtureSuctionCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;">
-                                </div>
-                                <div class="fixture-item-group">
-                                    <label for="otherFixtureLabHoodPresent" class="fixture-checkbox-label">
-                                        <input type="checkbox" id="otherFixtureLabHoodPresent" name="otherFixturePresent" value="Lab Hood" class="fixture-present-checkbox"> Lab Hood
-                                    </label>
-                                    <input type="number" id="otherFixtureLabHoodCount" name="otherFixtureLabHoodCount" class="fixture-count-input" placeholder="Qty" min="1" style="display:none;">
-                                </div>
-                                <div class="fixture-item-group fixture-item-group-other">
-                                    <label for="otherFixturesOtherPresent" class="fixture-checkbox-label">
-                                        <input type="checkbox" id="otherFixturesOtherPresent" name="otherFixturePresent" value="Other" class="fixture-present-checkbox other-checkbox"> Other Fixture
-                                    </label>
-                                    <div class="other-details-container" style="display:none;">
-                                        <input type="text" id="otherFixturesSpecifyText" name="otherFixturesSpecify" class="conditional-other" placeholder="Specify other type">
-                                        <input type="number" id="otherFixturesOtherCount" name="otherFixturesOtherCount" class="fixture-count-input" placeholder="Qty" min="1">
-                                    </div>
-                                </div>
-                            </div>
-                        </fieldset>
-                    </section>
-
-                    <section class="form-section">
-                        <h2><i class="fas fa-couch"></i> 5. Furniture</h2>
-                        <fieldset class="input-group">
-                            <legend class="visually-hidden">Furniture types</legend>
-                            <div class="checkbox-group" role="group" aria-label="Furniture types">
-                                <label for="furnitureTables"><input type="checkbox" id="furnitureTables" name="furniture" value="Tables"> Tables</label>
-                                <label for="furnitureChairs"><input type="checkbox" id="furnitureChairs" name="furniture" value="Chairs"> Chairs</label>
-                                <label for="furnitureTablets"><input type="checkbox" id="furnitureTablets" name="furniture" value="Tablets"> Tablets (arm chairs)</label>
-                                <label for="furnitureLecterns"><input type="checkbox" id="furnitureLecterns" name="furniture" value="Lecterns"> Lecterns</label>
-                                <label for="furnitureShelving"><input type="checkbox" id="furnitureShelving" name="furniture" value="Shelving"> Shelving</label>
-                                <div class="other-field-wrapper">
-                                    <label for="furnitureSpecialtyEquipCheckbox">
-                                        <input type="checkbox" id="furnitureSpecialtyEquipCheckbox" name="furniture" value="Specialty Equipment" class="other-checkbox"> Specialty Eq.
-                                    </label>
-                                    <input type="text" id="furnitureSpecialtySpecifyText" name="furnitureSpecialtySpecify" class="conditional-other inline-other" placeholder="Specify specialty" aria-label="Specify specialty equipment">
-                                </div>
-                                <label for="furnitureWhiteboard"><input type="checkbox" id="furnitureWhiteboard" name="furniture" value="Whiteboard"> Whiteboard</label>
-                                <label for="furnitureChalkboard"><input type="checkbox" id="furnitureChalkboard" name="furniture" value="Chalkboard"> Chalkboard</label>
-                                <div class="other-field-wrapper">
-                                    <label for="furnitureOtherCheckbox">
-                                        <input type="checkbox" id="furnitureOtherCheckbox" name="furniture" value="Other" class="other-checkbox"> Other
-                                    </label>
-                                    <input type="text" id="furnitureOtherSpecifyText" name="furnitureOtherSpecify" class="conditional-other inline-other" placeholder="Specify other" aria-label="Specify other furniture">
-                                </div>
-                            </div>
-                        </fieldset>
-                    </section>
-
-                    <section class="form-section">
-                        <h2><i class="fas fa-thermometer-half"></i> 6. Heating/Cooling</h2>
-                        <div class="input-group">
-                            <label for="heatingCooling">Type:</label>
-                            <select id="heatingCooling" name="heatingCooling">
-                                <option value="Forced Air">Forced Air</option>
-                                <option value="Hot Water Radiators/Baseboard">Hot Water Radiators/Baseboard</option>
-                                <option value="Steam Radiators">Steam Radiators</option>
-                                <option value="Cold Water (chilled beams)">Cold Water (chilled beams)</option>
-                                <option value="No Air Conditioning">No Air Conditioning</option>
-                                <option value="No Heating">No Heating</option>
-                                <option value="Other">Other</option>
-                            </select>
-                            <label for="heatingCoolingOther" class="visually-hidden">Specify other heating/cooling</label>
-                            <input type="text" id="heatingCoolingOther" name="heatingCoolingOther" class="conditional-other" placeholder="Specify other heating/cooling">
-                        </div>
-                    </section>
-                    <section class="form-section">
-                        <h2><i class="fas fa-door-open"></i> 7. Doors Within the Room</h2>
-                        <div id="doorsContainer">
-                            </div>
-                        <button type="button" id="addDoorBtn" class="action-button secondary-button"><i class="fas fa-plus"></i> Add Door</button>
-                    </section>
-
-                    <section class="form-section">
-                        <h2><i class="fas fa-tv"></i> 8. Technology</h2>
-                         <fieldset class="input-group">
-                            <legend class="visually-hidden">Technology types</legend>
-                            <div class="checkbox-group" role="group" aria-label="Technology types">
-                                <label for="techProjector"><input type="checkbox" id="techProjector" name="technology" value="Projector"> Projector</label>
-                                <label for="techTV"><input type="checkbox" id="techTV" name="technology" value="Wall-mount TV"> Wall-mount TV</label>
-                                <label for="techSound"><input type="checkbox" id="techSound" name="technology" value="Sound System"> Sound System</label>
-                                <label for="techInteractiveWB"><input type="checkbox" id="techInteractiveWB" name="technology" value="Interactive Whiteboard/Smartboard"> Interactive WB/Smartboard</label>
-                                <label for="techPrinters"><input type="checkbox" id="techPrinters" name="technology" value="Printers"> Printers</label>
-                                <label for="techComputerStations"><input type="checkbox" id="techComputerStations" name="technology" value="Computer Station(s)"> Computer Station(s)</label>
-                                <div class="other-field-wrapper">
-                                    <label for="technologyOtherCheckbox">
-                                        <input type="checkbox" id="technologyOtherCheckbox" name="technology" value="Other" class="other-checkbox"> Other
-                                    </label>
-                                    <input type="text" id="technologyOtherSpecifyText" name="technologyOtherSpecify" class="conditional-other inline-other" placeholder="Specify other" aria-label="Specify other technology">
-                                </div>
-                            </div>
-                        </fieldset>
                     </section>
 
                     <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
@@ -370,7 +324,7 @@
                     <div class="input-group">
                         <label for="globalQuery">Global Search:</label>
                         <input type="text" id="globalQuery" name="globalQuery" placeholder='e.g., poor AND tile OR (purpose:Lab AND "broken tiles")'>
-                        <small>Use AND, OR, (), "exact phrases", and targeted searches like `purpose:Lab` or `floorcondition:Poor`.</small>
+                        <small>Use AND, OR, NOT, (), "exact phrases", and targeted searches like `purpose:Lab` or `floorcondition:Poor`.</small>
                     </div>
 
                     <button type="submit" id="applyFilterBtn" class="action-button primary-button"><i class="fas fa-filter"></i> Apply Filters</button>

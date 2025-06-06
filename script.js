@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function applyLastInputsToForm(form) {
         if (!form) return;
-        form.querySelectorAll('.remembered-input').forEach(el => el.classList.remove('remembered-input'));
+        form.querySelectorAll('.remembered-input, .default-value-input').forEach(el => el.classList.remove('remembered-input', 'default-value-input'));
         const fieldsToRemember = [
             'roomPurpose', 'roomPurposeOther',
             'walls', 'wallsOther',
@@ -360,6 +360,11 @@ document.addEventListener('DOMContentLoaded', function () {
             appendNewLightFixtureEntry(rememberedFixtureTemplate, !!(lastInputValues.lightFixtures && lastInputValues.lightFixtures.length > 0));
         }
 
+        // Add the default door entry
+        if (doorsContainer && doorsContainer.children.length === 0) {
+            appendNewDoorEntry({ identifier: 'Main Entry' }, true);
+        }
+
         applyLastInputsToForm(roomForm);
 
         const overallConditionSelect = document.getElementById('overallCondition');
@@ -556,17 +561,54 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Dynamic Form Element Appending ---
-    function appendNewDoorEntry(doorData = {}) {
+    function appendNewDoorEntry(doorData = {}, isDefault = false) {
         if (!doorsContainer) return;
         const id = `doorInstance_${Date.now()}`;
         const div = document.createElement('div');
-        div.classList.add('door-entry'); div.id = id;
+        div.classList.add('door-entry');
+        div.id = id;
+
+        const identifierValue = escapeHtml(doorData.identifier || '');
+        const defaultClass = isDefault ? 'default-value-input' : '';
+
         div.innerHTML = `
             <button type="button" class="remove-door-btn" aria-label="Remove this door entry"><i class="fas fa-times"></i></button>
             <h4>Door Details</h4>
-            <div class="input-group"><label for="doorIdentifier-${id}">Identifier/Location:</label><input type="text" id="doorIdentifier-${id}" name="doorIdentifier" placeholder="e.g., Main Entry, Closet" value="${escapeHtml(doorData.identifier || '')}"></div>
-            <div class="input-group"><label for="doorType-${id}">Type:</label><select id="doorType-${id}" name="doorType"><option value="Wood">Wood</option><option value="Metal">Metal</option><option value="Glass">Glass</option><option value="Other">Other</option></select><input type="text" id="doorTypeOther-${id}" name="doorTypeOther" class="conditional-other" placeholder="Specify other door type" style="display:none;" value="${escapeHtml(doorData.typeOther || '')}"></div>
-            <div class="input-group"><label for="doorLockType-${id}">Lock Type:</label><select id="doorLockType-${id}" name="doorLockType"><option value="Key">Key</option><option value="Keypad">Keypad</option><option value="Card Reader">Card Reader</option><option value="None">None</option><option value="Other">Other</option></select><input type="text" id="doorLockTypeOther-${id}" name="doorLockTypeOther" class="conditional-other" placeholder="Specify other lock type" style="display:none;" value="${escapeHtml(doorData.lockTypeOther || '')}"></div>`;
+            <div class="input-group">
+                <label for="doorIdentifier-${id}">Identifier/Location:</label>
+                <input type="text" id="doorIdentifier-${id}" name="doorIdentifier" class="${defaultClass}" placeholder="e.g., Main Entry, Closet" value="${identifierValue}">
+            </div>
+            <div class="input-group">
+                <label for="doorType-${id}">Type:</label>
+                <select id="doorType-${id}" name="doorType">
+                    <option value="Wood">Wood</option>
+                    <option value="Metal">Metal</option>
+                    <option value="Glass">Glass</option>
+                    <option value="Other">Other</option>
+                </select>
+                <input type="text" id="doorTypeOther-${id}" name="doorTypeOther" class="conditional-other" placeholder="Specify other door type" style="display:none;" value="${escapeHtml(doorData.typeOther || '')}">
+            </div>
+            <div class="input-group">
+                <label for="doorLockType-${id}">Lock Type:</label>
+                <select id="doorLockType-${id}" name="doorLockType">
+                    <option value="Key">Key</option>
+                    <option value="Keypad">Keypad</option>
+                    <option value="Card Reader">Card Reader</option>
+                    <option value="None">None</option>
+                    <option value="Other">Other</option>
+                </select>
+                <input type="text" id="doorLockTypeOther-${id}" name="doorLockTypeOther" class="conditional-other" placeholder="Specify other lock type" style="display:none;" value="${escapeHtml(doorData.lockTypeOther || '')}">
+            </div>`;
+            
+        const identifierInput = div.querySelector(`#doorIdentifier-${id}`);
+        if (isDefault) {
+            identifierInput.addEventListener('focus', function() {
+                if (this.classList.contains('default-value-input')) {
+                    this.value = '';
+                    this.classList.remove('default-value-input');
+                }
+            }, { once: true });
+        }
 
         const doorTypeSelect = div.querySelector(`#doorType-${id}`);
         const doorTypeOtherInput = div.querySelector(`#doorTypeOther-${id}`);
@@ -594,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (addDoorBtn && doorsContainer) {
         addDoorBtn.addEventListener('click', function () {
-            appendNewDoorEntry();
+            appendNewDoorEntry({}, false);
         });
     }
 
@@ -715,7 +757,10 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearFormAndDynamicElements(form) {
         if (!form) return;
         form.reset();
-        form.querySelectorAll('.remembered-input').forEach(el => el.classList.remove('remembered-input'));
+        form.querySelectorAll('.remembered-input, .default-value-input').forEach(el => {
+            el.classList.remove('remembered-input');
+            el.classList.remove('default-value-input');
+        });
         if (doorsContainer) doorsContainer.innerHTML = '';
         if (lightFixturesContainer) lightFixturesContainer.innerHTML = '';
         otherFixturesCheckboxes.forEach(cb => { cb.checked = false; cb.dispatchEvent(new Event('change')); });
@@ -887,14 +932,30 @@ document.addEventListener('DOMContentLoaded', function () {
         newRoomData.heatingCooling = formData.get('heatingCooling');
         newRoomData.heatingCoolingOther = formData.get('heatingCooling') === 'Other' ? (formData.get('heatingCoolingOther') || '').trim() : '';
 
+        // Capture Safety info
+        newRoomData.safety = {
+            smokeDetectors: formData.get('smokeDetectors') ? parseInt(formData.get('smokeDetectors'), 10) : 0,
+            maxOccupancy: formData.get('maxOccupancy') ? parseInt(formData.get('maxOccupancy'), 10) : 0
+        };
+
         newRoomData.doors = [];
         if (doorsContainer) {
             doorsContainer.querySelectorAll('.door-entry').forEach(entry => {
-                const doorIdVal = entry.querySelector('input[name="doorIdentifier"]').value.trim();
+                const doorIdInput = entry.querySelector('input[name="doorIdentifier"]');
+                const doorIdVal = doorIdInput.value.trim();
                 const doorTypeSel = entry.querySelector('select[name="doorType"]');
                 const lockTypeSel = entry.querySelector('select[name="doorLockType"]');
                 const doorTypeOtherIn = entry.querySelector('input[name="doorTypeOther"]');
                 const lockTypeOtherIn = entry.querySelector('input[name="doorLockTypeOther"]');
+                
+                // Don't save default "Main Entry" if it hasn't been modified
+                if (doorIdInput.classList.contains('default-value-input') && doorIdVal === 'Main Entry') {
+                    // Only save if other fields have been changed from their defaults
+                     if(doorTypeSel.value === 'Wood' && lockTypeSel.value === 'Key' && !doorTypeOtherIn.value && !lockTypeOtherIn.value) {
+                        return; // Skip this default, unmodified door
+                     }
+                }
+                 
                 if (doorIdVal || doorTypeSel.value !== 'Wood' || lockTypeSel.value !== 'Key' ||
                     (doorTypeSel.value === 'Other' && doorTypeOtherIn?.value.trim() !== '') ||
                     (lockTypeSel.value === 'Other' && lockTypeOtherIn?.value.trim() !== '')) {
@@ -1312,6 +1373,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const overallConditionCommentEl = roomForm.querySelector('#overallConditionComment');
             if(overallConditionCommentEl) overallConditionCommentEl.value = cv.overallComment || '';
         }
+        
+        // Populate Safety Info
+        if (room.safety) {
+            const smokeDetectorsEl = roomForm.querySelector('#smokeDetectors');
+            if(smokeDetectorsEl) smokeDetectorsEl.value = room.safety.smokeDetectors || '';
+            const maxOccupancyEl = roomForm.querySelector('#maxOccupancy');
+            if(maxOccupancyEl) maxOccupancyEl.value = room.safety.maxOccupancy || '';
+        }
 
         if (lightFixturesContainer) lightFixturesContainer.innerHTML = '';
         if (room.lightFixtures && room.lightFixtures.length > 0) {
@@ -1362,6 +1431,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (doorsContainer) doorsContainer.innerHTML = '';
         if (room.doors && room.doors.length > 0) {
             room.doors.forEach(door => appendNewDoorEntry(door));
+        } else {
+            // If editing a room that had no doors, add the default one
+            appendNewDoorEntry({ identifier: 'Main Entry' }, true);
         }
         roomForm.querySelectorAll('input[name="technology"]').forEach(cb => cb.checked = false);
         if (room.technology && room.technology.length > 0) {
@@ -1502,6 +1574,11 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (!room.roomPurpose) purposeDisplay = 'N/A';
         html += `<p><strong>Purpose:</strong> ${purposeDisplay}</p>`;
         html += `<p><strong>Overall Condition:</strong> ${escapeHtml(room.conditionValues?.overall || 'N/A')}</p>`;
+        // Add Safety Info to Preview
+        if(room.safety) {
+            html += `<p><strong>Smoke Detectors:</strong> ${escapeHtml(room.safety.smokeDetectors ?? 'N/A')}</p>`;
+            html += `<p><strong>Max Occupancy:</strong> ${escapeHtml(room.safety.maxOccupancy ?? 'N/A')}</p>`;
+        }
         if (room.savedAt) {
             html += `<p><small>Last Saved: ${new Date(room.savedAt).toLocaleString()}</small></p>`;
         }
@@ -1520,54 +1597,44 @@ document.addEventListener('DOMContentLoaded', function () {
             if(closeModalBtn) closeModalBtn.focus();
             return;
         }
+
         let html = `<h2>${escapeHtml(room.buildingName)} - ${escapeHtml(room.roomIdentifier)}</h2>`;
         html += `<p><strong>Saved At:</strong> ${new Date(room.savedAt).toLocaleString()}</p>`;
+        
+        // --- Identification ---
         let purposeDisplay = escapeHtml(room.roomPurpose) || 'N/A';
         if (room.roomPurpose === 'Other' && room.roomPurposeOther) purposeDisplay = `${escapeHtml(room.roomPurpose)} (${escapeHtml(room.roomPurposeOther)})`;
         else if (!room.roomPurpose) purposeDisplay = 'N/A';
-        html += `<h3><i class="fas fa-map-pin"></i> Purpose</h3><p>${purposeDisplay}</p>`;
-        html += `<h3><i class="fas fa-paint-roller"></i> Room Makeup</h3>`;
+        html += `<h3><i class="fas fa-id-card"></i> Identification</h3><p><strong>Purpose:</strong> ${purposeDisplay}</p>`;
+
+        // --- Structural Components ---
+        html += `<h3><i class="fas fa-ruler-combined"></i> Structural Components</h3>`;
         if (room.roomMakeup) {
             html += `<p><strong>Walls:</strong> ${escapeHtml(room.roomMakeup.walls)} ${room.roomMakeup.wallsOther ? `(${escapeHtml(room.roomMakeup.wallsOther)})` : ''}</p>`;
-            if (room.roomMakeup.ceiling) {
-                html += `<p><strong>Ceiling Type:</strong> ${escapeHtml(room.roomMakeup.ceiling.type)} ${room.roomMakeup.ceiling.typeOther ? `(${escapeHtml(room.roomMakeup.ceiling.typeOther)})` : ''}`;
-                if (room.roomMakeup.ceiling.type === 'Drop Ceiling') {
-                     html += ` (Asbestos: ${escapeHtml(room.roomMakeup.ceiling.asbestosInCeiling||'N/A')})`;
-                }
-                html += `</p>`;
+            html += `<p><strong>Walls Condition:</strong> ${escapeHtml(room.conditionValues?.walls) || 'N/A'}</p>`;
+            if(room.conditionValues?.wallsComment) html += `<p class="condition-comment">${escapeHtml(room.conditionValues.wallsComment)}</p>`;
+            
+            let floorText = `<strong>Floor Type:</strong> ${escapeHtml(room.roomMakeup.floor.type)}`;
+            if (room.roomMakeup.floor.type === 'Other' && room.roomMakeup.floor.typeOther) { floorText += ` (${escapeHtml(room.roomMakeup.floor.typeOther)})`; }
+            html += `<p>${floorText}</p>`;
+            if (room.roomMakeup.floor.type === 'Tile' && room.roomMakeup.floor.tileSize) {
+                let tileSizeText = `<strong>Floor Tile Size:</strong> ${escapeHtml(room.roomMakeup.floor.tileSize)}`;
+                if (room.roomMakeup.floor.tileSize === 'Other' && room.roomMakeup.floor.tileSizeOther) { tileSizeText += ` (${escapeHtml(room.roomMakeup.floor.tileSizeOther)})`; }
+                html += `<p>${tileSizeText}</p>`;
             }
-            if (room.roomMakeup.floor) {
-                let floorText = `<strong>Floor Type:</strong> ${escapeHtml(room.roomMakeup.floor.type)}`;
-                if (room.roomMakeup.floor.type === 'Other' && room.roomMakeup.floor.typeOther) {
-                    floorText += ` (${escapeHtml(room.roomMakeup.floor.typeOther)})`;
-                }
-                html += `<p>${floorText}</p>`;
-                if (room.roomMakeup.floor.type === 'Tile' && room.roomMakeup.floor.tileSize) {
-                    let tileSizeText = `<strong>Floor Tile Size:</strong> ${escapeHtml(room.roomMakeup.floor.tileSize)}`;
-                    if (room.roomMakeup.floor.tileSize === 'Other' && room.roomMakeup.floor.tileSizeOther) {
-                        tileSizeText += ` (${escapeHtml(room.roomMakeup.floor.tileSizeOther)})`;
-                    }
-                    html += `<p>${tileSizeText}</p>`;
-                }
-            } else {  html += '<p><strong>Floor Type:</strong> N/A</p>'; }
-        } else html += '<p>N/A</p>';
+            html += `<p><strong>Floor Condition:</strong> ${escapeHtml(room.conditionValues?.floor) || 'N/A'}</p>`;
+            if(room.conditionValues?.floorComment) html += `<p class="condition-comment">${escapeHtml(room.conditionValues.floorComment)}</p>`;
+            
+            html += `<p><strong>Ceiling Type:</strong> ${escapeHtml(room.roomMakeup.ceiling.type)} ${room.roomMakeup.ceiling.typeOther ? `(${escapeHtml(room.roomMakeup.ceiling.typeOther)})` : ''}</p>`;
+            html += `<p><strong>Ceiling Condition:</strong> ${escapeHtml(room.conditionValues?.ceiling) || 'N/A'}</p>`;
+            if(room.conditionValues?.ceilingComment) html += `<p class="condition-comment">${escapeHtml(room.conditionValues.ceilingComment)}</p>`;
+        }
+        if (room.doors?.length > 0) {
+            html += `<p><strong>Doors:</strong></p><ul>${room.doors.map(d => `<li>ID: ${escapeHtml(d.identifier||'N/A')}, Type: ${escapeHtml(d.type)}${d.typeOther?` (${escapeHtml(d.typeOther)})`:''}, Lock: ${escapeHtml(d.lockType)}${d.lockTypeOther?` (${escapeHtml(d.lockTypeOther)})`:''}</li>`).join('')}</ul>`;
+        } else html += `<p><strong>Doors:</strong> N/A</p>`;
 
-        html += `<h3><i class="fas fa-star-half-alt"></i> Condition Values</h3>`;
-        if (room.conditionValues) {
-            const cv = room.conditionValues;
-            html += `<p><strong>Ceiling:</strong> ${escapeHtml(cv.ceiling) || 'N/A'}</p>`;
-            if(cv.ceilingComment) html += `<p class="condition-comment">${escapeHtml(cv.ceilingComment)}</p>`;
-            html += `<p><strong>Walls:</strong> ${escapeHtml(cv.walls) || 'N/A'}</p>`;
-            if(cv.wallsComment) html += `<p class="condition-comment">${escapeHtml(cv.wallsComment)}</p>`;
-            html += `<p><strong>Furniture:</strong> ${escapeHtml(cv.furniture) || 'N/A'}</p>`;
-            if(cv.furnitureComment) html += `<p class="condition-comment">${escapeHtml(cv.furnitureComment)}</p>`;
-            html += `<p><strong>Floor:</strong> ${escapeHtml(cv.floor) || 'N/A'}</p>`;
-            if(cv.floorComment) html += `<p class="condition-comment">${escapeHtml(cv.floorComment)}</p>`;
-            html += `<p><strong>Overall Room:</strong> ${escapeHtml(cv.overall) || 'N/A (Not Set/Calculated)'}</p>`;
-            if(cv.overallComment) html += `<p class="condition-comment">${escapeHtml(cv.overallComment)}</p>`;
-        } else html += '<p>N/A</p>';
-
-        html += `<h3><i class="fas fa-lightbulb"></i> Room Fixtures</h3>`;
+        // --- Systems & Utilities ---
+        html += `<h3><i class="fas fa-cogs"></i> Systems & Utilities</h3>`;
         if (room.lightFixtures && room.lightFixtures.length > 0) {
             html += `<p><strong>Light Fixtures:</strong></p><ul>`;
             room.lightFixtures.forEach(lf => {
@@ -1590,22 +1657,37 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             html += `</ul>`;
         } else html += `<p><strong>Other Fixtures:</strong> N/A</p>`;
-        html += `<h3><i class="fas fa-couch"></i> Furniture</h3>`;
+        html += `<p><strong>Heating/Cooling:</strong> ${escapeHtml(room.heatingCooling) || 'N/A'} ${room.heatingCoolingOther ? `(${escapeHtml(room.heatingCoolingOther)})` : ''}</p>`;
+        if (room.technology && room.technology.length > 0) {
+            html += `<p><strong>Technology:</strong></p><ul>${room.technology.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>`;
+            if (room.technologyOtherSpecify) html += `<p><em>Other:</em> ${escapeHtml(room.technologyOtherSpecify)}</p>`;
+        } else html += '<p><strong>Technology:</strong> N/A</p>';
+
+        // --- Furnishings & Equipment ---
+        html += `<h3><i class="fas fa-couch"></i> Furnishings & Equipment</h3>`;
         if (room.furniture && room.furniture.length > 0) {
-            html += `<ul>${room.furniture.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>`;
+            html += `<p><strong>Furniture Types:</strong></p><ul>${room.furniture.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>`;
             if (room.furnitureSpecialtySpecify) html += `<p><em>Specialty:</em> ${escapeHtml(room.furnitureSpecialtySpecify)}</p>`;
             if (room.furnitureOtherSpecify) html += `<p><em>Other:</em> ${escapeHtml(room.furnitureOtherSpecify)}</p>`;
-        } else html += '<p>N/A</p>';
-        html += `<h3><i class="fas fa-thermometer-half"></i> Heating/Cooling</h3><p>${escapeHtml(room.heatingCooling) || 'N/A'} ${room.heatingCoolingOther ? `(${escapeHtml(room.heatingCoolingOther)})` : ''}</p>`;
-        html += `<h3><i class="fas fa-door-open"></i> Doors</h3>`;
-        if (room.doors?.length > 0) {
-            html += `<ul>${room.doors.map(d => `<li>ID: ${escapeHtml(d.identifier||'N/A')}, Type: ${escapeHtml(d.type)}${d.typeOther?` (${escapeHtml(d.typeOther)})`:''}, Lock: ${escapeHtml(d.lockType)}${d.lockTypeOther?` (${escapeHtml(d.lockTypeOther)})`:''}</li>`).join('')}</ul>`;
-        } else html += `<p>N/A</p>`;
-        html += `<h3><i class="fas fa-tv"></i> Technology</h3>`;
-        if (room.technology && room.technology.length > 0) {
-            html += `<ul>${room.technology.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>`;
-             if (room.technologyOtherSpecify) html += `<p><em>Other:</em> ${escapeHtml(room.technologyOtherSpecify)}</p>`;
-        } else html += '<p>N/A</p>';
+        } else html += '<p><strong>Furniture Types:</strong> N/A</p>';
+        html += `<p><strong>Furniture Condition:</strong> ${escapeHtml(room.conditionValues?.furniture) || 'N/A'}</p>`;
+        if(room.conditionValues?.furnitureComment) html += `<p class="condition-comment">${escapeHtml(room.conditionValues.furnitureComment)}</p>`;
+        
+        // --- Safety & Compliance ---
+        html += `<h3><i class="fas fa-shield-alt"></i> Safety & Compliance</h3>`;
+        if (room.safety) {
+            html += `<p><strong>Smoke Detectors:</strong> ${escapeHtml(room.safety.smokeDetectors ?? 'N/A')}</p>`;
+            html += `<p><strong>Max Occupancy:</strong> ${escapeHtml(room.safety.maxOccupancy ?? 'N/A')}</p>`;
+        }
+        if (room.roomMakeup?.ceiling?.type === 'Drop Ceiling') {
+            html += `<p><strong>Asbestos in Ceiling:</strong> ${escapeHtml(room.roomMakeup.ceiling.asbestosInCeiling||'Unknown')}</p>`;
+        }
+        
+        // --- Overall Condition ---
+        html += `<h3><i class="fas fa-clipboard-check"></i> Overall Room Condition</h3>`;
+        html += `<p><strong>Overall:</strong> ${escapeHtml(room.conditionValues?.overall) || 'N/A (Not Set/Calculated)'}</p>`;
+        if(room.conditionValues?.overallComment) html += `<p class="condition-comment">${escapeHtml(room.conditionValues.overallComment)}</p>`;
+
 
         roomDetailContent.innerHTML = html;
         roomDetailModal.style.display = 'block';
@@ -2267,14 +2349,12 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
-    // --- NEW FILTER LOGIC ---
+    // --- FILTER LOGIC (REFACTORED) ---
     
-    // Helper to get a nested property from an object using a string path safely.
     function getProperty(obj, path) {
         return path.split('.').reduce((o, key) => (o && o[key] !== undefined && o[key] !== null) ? o[key] : undefined, obj);
     }
 
-    // A map of user-friendly keys to actual data paths for targeted searches.
     const filterFieldMap = {
         'purpose': 'roomPurpose',
         'wallstype': 'roomMakeup.walls',
@@ -2286,9 +2366,10 @@ document.addEventListener('DOMContentLoaded', function () {
         'floorcondition': 'conditionValues.floor',
         'furniturecondition': 'conditionValues.furniture',
         'overallcondition': 'conditionValues.overall',
+        'smokedetectors': 'safety.smokeDetectors',
+        'maxoccupancy': 'safety.maxOccupancy'
     };
     
-    // A single function to aggregate all searchable text from a room into one string.
     function getRoomTextContent(room) {
         let content = [];
         
@@ -2309,11 +2390,10 @@ document.addEventListener('DOMContentLoaded', function () {
             'roomMakeup.floor.type', 'roomMakeup.floor.typeOther', 'roomMakeup.floor.tileSize', 'roomMakeup.floor.tileSizeOther',
             'conditionValues.walls', 'conditionValues.ceiling', 'conditionValues.floor', 'conditionValues.furniture', 'conditionValues.overall',
             'conditionValues.wallsComment', 'conditionValues.ceilingComment', 'conditionValues.floorComment', 'conditionValues.furnitureComment', 'conditionValues.overallComment',
-            'furniture', 
-            'furnitureSpecialtySpecify', 'furnitureOtherSpecify',
-            'technology', 
-            'technologyOtherSpecify',
-            'heatingCooling', 'heatingCoolingOther'
+            'furniture', 'furnitureSpecialtySpecify', 'furnitureOtherSpecify',
+            'technology', 'technologyOtherSpecify',
+            'heatingCooling', 'heatingCoolingOther',
+            'safety.smokeDetectors', 'safety.maxOccupancy'
         ];
 
         simpleSearchPaths.forEach(path => {
@@ -2324,7 +2404,7 @@ document.addEventListener('DOMContentLoaded', function () {
         room.lightFixtures?.forEach(f => { processValue(f.type); processValue(f.style); processValue(f.typeOtherSpecify); processValue(f.styleOtherSpecify); });
         room.doors?.forEach(d => { processValue(d.identifier); processValue(d.type); processValue(d.lockType); processValue(d.typeOther); processValue(d.lockTypeOther); });
         
-        return content.filter(s => s.trim() !== "").join(' '); 
+        return content.filter(s => s && s.trim() !== "").join(' '); 
     }
 
     function checkCondition(condition, room, roomTextContent) {
@@ -2365,24 +2445,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const andParts = query.split(/ AND /i);
         for (const andPart of andParts) {
-            if (!andPart.trim()) {
-                 if (query.toUpperCase().includes("AND AND") || query.trim().toUpperCase().startsWith("AND") || query.trim().toUpperCase().endsWith("AND")) {
-                    if (andPart.trim() === "") continue;
-                 } else if (andPart.trim() === "") {
-                     return false; 
-                 }
-            }
+            if (!andPart.trim()) continue;
 
             const orParts = andPart.split(/ OR /i);
             let orClauseIsTrue = false;
             for (const orPart of orParts) {
-                if (!orPart.trim()) {
-                     if (andPart.toUpperCase().includes("OR OR") || andPart.trim().toUpperCase().startsWith("OR") || andPart.trim().toUpperCase().endsWith("OR")) {
-                        if (orPart.trim() === "") continue;
-                     } else if (orPart.trim() === "") {
-                        continue;
-                     }
-                }
+                if (!orPart.trim()) continue;
                 
                 let term = orPart.trim();
                 let negate = false;
@@ -2451,7 +2519,6 @@ document.addEventListener('DOMContentLoaded', function () {
         
         renderRoomList(filteredRooms, filterResultsContainer, true);
     }    
-    // --- END OF NEW FILTER LOGIC ---
     
     if (filterForm) {
         filterForm.addEventListener('submit', function(event) {

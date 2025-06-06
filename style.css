@@ -271,8 +271,8 @@ input[type="file"]:focus {
     font-style: normal; /* Ensure font style is normal on focus */
 }
 
-/* Styling for remembered inputs */
-.remembered-input {
+/* Styling for remembered and default inputs */
+.remembered-input, .default-value-input {
     color: var(--remembered-input-color) !important;
     font-style: italic !important;
 }
