@@ -303,7 +303,8 @@
                     <h1><i class="fas fa-eye"></i> View Saved Rooms</h1>
                 </header>
                 <div id="roomListContainer">
-                    </div>
+                    <!-- Real-time room list will be rendered here -->
+                </div>
             </div>
 
             <div id="FilterView" class="view-section">
@@ -315,7 +316,7 @@
                         <label for="filterBuildingName">Building Name:</label>
                         <select id="filterBuildingName" name="filterBuildingName">
                             <option value="">-- Any Building --</option>
-                            </select>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label for="filterRoomIdentifier">Room Identifier (Starts with):</label>
@@ -332,7 +333,8 @@
                     <p id="filterFeedback" class="feedback"></p>
                 </form>
                 <div id="filterResultsContainer">
-                    </div>
+                    <!-- Filtered room list will be rendered here -->
+                </div>
             </div>
 
 
@@ -359,7 +361,7 @@
                             <label for="renameOldBuildingNameSelect">Select Building to Rename:</label>
                             <select id="renameOldBuildingNameSelect" name="renameOldBuildingNameSelect">
                                 <option value="">-- Select Building --</option>
-                                </select>
+                            </select>
                         </div>
                         <div class="input-group">
                             <label for="renameNewBuildingNameInput">New Name for Building:</label>
@@ -400,7 +402,7 @@
                         <label for="massUpdateOldBuildingNameSelect">Select Current Building Name (from Room Data):</label>
                         <select id="massUpdateOldBuildingNameSelect" name="massUpdateOldBuildingNameSelect">
                              <option value="">-- Select Building to Reassign From --</option>
-                             </select>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label for="massUpdateNewBuildingNameInput">New Building Name (for these Rooms):</label>
@@ -436,7 +438,7 @@
                     <div id="attemptedDataPanel" class="conflict-panel">
                         <h3><i class="fas fa-file-alt"></i> Your Unsaved Data</h3>
                         <div id="attemptedDataPreview" class="room-details-preview">
-                            </div>
+                        </div>
                         <div class="actions" style="margin-top: 15px;">
                             <button type="button" id="editAttemptedBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Continue Editing</button>
                             <button type="button" id="discardAttemptedBtn" class="action-button secondary-button"><i class="fas fa-times-circle"></i> Discard This Data</button>
@@ -446,7 +448,7 @@
                     <div id="existingDataPanel" class="conflict-panel">
                         <h3><i class="fas fa-database"></i> Existing Saved Room</h3>
                         <div id="existingDataPreview" class="room-details-preview">
-                            </div>
+                        </div>
                         <div class="actions" style="margin-top: 15px;">
                             <button type="button" id="editExistingConflictBtn" class="action-button primary-button"><i class="fas fa-edit"></i> Edit Existing Room</button>
                             <button type="button" id="deleteExistingConflictBtn" class="action-button danger-button"><i class="fas fa-trash-alt"></i> Delete & Replace</button>
@@ -466,7 +468,7 @@
             <span class="close-modal-btn" role="button" tabindex="0" aria-label="Close room details">&times;</span>
             <h2>Room Details</h2>
             <div id="roomDetailContent">
-                </div>
+            </div>
         </div>
     </div>
 
@@ -480,12 +482,12 @@
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-file-import"></i> Importing Room Data:</h4>
                         <div id="importingRoomDetailsPreview" class="room-details-preview">
-                            </div>
+                        </div>
                     </div>
                     <div class="conflict-room-panel">
                         <h4><i class="fas fa-database"></i> Existing Room Data:</h4>
                         <div id="existingRoomDetailsPreview" class="room-details-preview">
-                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -513,8 +515,32 @@
         </div>
     </div>
 
-    <script src="capacitor.js"></script>
-    <script src="script.js"></script>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBszCM6d9KZ9sLRfs7DGvZVCuOq0xRFiVs",
+            authDomain: "roomfolio-89ea1.firebaseapp.com",
+            projectId: "roomfolio-89ea1",
+            storageBucket: "roomfolio-89ea1.appspot.com",
+            messagingSenderId: "974728166698",
+            appId: "1:974728166698:web:e6c86d61ab1b69002ff253",
+            measurementId: "G-YRTDM72M6Z"
+        };
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        // Make the app instance available globally for your script.js
+        window.firebaseApp = app;
+    </script>
+
+    <!-- Firestore SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    
+    <!-- Your App's Script (as a module) -->
+    <script src="script.js" type="module"></script>
+    
     <script>
         document.addEventListener("DOMContentLoaded", function () {
           // This script handles the "Other" checkbox behavior for specialty/other text inputs

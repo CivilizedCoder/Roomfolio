@@ -1,5 +1,27 @@
+// Import Firestore functions, including the new 'enableIndexedDbPersistence'
+import {
+    getFirestore, collection, doc, setDoc, addDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, writeBatch, enableIndexedDbPersistence
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("App DOMContentLoaded: Initializing...");
+    console.log("App DOMContentLoaded: Initializing with Firestore...");
+
+    // Initialize Firestore DB
+    const db = getFirestore(window.firebaseApp);
+
+    // Enable Offline Persistence
+    enableIndexedDbPersistence(db)
+      .catch((err) => {
+          if (err.code == 'failed-precondition') {
+              // This can happen if you have multiple tabs of the app open.
+              // Persistence can only be enabled in one tab at a time.
+              console.warn("Firestore: Offline persistence failed, likely due to multiple tabs open.");
+          } else if (err.code == 'unimplemented') {
+              // The current browser does not support all of the
+              // features required to enable persistence.
+              console.error("Firestore: This browser does not support offline persistence.");
+          }
+      });
 
     // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
@@ -83,13 +105,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterResultsContainer = document.getElementById('filterResultsContainer');
     const filterFeedback = document.getElementById('filterFeedback');
 
-    // LocalStorage keys
-    const ROOM_DATA_KEY = 'roomAppData_rooms';
-    const BUILDING_DATA_KEY = 'roomAppData_buildings';
+    // LocalStorage keys (for non-critical, client-side data)
     const LAST_USED_BUILDING_KEY = 'roomAppData_lastUsedBuilding';
     const LAST_INPUT_VALUES_KEY = 'roomAppData_lastInputValues';
 
+    // Firestore Collection Names
+    const ROOMS_COLLECTION = 'rooms';
+    const BUILDINGS_DOC = 'buildings/buildingList'; // Storing buildings as a single document
+
     // State variables
+    let allRoomsCache = []; // Local cache for all room data
+    let allBuildingsCache = []; // Local cache for building names
     let lastInputValues = {};
     let importedRoomsQueue = [];
     let currentImportIndex = 0;
@@ -103,8 +129,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentExistingRoomForSaveConflict = null;
     let cameFromDuplicateResolutionView = false;
     let focusedButtonBeforeModal = null;
-
-    // Default buildings list
+    
+    // Default buildings list - Used to initialize the database if it's empty
     const DEFAULT_BUILDINGS = [
         "Boyd Science Center", "Brown Chapel", "Cambridge Hall", "Montgomery Hall", "MOT House",
         "Neptune Center", "Palmer Art Gallery", "Paul Hall", "Philip and Betsey Caldwell Hall",
@@ -117,7 +143,47 @@ document.addEventListener('DOMContentLoaded', function () {
         "Lakeside 133 (Phi Tau)", "Lakeside 135", "Lakeside 137 (RA Housing)", 'Lakeside 141 (Phi Psi)', "Lakeside 151 (Ulster)"
     ];
 
-    // --- "Remember Last Input" Feature ---
+    // --- Real-time Data Listeners (The Core of the Firebase App) ---
+    function initializeRealtimeListeners() {
+        const roomsQuery = query(collection(db, ROOMS_COLLECTION));
+        onSnapshot(roomsQuery, (snapshot) => {
+            console.log("Firestore: Rooms snapshot updated.");
+            allRoomsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (document.getElementById('ViewRoomsView').classList.contains('active-view')) {
+                renderRoomList();
+            }
+            if (document.getElementById('FilterView').classList.contains('active-view')) {
+                applyFilters(); // Re-apply filters if the view is active
+            }
+            if (document.getElementById('DataView').classList.contains('active-view')) {
+                displayFullJsonForExport();
+            }
+        }, (error) => {
+            console.error("Firestore: Error listening to room changes: ", error);
+            feedbackMessage.textContent = "Error: Could not connect to the room database.";
+            feedbackMessage.className = 'feedback error';
+        });
+
+        const buildingsDocRef = doc(db, BUILDINGS_DOC);
+        onSnapshot(buildingsDocRef, (docSnap) => {
+            console.log("Firestore: Buildings snapshot updated.");
+            if (docSnap.exists()) {
+                allBuildingsCache = docSnap.data().names || [];
+            } else {
+                // If the document doesn't exist, create it with the defaults
+                console.log("Firestore: Buildings document not found, creating with defaults.");
+                setDoc(buildingsDocRef, { names: DEFAULT_BUILDINGS.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) });
+                allBuildingsCache = [...DEFAULT_BUILDINGS];
+            }
+            populateBuildingDropdowns();
+        }, (error) => {
+            console.error("Firestore: Error listening to building changes: ", error);
+            buildingManagementFeedback.textContent = "Error: Could not connect to the building database.";
+            buildingManagementFeedback.className = 'feedback error';
+        });
+    }
+
+    // --- "Remember Last Input" Feature (Uses LocalStorage - OK for this) ---
     function loadLastInputValues() {
         const stored = localStorage.getItem(LAST_INPUT_VALUES_KEY);
         if (stored) {
@@ -212,28 +278,23 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- Building Data Management ---
+    // --- Building Data Management (Now reads from cache) ---
     function getStoredBuildings() {
-        const stored = localStorage.getItem(BUILDING_DATA_KEY);
-        if (stored) {
-            return JSON.parse(stored);
-        } else {
-            storeBuildings(DEFAULT_BUILDINGS);
-            return [...DEFAULT_BUILDINGS];
-        }
+        return allBuildingsCache; // Read from the live cache
     }
 
-    function storeBuildings(buildingsArray) {
+    async function storeBuildings(buildingsArray) {
         try {
-            localStorage.setItem(BUILDING_DATA_KEY, JSON.stringify(buildingsArray.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))));
+            const sortedBuildings = buildingsArray.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            const buildingsDocRef = doc(db, BUILDINGS_DOC);
+            await setDoc(buildingsDocRef, { names: sortedBuildings });
         } catch (e) {
-            if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-                throw new Error('Storage Full');
-            }
-            throw e;
+            console.error("Firestore: Error storing buildings", e);
+            throw new Error('Storage Full'); // Simulate same error for UI consistency
         }
     }
-
+    
+    // --- LocalStorage helpers for non-critical data ---
     function getLastUsedBuilding() {
         return localStorage.getItem(LAST_USED_BUILDING_KEY);
     }
@@ -242,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             localStorage.setItem(LAST_USED_BUILDING_KEY, buildingName);
         } catch(e) {
-            console.error("Could not set last used building, storage might be full.", e);
+            console.error("Could not set last used building, local storage might be full.", e);
         }
     }
 
@@ -276,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     currentSelect.classList.add('remembered-input');
                 }
             }
-            sortedBuildings.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            // No need to re-sort, cache is already sorted.
             sortedBuildings.forEach(bName => {
                 optionsHtml += `<option value="${escapeHtml(bName)}">${escapeHtml(bName)}</option>`;
             });
@@ -306,11 +367,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
+        // The real-time listeners handle rendering, so we don't need to call render functions here
+        // except for a few edge cases or initial loads.
         if (targetViewId === 'ViewRoomsView') {
-            renderRoomList();
+            renderRoomList(); // Re-render from cache when view becomes active
         } else if (targetViewId === 'DataView') {
             displayFullJsonForExport();
-            populateBuildingDropdowns();
+            // populateBuildingDropdowns() is handled by the listener
             if(importFeedback) {importFeedback.textContent = ''; importFeedback.className = 'feedback';}
             if(exportFeedback) {exportFeedback.textContent = ''; exportFeedback.className = 'feedback';}
             if(massUpdateFeedback) {massUpdateFeedback.textContent = ''; massUpdateFeedback.className = 'feedback';}
@@ -329,7 +392,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if(filterForm) filterForm.reset();
             if(filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
             if(filterFeedback) {filterFeedback.textContent = ''; filterFeedback.className = 'feedback';}
-            populateBuildingDropdowns();
         } else if (targetViewId === 'duplicateResolutionView') {
             if(duplicateResolutionFeedback) {duplicateResolutionFeedback.textContent = ''; duplicateResolutionFeedback.className = 'feedback';}
         }
@@ -353,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function () {
             feedbackMessage.className = 'feedback';
         }
 
-        populateBuildingDropdowns();
+        populateBuildingDropdowns(); // Will use the live cache
 
         if (lightFixturesContainer && lightFixturesContainer.children.length === 0) {
             const rememberedFixtureTemplate = (lastInputValues.lightFixtures && lastInputValues.lightFixtures.length > 0) ? lastInputValues.lightFixtures[0] : {};
@@ -393,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // --- Conditional Form Logic ---
+    // --- Conditional Form Logic (Unchanged) ---
     function setupConditionalInput(selectElement, otherInputElement) {
         if (selectElement && otherInputElement) {
             const update = () => {
@@ -560,7 +622,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- Dynamic Form Element Appending ---
+    // --- Dynamic Form Element Appending (Unchanged) ---
     function appendNewDoorEntry(doorData = {}, isDefault = false) {
         if (!doorsContainer) return;
         const id = `doorInstance_${Date.now()}`;
@@ -738,22 +800,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // --- Room Data Storage and Retrieval ---
-    function getStoredRooms() { return JSON.parse(localStorage.getItem(ROOM_DATA_KEY) || '[]'); }
-    function storeRooms(rooms) {
-        try {
-            localStorage.setItem(ROOM_DATA_KEY, JSON.stringify(rooms));
-        } catch (e) {
-            if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-                throw new Error('Storage Full');
-            }
-            throw e;
-        }
-    }
+    // --- Room Data Storage and Retrieval (Reads from cache) ---
+    function getStoredRooms() { return allRoomsCache; }
     function findRoom(bName, rId) { return (!bName||!rId)?null:getStoredRooms().find(r=>r.buildingName?.toLowerCase()===bName.toLowerCase()&&r.roomIdentifier?.toLowerCase()===rId.toLowerCase());}
     function findRoomById(roomId) { return getStoredRooms().find(r => r.id === roomId); }
 
-    // --- Form Clearing and Reset ---
+    // --- Form Clearing and Reset (Unchanged) ---
     function clearFormAndDynamicElements(form) {
         if (!form) return;
         form.reset();
@@ -787,7 +839,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (feedbackMessage) { feedbackMessage.textContent = ''; feedbackMessage.className = 'feedback'; }
     }
 
-    // --- Condition Value Helpers ---
+    // --- Condition Value Helpers (Unchanged) ---
     function conditionStringToValue(conditionString) {
         if (!conditionString || typeof conditionString !== 'string') return null;
         const match = conditionString.match(/^(\d+)/);
@@ -810,20 +862,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // --- Helper function to collect form data into a room object ---
-    function getCurrentRoomDataFromForm(includeIdAndTimestamp = false) {
+    // --- Helper function to collect form data into a room object (Unchanged) ---
+    function getCurrentRoomDataFromForm() {
         const formData = new FormData(roomForm);
         const buildingNameVal = buildingNameSelect.value;
         const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim();
 
         const newRoomData = { buildingName: buildingNameVal, roomIdentifier: roomIdentifierVal };
-
-        if (includeIdAndTimestamp) {
-            const currentId = editingRoomIdInput.value;
-            if (currentId) {
-                newRoomData.id = currentId;
-            }
-        }
 
         newRoomData.roomPurpose = formData.get('roomPurpose');
         newRoomData.roomPurposeOther = (newRoomData.roomPurpose === 'Other') ? formData.get('roomPurposeOther').trim() : '';
@@ -948,9 +993,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const doorTypeOtherIn = entry.querySelector('input[name="doorTypeOther"]');
                 const lockTypeOtherIn = entry.querySelector('input[name="doorLockTypeOther"]');
                 
-                // Don't save default "Main Entry" if it hasn't been modified
                 if (doorIdInput.classList.contains('default-value-input') && doorIdVal === 'Main Entry') {
-                    // Only save if other fields have been changed from their defaults
                      if(doorTypeSel.value === 'Wood' && lockTypeSel.value === 'Key' && !doorTypeOtherIn.value && !lockTypeOtherIn.value) {
                         return; // Skip this default, unmodified door
                      }
@@ -973,9 +1016,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return newRoomData;
     }
 
-    // --- Enhanced Form Validation ---
+    // --- Enhanced Form Validation (Unchanged) ---
     function validateConditionalFields() {
-        // Check "Other" text fields that are dependent on a select box
         const otherSelects = [
             { selectId: 'roomPurpose', otherId: 'roomPurposeOther', name: 'Room Purpose' },
             { selectId: 'walls', otherId: 'wallsOther', name: 'Walls Type' },
@@ -991,8 +1033,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return `When selecting "Other" for ${item.name}, you must provide a specific description.`;
             }
         }
-
-        // Check for "Other" checkboxes that require a text input
         const otherCheckboxes = [
             { checkboxValue: 'Specialty Equipment', textInputId: 'furnitureSpecialtySpecifyText', groupName: 'furniture', name: 'Specialty Equipment' },
             { checkboxValue: 'Other', textInputId: 'furnitureOtherSpecifyText', groupName: 'furniture', name: 'Other Furniture' },
@@ -1007,8 +1047,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return `When checking "${item.name}", you must provide a specific description.`;
             }
         }
-        
-        // Check light fixtures
         const lightFixtureEntries = lightFixturesContainer.querySelectorAll('.light-fixture-entry');
         for (const entry of lightFixtureEntries) {
             const typeSelect = entry.querySelector('select[name="lightFixtureType"]');
@@ -1024,13 +1062,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 return 'For light fixtures with style "Other", you must specify the style.';
             }
         }
-
-        return null; // All good
+        return null;
     }
-
-    // --- Room Form Submission ---
+    
+    // --- Room Form Submission (MODIFIED for Firestore) ---
     if (roomForm) {
-        roomForm.addEventListener('submit', function (event) {
+        roomForm.addEventListener('submit', async function (event) { // Now async
             event.preventDefault();
             console.log("[RoomFormSubmit] Form submission initiated.");
 
@@ -1042,7 +1079,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 feedbackMessage.className = 'feedback';
             }
             
-            // --- Primary Validation ---
             const buildingNameVal = buildingNameSelect.value;
             const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim();
             const currentRoomId = editingRoomIdInput.value;
@@ -1055,7 +1091,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             
-            // --- Conditional Field Validation ---
             const validationError = validateConditionalFields();
             if (validationError) {
                 feedbackMessage.textContent = validationError;
@@ -1063,8 +1098,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-
-            const newRoomDataFromForm = getCurrentRoomDataFromForm(true);
+            const newRoomDataFromForm = getCurrentRoomDataFromForm();
             const existingRoomWithSameIdentifiers = findRoom(newRoomDataFromForm.buildingName, newRoomDataFromForm.roomIdentifier);
 
             if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
@@ -1073,14 +1107,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.warn("[RoomFormSubmit] Duplicate room detected. Presenting resolution options.");
                 setTimeout(() => {
                     presentDuplicateRoomResolution(newRoomDataFromForm, existingRoomWithSameIdentifiers);
-                }, 1000); // Short delay to allow user to read the message
+                }, 1000);
                 return;
             }
 
             try {
                 console.log("[RoomFormSubmit] Starting save operation for room:", { buildingNameVal, roomIdentifierVal, currentRoomId });
-                addRoomToStorageInternal(newRoomDataFromForm, currentRoomId);
-                console.log("[RoomFormSubmit] addRoomToStorageInternal completed successfully.");
+                await addRoomToFirestore(newRoomDataFromForm, currentRoomId);
+                console.log("[RoomFormSubmit] addRoomToFirestore completed successfully.");
                 setLastUsedBuilding(newRoomDataFromForm.buildingName);
 
                 lastInputValues.buildingName = newRoomDataFromForm.buildingName;
@@ -1119,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const isEditing = !!currentRoomId;
                 editingRoomIdInput.value = '';
                 isResolvingAttemptedDataInput.value = 'false';
-                cameFromDuplicateResolutionView = false; // Reset flag on successful save
+                cameFromDuplicateResolutionView = false;
                 resetRoomFormToDefault();
 
                 if (isEditing) {
@@ -1130,11 +1164,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             } catch (error) {
                 console.error('[RoomFormSubmit] CRITICAL ERROR during room save process:', error);
-                let errorMsg = 'Failed to save room information. An unexpected error occurred.';
-                if (error.message === 'Storage Full') {
-                    errorMsg = 'Save Failed: Browser storage is full. Please export and clear some data from the Data Management page.';
-                }
-                feedbackMessage.textContent = errorMsg;
+                feedbackMessage.textContent = 'Failed to save room to the database. Check console for details.';
                 feedbackMessage.className = 'feedback error';
             }
         });
@@ -1155,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             feedbackMessage.textContent = 'Room data (JSON) copied to clipboard!';
                             feedbackMessage.className = 'feedback success';
                         } else {
-                            alert('Room data (JSON) copied to clipboard!'); // Fallback
+                            alert('Room data (JSON) copied to clipboard!');
                         }
                     }).catch(err => {
                         console.error('Async clipboard copy failed:', err);
@@ -1170,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     feedbackMessage.textContent = 'Error copying room data. See console.';
                     feedbackMessage.className = 'feedback error';
                 } else {
-                    alert('Error copying room data. See console.'); // Fallback
+                    alert('Error copying room data. See console.');
                 }
             }
         });
@@ -1192,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 feedbackMessage.textContent = msg;
                 feedbackMessage.className = successful ? 'feedback success' : 'feedback error';
             } else {
-                alert(msg); // Fallback
+                alert(msg);
             }
         } catch (err) {
             console.error('Fallback copy execCommand failed:', err);
@@ -1200,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 feedbackMessage.textContent = 'Fallback copy failed. See console.';
                 feedbackMessage.className = 'feedback error';
             } else {
-                alert('Fallback copy failed. See console.'); // Fallback
+                alert('Fallback copy failed. See console.');
             }
         }
         document.body.removeChild(textArea);
@@ -1226,33 +1256,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function addRoomToStorageInternal(roomData, replaceId = null) {
-        let rooms = getStoredRooms();
-        if (replaceId) {
-            const roomIndex = rooms.findIndex(r => r.id === replaceId);
-            if (roomIndex > -1) {
-                roomData.id = replaceId;
-                roomData.savedAt = new Date().toISOString();
-                rooms[roomIndex] = roomData;
-            } else {
-                console.warn(`[addRoomToStorageInternal] Attempted to replace room with ID ${replaceId}, but it was not found. Adding as new.`);
-                roomData.id = `room_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
-                roomData.savedAt = new Date().toISOString();
-                rooms.push(roomData);
-            }
-        } else {
-            roomData.id = `room_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
-            roomData.savedAt = new Date().toISOString();
-            rooms.push(roomData);
-        }
-        storeRooms(rooms);
+    // New function to handle writing to Firestore
+    async function addRoomToFirestore(roomData, existingId = null) {
+        roomData.savedAt = new Date().toISOString(); // Add timestamp
         const buildings = getStoredBuildings();
         if (roomData.buildingName && !buildings.includes(roomData.buildingName)) {
-            buildings.push(roomData.buildingName);
-            storeBuildings(buildings);
-            populateBuildingDropdowns();
+            const newBuildingList = [...buildings, roomData.buildingName];
+            await storeBuildings(newBuildingList);
+        }
+
+        if (existingId) {
+            // This is an update to an existing room
+            const roomRef = doc(db, ROOMS_COLLECTION, existingId);
+            await setDoc(roomRef, roomData);
+        } else {
+            // This is a new room
+            await addDoc(collection(db, ROOMS_COLLECTION), roomData);
         }
     }
+
 
     function populateFormWithData(room, isEditingExisting = true) {
         if (!room) {
@@ -1272,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if(saveRoomBtn) saveRoomBtn.innerHTML = '<i class="fas fa-save"></i> Update Room Information';
             if(cancelEditBtn) cancelEditBtn.style.display = 'inline-flex';
         } else {
-            editingRoomIdInput.value = room.id || '';
+            editingRoomIdInput.value = ''; // Don't assign an ID yet for a new room from conflict
             isResolvingAttemptedDataInput.value = 'true';
             if(addEditRoomTitle) addEditRoomTitle.innerHTML = `<i class="fas fa-pencil-alt"></i> Edit Data for New Room`;
             if(saveRoomBtn) saveRoomBtn.innerHTML = '<i class="fas fa-save"></i> Save Room Information';
@@ -1374,7 +1396,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if(overallConditionCommentEl) overallConditionCommentEl.value = cv.overallComment || '';
         }
         
-        // Populate Safety Info
         if (room.safety) {
             const smokeDetectorsEl = roomForm.querySelector('#smokeDetectors');
             if(smokeDetectorsEl) smokeDetectorsEl.value = room.safety.smokeDetectors || '';
@@ -1432,7 +1453,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (room.doors && room.doors.length > 0) {
             room.doors.forEach(door => appendNewDoorEntry(door));
         } else {
-            // If editing a room that had no doors, add the default one
             appendNewDoorEntry({ identifier: 'Main Entry' }, true);
         }
         roomForm.querySelectorAll('input[name="technology"]').forEach(cb => cb.checked = false);
@@ -1457,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', function () {
         populateFormWithData(room, true);
     }
 
-
+    // --- renderRoomList now uses the local cache ---
     function renderRoomList(roomsToRender = null, targetContainer = roomListContainer, isFilterResults = false) {
         if (!targetContainer) return;
         targetContainer.innerHTML = '';
@@ -1546,7 +1566,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return card;
     }
 
-    document.querySelector('.content-area').addEventListener('click', function(event) {
+    document.querySelector('.content-area').addEventListener('click', async function(event) {
         const targetButton = event.target.closest('button.action-button');
         if (!targetButton) return;
         const roomId = targetButton.dataset.roomId;
@@ -1558,7 +1578,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (targetButton.classList.contains('delete-room-btn')) {
             const room = findRoomById(roomId);
             if (confirm(`Are you sure you want to delete room: ${escapeHtml(room?.roomIdentifier)} in ${escapeHtml(room?.buildingName)}? This action cannot be undone.`)) {
-                deleteRoom(roomId);
+                await deleteRoom(roomId);
             }
         }
     });
@@ -1574,13 +1594,15 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (!room.roomPurpose) purposeDisplay = 'N/A';
         html += `<p><strong>Purpose:</strong> ${purposeDisplay}</p>`;
         html += `<p><strong>Overall Condition:</strong> ${escapeHtml(room.conditionValues?.overall || 'N/A')}</p>`;
-        // Add Safety Info to Preview
         if(room.safety) {
             html += `<p><strong>Smoke Detectors:</strong> ${escapeHtml(room.safety.smokeDetectors ?? 'N/A')}</p>`;
             html += `<p><strong>Max Occupancy:</strong> ${escapeHtml(room.safety.maxOccupancy ?? 'N/A')}</p>`;
         }
         if (room.savedAt) {
-            html += `<p><small>Last Saved: ${new Date(room.savedAt).toLocaleString()}</small></p>`;
+            const date = new Date(room.savedAt);
+            if (!isNaN(date)) {
+                html += `<p><small>Last Saved: ${date.toLocaleString()}</small></p>`;
+            }
         }
         return html;
     }
@@ -1597,17 +1619,18 @@ document.addEventListener('DOMContentLoaded', function () {
             if(closeModalBtn) closeModalBtn.focus();
             return;
         }
+        
+        const savedDate = new Date(room.savedAt);
+        const savedAtDisplay = !isNaN(savedDate) ? savedDate.toLocaleString() : 'N/A';
 
         let html = `<h2>${escapeHtml(room.buildingName)} - ${escapeHtml(room.roomIdentifier)}</h2>`;
-        html += `<p><strong>Saved At:</strong> ${new Date(room.savedAt).toLocaleString()}</p>`;
+        html += `<p><strong>Saved At:</strong> ${savedAtDisplay}</p>`;
         
-        // --- Identification ---
         let purposeDisplay = escapeHtml(room.roomPurpose) || 'N/A';
         if (room.roomPurpose === 'Other' && room.roomPurposeOther) purposeDisplay = `${escapeHtml(room.roomPurpose)} (${escapeHtml(room.roomPurposeOther)})`;
         else if (!room.roomPurpose) purposeDisplay = 'N/A';
         html += `<h3><i class="fas fa-id-card"></i> Identification</h3><p><strong>Purpose:</strong> ${purposeDisplay}</p>`;
 
-        // --- Structural Components ---
         html += `<h3><i class="fas fa-ruler-combined"></i> Structural Components</h3>`;
         if (room.roomMakeup) {
             html += `<p><strong>Walls:</strong> ${escapeHtml(room.roomMakeup.walls)} ${room.roomMakeup.wallsOther ? `(${escapeHtml(room.roomMakeup.wallsOther)})` : ''}</p>`;
@@ -1633,7 +1656,6 @@ document.addEventListener('DOMContentLoaded', function () {
             html += `<p><strong>Doors:</strong></p><ul>${room.doors.map(d => `<li>ID: ${escapeHtml(d.identifier||'N/A')}, Type: ${escapeHtml(d.type)}${d.typeOther?` (${escapeHtml(d.typeOther)})`:''}, Lock: ${escapeHtml(d.lockType)}${d.lockTypeOther?` (${escapeHtml(d.lockTypeOther)})`:''}</li>`).join('')}</ul>`;
         } else html += `<p><strong>Doors:</strong> N/A</p>`;
 
-        // --- Systems & Utilities ---
         html += `<h3><i class="fas fa-cogs"></i> Systems & Utilities</h3>`;
         if (room.lightFixtures && room.lightFixtures.length > 0) {
             html += `<p><strong>Light Fixtures:</strong></p><ul>`;
@@ -1663,7 +1685,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (room.technologyOtherSpecify) html += `<p><em>Other:</em> ${escapeHtml(room.technologyOtherSpecify)}</p>`;
         } else html += '<p><strong>Technology:</strong> N/A</p>';
 
-        // --- Furnishings & Equipment ---
         html += `<h3><i class="fas fa-couch"></i> Furnishings & Equipment</h3>`;
         if (room.furniture && room.furniture.length > 0) {
             html += `<p><strong>Furniture Types:</strong></p><ul>${room.furniture.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>`;
@@ -1673,7 +1694,6 @@ document.addEventListener('DOMContentLoaded', function () {
         html += `<p><strong>Furniture Condition:</strong> ${escapeHtml(room.conditionValues?.furniture) || 'N/A'}</p>`;
         if(room.conditionValues?.furnitureComment) html += `<p class="condition-comment">${escapeHtml(room.conditionValues.furnitureComment)}</p>`;
         
-        // --- Safety & Compliance ---
         html += `<h3><i class="fas fa-shield-alt"></i> Safety & Compliance</h3>`;
         if (room.safety) {
             html += `<p><strong>Smoke Detectors:</strong> ${escapeHtml(room.safety.smokeDetectors ?? 'N/A')}</p>`;
@@ -1683,39 +1703,43 @@ document.addEventListener('DOMContentLoaded', function () {
             html += `<p><strong>Asbestos in Ceiling:</strong> ${escapeHtml(room.roomMakeup.ceiling.asbestosInCeiling||'Unknown')}</p>`;
         }
         
-        // --- Overall Condition ---
         html += `<h3><i class="fas fa-clipboard-check"></i> Overall Room Condition</h3>`;
         html += `<p><strong>Overall:</strong> ${escapeHtml(room.conditionValues?.overall) || 'N/A (Not Set/Calculated)'}</p>`;
         if(room.conditionValues?.overallComment) html += `<p class="condition-comment">${escapeHtml(room.conditionValues.overallComment)}</p>`;
-
 
         roomDetailContent.innerHTML = html;
         roomDetailModal.style.display = 'block';
         if(closeModalBtn) closeModalBtn.focus();
     }
 
-    function deleteRoom(roomId, fromConflictResolution = false) {
+    async function deleteRoom(roomId, fromConflictResolution = false) {
         const room = findRoomById(roomId);
-        storeRooms(getStoredRooms().filter(r => r.id !== roomId));
+        try {
+            const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+            await deleteDoc(roomRef);
 
-        if (fromConflictResolution) {
-            if(duplicateResolutionFeedback) {
-                duplicateResolutionFeedback.textContent = `Room "${escapeHtml(room?.buildingName)} - ${escapeHtml(room?.roomIdentifier)}" deleted successfully.`;
-                duplicateResolutionFeedback.className = 'feedback success';
+            if (fromConflictResolution) {
+                if(duplicateResolutionFeedback) {
+                    duplicateResolutionFeedback.textContent = `Room "${escapeHtml(room?.buildingName)} - ${escapeHtml(room?.roomIdentifier)}" deleted successfully.`;
+                    duplicateResolutionFeedback.className = 'feedback success';
+                }
+                 setTimeout(() => {
+                    setActiveView('ViewRoomsView');
+                }, 1500);
+
+            } else {
+                 // The real-time listener will handle re-rendering the list.
+                 if (roomDetailModal?.style.display === 'block') closeModal();
+                 const firstBuildingHeader = roomListContainer?.querySelector('.building-header');
+                 if (firstBuildingHeader) firstBuildingHeader.focus(); else navLinks[0]?.focus();
             }
-             setTimeout(() => {
-                setActiveView('ViewRoomsView');
-            }, 1500);
-
-        } else {
-             renderRoomList();
-             if (document.getElementById('FilterView').classList.contains('active-view')) {
-                applyFilters();
-             }
-             populateBuildingDropdowns();
-             if (roomDetailModal?.style.display === 'block') closeModal();
-             const firstBuildingHeader = roomListContainer?.querySelector('.building-header');
-             if (firstBuildingHeader) firstBuildingHeader.focus(); else navLinks[0]?.focus();
+        } catch (error) {
+            console.error("Firestore: Error deleting room", error);
+            const feedback = fromConflictResolution ? duplicateResolutionFeedback : feedbackMessage;
+            if (feedback) {
+                feedback.textContent = "Error deleting room from the database.";
+                feedback.className = 'feedback error';
+            }
         }
     }
 
@@ -1736,10 +1760,11 @@ document.addEventListener('DOMContentLoaded', function () {
         closeModalBtn.onclick = closeModal;
         closeModalBtn.onkeydown = eventArgument => { if (eventArgument.key==='Enter'||eventArgument.key===' ') {eventArgument.preventDefault();closeModal();}};
     }
-
-    // --- Duplicate Save Conflict Resolution ---
+    
+    // --- Duplicate Save Conflict Resolution (MODIFIED for Firestore) ---
     function presentDuplicateRoomResolution(attemptedData, existingRoom) {
         currentAttemptedSaveData = attemptedData;
+        currentAttemptedSaveData.id = existingRoom.id; // Tentatively assign ID for potential update
         currentExistingRoomForSaveConflict = existingRoom;
 
         if (attemptedDataPreview) attemptedDataPreview.innerHTML = formatRoomDataForPreview(attemptedData);
@@ -1756,8 +1781,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (editAttemptedBtn) {
         editAttemptedBtn.addEventListener('click', () => {
             if (currentAttemptedSaveData) {
-                cameFromDuplicateResolutionView = true; // Set flag
-                populateFormWithData(currentAttemptedSaveData, false); // false: not editing an existing stored room yet
+                cameFromDuplicateResolutionView = true;
+                // Since this isn't a saved room, we pass `false`
+                populateFormWithData(currentAttemptedSaveData, false);
             }
         });
     }
@@ -1765,7 +1791,7 @@ document.addEventListener('DOMContentLoaded', function () {
         discardAttemptedBtn.addEventListener('click', () => {
             currentAttemptedSaveData = null;
             currentExistingRoomForSaveConflict = null;
-            cameFromDuplicateResolutionView = false; // Reset flag
+            cameFromDuplicateResolutionView = false;
             setActiveView('ViewRoomsView');
             if (feedbackMessage) {
                 feedbackMessage.textContent = 'Discarded unsaved data.';
@@ -1776,23 +1802,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (editExistingConflictBtn) {
         editExistingConflictBtn.addEventListener('click', () => {
             if (currentExistingRoomForSaveConflict) {
-                cameFromDuplicateResolutionView = true; // Set flag
+                cameFromDuplicateResolutionView = true;
                 populateFormForEditing(currentExistingRoomForSaveConflict.id);
             }
         });
     }
 
     if (deleteExistingConflictBtn) {
-        deleteExistingConflictBtn.addEventListener('click', () => {
+        deleteExistingConflictBtn.addEventListener('click', async () => {
             if (currentExistingRoomForSaveConflict && currentAttemptedSaveData) {
                 const room = currentExistingRoomForSaveConflict;
                 if (confirm(`Are you sure you want to DELETE the existing room and REPLACE it with your new data? This action cannot be undone.`)) {
                     try {
-                        const allRooms = getStoredRooms();
-                        const roomsWithoutOld = allRooms.filter(r => r.id !== room.id);
-                        storeRooms(roomsWithoutOld);
-
-                        addRoomToStorageInternal(currentAttemptedSaveData);
+                        // This just becomes a direct update (setDoc) using the existing room's ID
+                        await addRoomToFirestore(currentAttemptedSaveData, room.id);
                         
                         if (duplicateResolutionFeedback) {
                             duplicateResolutionFeedback.textContent = `Successfully replaced room with new data.`;
@@ -1809,20 +1832,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     } catch(error) {
                         console.error("Error during delete-and-replace operation:", error);
-                        let errorMsg = "An unexpected error occurred.";
-                        if (error.message === 'Storage Full') {
-                            errorMsg = 'Operation failed: Browser storage is full.';
-                        }
-                         if (duplicateResolutionFeedback) {
-                            duplicateResolutionFeedback.textContent = errorMsg;
-                            duplicateResolutionFeedback.className = 'feedback error';
-                        }
+                        if (duplicateResolutionFeedback) {
+                           duplicateResolutionFeedback.textContent = 'An unexpected error occurred during replacement.';
+                           duplicateResolutionFeedback.className = 'feedback error';
+                       }
                     }
                 }
             }
         });
     }
-
+    
     if (cancelDuplicateResolutionBtn) {
         cancelDuplicateResolutionBtn.addEventListener('click', () => {
             currentAttemptedSaveData = null;
@@ -1831,18 +1850,18 @@ document.addEventListener('DOMContentLoaded', function () {
             setActiveView('ViewRoomsView');
         });
     }
-
-
-    // --- Data Management ---
+    
+    // --- Data Management (MODIFIED for Firestore) ---
     function displayFullJsonForExport() {
         if (!jsonDisplayArea) return;
-        const rooms = getStoredRooms();
-        jsonDisplayArea.value = rooms.length > 0 ? JSON.stringify(rooms, null, 4) : 'No data to display.';
+        const rooms = getStoredRooms(); // Reads from cache
+        const dataToExport = rooms.map(({ id, ...rest }) => rest); // Strip Firestore IDs before export
+        jsonDisplayArea.value = dataToExport.length > 0 ? JSON.stringify(dataToExport, null, 4) : 'No data to display.';
         if (exportFeedback) {exportFeedback.className = 'feedback'; exportFeedback.textContent = '';}
     }
 
     if (addBuildingBtn) {
-        addBuildingBtn.addEventListener('click', () => {
+        addBuildingBtn.addEventListener('click', async () => {
             if (buildingManagementFeedback) { buildingManagementFeedback.textContent = ''; buildingManagementFeedback.className = 'feedback'; }
             const newName = newBuildingNameInput.value.trim();
             if (!newName) {
@@ -1855,162 +1874,145 @@ document.addEventListener('DOMContentLoaded', function () {
                 buildingManagementFeedback.className = 'feedback error'; return;
             }
             try {
-                buildings.push(newName);
-                storeBuildings(buildings);
-                populateBuildingDropdowns();
+                const newBuildingList = [...buildings, newName];
+                await storeBuildings(newBuildingList);
+                // Listener will auto-populate dropdowns
                 newBuildingNameInput.value = '';
                 buildingManagementFeedback.textContent = `Building "${escapeHtml(newName)}" added successfully.`;
                 buildingManagementFeedback.className = 'feedback success';
             } catch (error) {
-                if (error.message === 'Storage Full') {
-                    buildingManagementFeedback.textContent = 'Save Failed: Browser storage is full.';
-                    buildingManagementFeedback.className = 'feedback error';
-                } else {
-                    buildingManagementFeedback.textContent = 'An unexpected error occurred.';
-                    buildingManagementFeedback.className = 'feedback error';
-                }
+                buildingManagementFeedback.textContent = 'An unexpected error occurred.';
+                buildingManagementFeedback.className = 'feedback error';
             }
         });
     }
 
     if (renameBuildingBtn) {
-        renameBuildingBtn.addEventListener('click', () => {
+        renameBuildingBtn.addEventListener('click', async () => {
             if (buildingManagementFeedback) { buildingManagementFeedback.textContent = ''; buildingManagementFeedback.className = 'feedback'; }
             const oldName = renameOldBuildingNameSelect.value;
             const newName = renameNewBuildingNameInput.value.trim();
-            if (!oldName) {
-                buildingManagementFeedback.textContent = 'Please select the building you want to rename.';
-                buildingManagementFeedback.className = 'feedback error'; return;
-            }
-            if (!newName) {
-                buildingManagementFeedback.textContent = 'Please enter the new name for the building.';
+            if (!oldName || !newName) {
+                buildingManagementFeedback.textContent = 'Please select a building to rename and provide a new name.';
                 buildingManagementFeedback.className = 'feedback error'; return;
             }
             if (oldName.toLowerCase() === newName.toLowerCase()) {
-                buildingManagementFeedback.textContent = 'New name is the same as the current one. No changes made.';
+                buildingManagementFeedback.textContent = 'New name is the same. No changes made.';
                 buildingManagementFeedback.className = 'feedback info'; return;
             }
             let buildings = getStoredBuildings();
             if (buildings.some(b => b.toLowerCase() === newName.toLowerCase())) {
-                buildingManagementFeedback.textContent = `A building named "${escapeHtml(newName)}" already exists. Cannot rename.`;
+                buildingManagementFeedback.textContent = `A building named "${escapeHtml(newName)}" already exists.`;
                 buildingManagementFeedback.className = 'feedback error'; return;
             }
-            if (confirm(`Are you sure you want to rename building "${escapeHtml(oldName)}" to "${escapeHtml(newName)}"? This will update the building name in all associated rooms.`)) {
+
+            if (confirm(`Are you sure you want to rename "${escapeHtml(oldName)}" to "${escapeHtml(newName)}"? This will update all associated rooms.`)) {
                 try {
+                    // Update the buildings list first
                     const buildingIndex = buildings.findIndex(b => b === oldName);
                     if (buildingIndex > -1) {
                         buildings[buildingIndex] = newName;
-                        storeBuildings(buildings);
+                        await storeBuildings(buildings);
                     }
-                    let rooms = getStoredRooms();
-                    let roomsUpdatedCount = 0;
-                    rooms = rooms.map(room => {
-                        if (room.buildingName === oldName) {
-                            room.buildingName = newName;
-                            room.savedAt = new Date().toISOString();
-                            roomsUpdatedCount++;
-                        }
-                        return room;
+                    
+                    // Now update the rooms in a batch
+                    const roomsToUpdateQuery = query(collection(db, ROOMS_COLLECTION), where("buildingName", "==", oldName));
+                    const querySnapshot = await getDocs(roomsToUpdateQuery);
+                    
+                    if (querySnapshot.empty) {
+                        buildingManagementFeedback.textContent = `Building renamed, but no rooms were assigned to "${escapeHtml(oldName)}".`;
+                        buildingManagementFeedback.className = 'feedback success';
+                        return;
+                    }
+
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach(docSnap => {
+                        const roomRef = doc(db, ROOMS_COLLECTION, docSnap.id);
+                        batch.update(roomRef, { 
+                            buildingName: newName,
+                            savedAt: new Date().toISOString()
+                        });
                     });
-                    storeRooms(rooms);
-                    populateBuildingDropdowns();
-                    renderRoomList();
+                    
+                    await batch.commit();
+
                     if (getLastUsedBuilding() === oldName) setLastUsedBuilding(newName);
                     renameOldBuildingNameSelect.value = '';
                     renameNewBuildingNameInput.value = '';
-                    buildingManagementFeedback.textContent = `Building "${escapeHtml(oldName)}" successfully renamed to "${escapeHtml(newName)}". ${roomsUpdatedCount} room(s) updated.`;
+                    buildingManagementFeedback.textContent = `Building renamed to "${escapeHtml(newName)}". ${querySnapshot.size} room(s) updated.`;
                     buildingManagementFeedback.className = 'feedback success';
                 } catch (error) {
-                    if (error.message === 'Storage Full') {
-                         buildingManagementFeedback.textContent = 'Operation Failed: Browser storage is full.';
-                         buildingManagementFeedback.className = 'feedback error';
-                    } else {
-                        buildingManagementFeedback.textContent = 'An unexpected error occurred during rename.';
-                        buildingManagementFeedback.className = 'feedback error';
-                    }
+                    console.error("Firestore: Error renaming building", error);
+                    buildingManagementFeedback.textContent = 'An unexpected error occurred during rename.';
+                    buildingManagementFeedback.className = 'feedback error';
                 }
-            } else {
-                buildingManagementFeedback.textContent = 'Rename operation cancelled.';
-                buildingManagementFeedback.className = 'feedback info';
             }
         });
     }
 
+    // --- Mass Update is now a batch write operation ---
     if (massUpdateBuildingNameBtn) {
-        massUpdateBuildingNameBtn.addEventListener('click', () => {
+        massUpdateBuildingNameBtn.addEventListener('click', async () => {
             if (massUpdateFeedback) { massUpdateFeedback.textContent = ''; massUpdateFeedback.className = 'feedback'; }
             const oldName = massUpdateOldBuildingNameSelect.value;
             const newName = massUpdateNewBuildingNameInput.value.trim();
-            if (!oldName) {
-                massUpdateFeedback.textContent = 'Please select the current building name to reassign rooms from.';
-                massUpdateFeedback.className = 'feedback error'; return;
+
+            if (!oldName || !newName) {
+                 massUpdateFeedback.textContent = 'Please select a building to reassign from and provide a new building name.';
+                 massUpdateFeedback.className = 'feedback error'; return;
             }
-            if (!newName) {
-                massUpdateFeedback.textContent = 'Please enter the new building name for these rooms.';
-                massUpdateFeedback.className = 'feedback error'; return;
-            }
-            if (oldName === newName) {
-                massUpdateFeedback.textContent = 'New building name is the same as the current one. No changes made to rooms.';
-                massUpdateFeedback.className = 'feedback info'; return;
-            }
-            let buildings = getStoredBuildings();
-            if (!buildings.some(b => b.toLowerCase() === newName.toLowerCase())) {
-                if (!confirm(`The building "${escapeHtml(newName)}" does not exist. Do you want to add it and then reassign rooms?`)) {
-                    massUpdateFeedback.textContent = 'Mass update cancelled. Target building does not exist.';
-                    massUpdateFeedback.className = 'feedback info'; return;
-                }
-                try {
-                    buildings.push(newName);
-                    storeBuildings(buildings);
-                    populateBuildingDropdowns();
-                } catch(error) {
-                    massUpdateFeedback.textContent = 'Could not add new building. Storage may be full.';
-                    massUpdateFeedback.className = 'feedback error';
-                    return;
-                }
-            }
+             if (oldName === newName) {
+                 massUpdateFeedback.textContent = 'New building name is the same. No changes made.';
+                 massUpdateFeedback.className = 'feedback info'; return;
+             }
+
+             let buildings = getStoredBuildings();
+             if (!buildings.includes(newName)) {
+                 if (!confirm(`Building "${escapeHtml(newName)}" does not exist. Add it and reassign rooms?`)) {
+                     massUpdateFeedback.textContent = 'Update cancelled.';
+                     massUpdateFeedback.className = 'feedback info'; return;
+                 }
+                 await storeBuildings([...buildings, newName]);
+             }
+             
+             // Check for conflicts before starting the batch
             const rooms = getStoredRooms();
-            const roomsInSelectedBuilding = rooms.filter(room => room.buildingName === oldName);
-            if (roomsInSelectedBuilding.length === 0) {
-                massUpdateFeedback.textContent = `No rooms currently assigned to building "${escapeHtml(oldName)}".`;
-                massUpdateFeedback.className = 'feedback info'; return;
+            const roomsToMove = rooms.filter(r => r.buildingName === oldName);
+            if (roomsToMove.length === 0) {
+                 massUpdateFeedback.textContent = `No rooms found in building "${escapeHtml(oldName)}".`;
+                 massUpdateFeedback.className = 'feedback info'; return;
             }
-            for (const room of roomsInSelectedBuilding) {
-                if (findRoom(newName, room.roomIdentifier)) {
-                     massUpdateFeedback.textContent = `Error: Reassigning rooms to "${escapeHtml(newName)}" would cause a conflict for room "${escapeHtml(room.roomIdentifier)}", which already exists with that identifier in the target building. Please resolve conflicts first or choose a different new name.`;
+            for (const room of roomsToMove) {
+                 if (findRoom(newName, room.roomIdentifier)) {
+                     massUpdateFeedback.textContent = `Error: Reassigning rooms would create a duplicate for room "${escapeHtml(room.roomIdentifier)}" in building "${escapeHtml(newName)}". Operation cancelled.`;
                      massUpdateFeedback.className = 'feedback error'; return;
-                }
+                 }
             }
-            if (confirm(`Are you sure you want to reassign ${roomsInSelectedBuilding.length} room(s) from building "${escapeHtml(oldName)}" to "${escapeHtml(newName)}"?`)) {
-                try {
-                    let updatedCount = 0;
-                    const updatedRooms = rooms.map(room => {
-                        if (room.buildingName === oldName) {
-                            room.buildingName = newName;
-                            room.savedAt = new Date().toISOString();
-                            updatedCount++;
-                        }
-                        return room;
+            
+            if (!confirm(`Reassign ${roomsToMove.length} room(s) from "${escapeHtml(oldName)}" to "${escapeHtml(newName)}"?`)) {
+                 massUpdateFeedback.textContent = 'Mass update cancelled.';
+                 massUpdateFeedback.className = 'feedback info'; return;
+            }
+            
+            try {
+                const batch = writeBatch(db);
+                roomsToMove.forEach(room => {
+                    const roomRef = doc(db, ROOMS_COLLECTION, room.id);
+                    batch.update(roomRef, {
+                        buildingName: newName,
+                        savedAt: new Date().toISOString()
                     });
-                    storeRooms(updatedRooms);
-                    massUpdateFeedback.textContent = `Successfully reassigned ${updatedCount} room(s) from "${escapeHtml(oldName)}" to "${escapeHtml(newName)}".`;
-                    massUpdateFeedback.className = 'feedback success';
-                    massUpdateOldBuildingNameSelect.value = '';
-                    massUpdateNewBuildingNameInput.value = '';
-                    populateBuildingDropdowns();
-                    renderRoomList();
-                } catch (error) {
-                     if (error.message === 'Storage Full') {
-                         massUpdateFeedback.textContent = 'Operation Failed: Browser storage is full.';
-                         massUpdateFeedback.className = 'feedback error';
-                    } else {
-                        massUpdateFeedback.textContent = 'An unexpected error occurred during mass update.';
-                        massUpdateFeedback.className = 'feedback error';
-                    }
-                }
-            } else {
-                massUpdateFeedback.textContent = 'Mass update cancelled.';
-                massUpdateFeedback.className = 'feedback info';
+                });
+                await batch.commit();
+
+                massUpdateFeedback.textContent = `Successfully reassigned ${roomsToMove.length} room(s).`;
+                massUpdateFeedback.className = 'feedback success';
+                massUpdateOldBuildingNameSelect.value = '';
+                massUpdateNewBuildingNameInput.value = '';
+            } catch (error) {
+                console.error("Firestore: Mass update failed", error);
+                massUpdateFeedback.textContent = 'An unexpected error occurred during mass update.';
+                massUpdateFeedback.className = 'feedback error';
             }
         });
     }
@@ -2084,7 +2086,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
+    
+    // --- Import Logic (MODIFIED for Firestore) ---
     if (importJsonFileBtn && jsonImportFile) {
         importJsonFileBtn.addEventListener('click', () => {
             if (jsonImportFile.files.length === 0) {
@@ -2124,7 +2127,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function processImportedJsonString(jsonString) {
+    async function processImportedJsonString(jsonString) {
         if(importFeedback) {importFeedback.className = 'feedback'; importFeedback.textContent = '';}
         importConflictResolutionMode = 'manual'; 
         try {
@@ -2132,19 +2135,20 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!Array.isArray(data)) throw new Error('JSON must be an array of room objects.');
 
             const currentBuildings = getStoredBuildings();
-            let newBuildingsFound = false;
+            const newBuildings = new Set();
 
             data.forEach(room => {
                 if (room && typeof room === 'object') {
                     if (room.buildingName && !currentBuildings.includes(room.buildingName)) {
-                        currentBuildings.push(room.buildingName);
-                        newBuildingsFound = true;
+                        newBuildings.add(room.buildingName);
                     }
                     tryMigrateRoomTileData(room); 
                 }
             });
 
-            if (newBuildingsFound) storeBuildings(currentBuildings);
+            if (newBuildings.size > 0) {
+                await storeBuildings([...currentBuildings, ...Array.from(newBuildings)]);
+            }
 
             importedRoomsQueue = data.filter(r => r && typeof r === 'object' && r.buildingName && r.roomIdentifier);
 
@@ -2158,16 +2162,12 @@ document.addEventListener('DOMContentLoaded', function () {
             processImportQueue();
         } catch (eventArgument) {
             console.error('Error processing JSON for import:', eventArgument);
-            let errorMsg = `Error: ${eventArgument.message}`;
-            if (eventArgument.message === 'Storage Full') {
-                errorMsg = 'Import Failed: Browser storage is full.';
-            }
-            importFeedback.textContent = errorMsg;
+            importFeedback.textContent = `Error: ${eventArgument.message}`;
             importFeedback.className = 'feedback error';
         }
     }
 
-    function processImportQueue() {
+    async function processImportQueue() {
         if(modifyConflictFeedback){modifyConflictFeedback.className='feedback';modifyConflictFeedback.textContent='';}
 
         if (currentImportIndex >= importedRoomsQueue.length) {
@@ -2177,8 +2177,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 importFeedback.className = (successfullyImportedCount > 0 || replacedCount > 0) ? 'feedback success' : 'feedback info';
             }
             console.log('Import Complete:', summary);
-
-            renderRoomList(); populateBuildingDropdowns();
             if (jsonImportFile) jsonImportFile.value = ''; if (jsonPasteArea) jsonPasteArea.value = '';
             importConflictResolutionMode = 'manual'; 
             return;
@@ -2190,41 +2188,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (currentExistingRoom) {
             if (importConflictResolutionMode === 'replaceAll') {
-                console.log(`[ImportQueue] Mass Replacing: ${roomToImport.buildingName} - ${roomToImport.roomIdentifier}`);
-                tryMigrateRoomTileData(roomToImport); 
-                roomToImport.id = currentExistingRoom.id;
                 try {
-                    addRoomToStorageInternal(roomToImport, currentExistingRoom.id);
-                    replacedCount++;
-                    currentImportIndex++;
-                } catch (e) {
-                     importFeedback.textContent = `Import stopped. Storage is full.`;
-                     importFeedback.className = 'feedback error';
-                     return;
+                    console.log(`[ImportQueue] Mass Replacing: ${roomToImport.buildingName} - ${roomToImport.roomIdentifier}`);
+                    tryMigrateRoomTileData(roomToImport); 
+                    await addRoomToFirestore(roomToImport, currentExistingRoom.id);
+                    replacedCount++; currentImportIndex++;
+                    processImportQueue();
+                } catch(e) {
+                     importFeedback.textContent = `Import stopped due to an error.`;
+                     importFeedback.className = 'feedback error'; return;
                 }
-                processImportQueue(); 
-                return;
             } else if (importConflictResolutionMode === 'skipAll') {
-                console.log(`[ImportQueue] Mass Skipping: ${roomToImport.buildingName} - ${roomToImport.roomIdentifier}`);
-                skippedCount++;
-                currentImportIndex++;
-                processImportQueue(); 
-                return;
+                skippedCount++; currentImportIndex++; processImportQueue();
             } else { 
                 currentConflictingRoom = roomToImport;
                 showConflictModal(currentConflictingRoom, currentExistingRoom);
             }
         } else { 
             try {
-                addRoomToStorageInternal(roomToImport);
-                successfullyImportedCount++;
-                currentImportIndex++;
+                await addRoomToFirestore(roomToImport);
+                successfullyImportedCount++; currentImportIndex++;
+                processImportQueue();
             } catch(e) {
-                importFeedback.textContent = `Import stopped. Storage is full.`;
-                importFeedback.className = 'feedback error';
-                return;
+                importFeedback.textContent = `Import stopped due to an error.`;
+                importFeedback.className = 'feedback error'; return;
             }
-            processImportQueue();
         }
     }
 
@@ -2254,17 +2242,15 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
     if(replaceConflictBtn) {
-        replaceConflictBtn.onclick = () => {
+        replaceConflictBtn.onclick = async () => {
             if (currentConflictingRoom && currentExistingRoom) {
                 try {
-                    tryMigrateRoomTileData(currentConflictingRoom); 
-                    currentConflictingRoom.id = currentExistingRoom.id;
-                    addRoomToStorageInternal(currentConflictingRoom, currentExistingRoom.id);
+                    tryMigrateRoomTileData(currentConflictingRoom);
+                    await addRoomToFirestore(currentConflictingRoom, currentExistingRoom.id);
                     replacedCount++;
                 } catch (e) {
-                    modifyConflictFeedback.textContent = 'Replacement failed. Storage may be full.';
-                    modifyConflictFeedback.className = 'feedback error';
-                    return; // Stop processing
+                    modifyConflictFeedback.textContent = 'Replacement failed. Please try again.';
+                    modifyConflictFeedback.className = 'feedback error'; return;
                 }
             }
             currentImportIndex++; closeConflictModal(); processImportQueue();
@@ -2272,7 +2258,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (massReplaceAllConflictBtn) {
-        massReplaceAllConflictBtn.addEventListener('click', () => {
+        massReplaceAllConflictBtn.addEventListener('click', async () => {
             importConflictResolutionMode = 'replaceAll';
             if (modifyConflictFeedback) {
                 modifyConflictFeedback.textContent = 'Mass Replace All Subsequent selected. Current conflict will be replaced.';
@@ -2281,18 +2267,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (currentConflictingRoom && currentExistingRoom) {
                  try {
                     tryMigrateRoomTileData(currentConflictingRoom);
-                    currentConflictingRoom.id = currentExistingRoom.id;
-                    addRoomToStorageInternal(currentConflictingRoom, currentExistingRoom.id);
+                    await addRoomToFirestore(currentConflictingRoom, currentExistingRoom.id);
                     replacedCount++;
                 } catch (e) {
-                    modifyConflictFeedback.textContent = 'Replacement failed. Storage may be full.';
-                    modifyConflictFeedback.className = 'feedback error';
-                    return;
+                    modifyConflictFeedback.textContent = 'Replacement failed.';
+                    modifyConflictFeedback.className = 'feedback error'; return;
                 }
             }
-            currentImportIndex++;
-            closeConflictModal();
-            processImportQueue();
+            currentImportIndex++; closeConflictModal(); processImportQueue();
         });
     }
 
@@ -2303,16 +2285,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 modifyConflictFeedback.textContent = 'Mass Skip All Subsequent selected. Current conflict will be skipped.';
                 modifyConflictFeedback.className = 'feedback info';
             }
-            skippedCount++;
-            currentImportIndex++;
-            closeConflictModal();
-            processImportQueue();
+            skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
         });
     }
 
-
     if(saveModifiedConflictBtn) {
-        saveModifiedConflictBtn.onclick = () => {
+        saveModifiedConflictBtn.onclick = async () => {
             if (!currentConflictingRoom || !conflictBuildingNew || !conflictRoomIDNew || !modifyConflictFeedback) return;
             const newBuilding = conflictBuildingNew.value.trim(); const newRoomIdVal = conflictRoomIDNew.value.trim();
             if (!newBuilding || !newRoomIdVal) { modifyConflictFeedback.textContent = 'Building Name and Room ID cannot be empty.'; modifyConflictFeedback.className = 'feedback error'; return; }
@@ -2337,42 +2315,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
             currentConflictingRoom.buildingName = newBuilding;
             currentConflictingRoom.roomIdentifier = newRoomIdVal;
-            delete currentConflictingRoom.id; 
+            
             try {
                 tryMigrateRoomTileData(currentConflictingRoom);
-                addRoomToStorageInternal(currentConflictingRoom); 
+                await addRoomToFirestore(currentConflictingRoom); 
                 successfullyImportedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
             } catch(e) {
-                modifyConflictFeedback.textContent = 'Save failed. Storage may be full.';
+                modifyConflictFeedback.textContent = 'Save failed.';
                 modifyConflictFeedback.className = 'feedback error';
             }
         };
     }
-
-    // --- FILTER LOGIC (REFACTORED) ---
     
+    // --- Filter Logic (Unchanged, uses local cache) ---
     function getProperty(obj, path) {
         return path.split('.').reduce((o, key) => (o && o[key] !== undefined && o[key] !== null) ? o[key] : undefined, obj);
     }
 
     const filterFieldMap = {
-        'purpose': 'roomPurpose',
-        'wallstype': 'roomMakeup.walls',
-        'ceilingtype': 'roomMakeup.ceiling.type',
-        'asbestos': 'roomMakeup.ceiling.asbestosInCeiling',
-        'floortype': 'roomMakeup.floor.type',
-        'wallscondition': 'conditionValues.walls',
-        'ceilingcondition': 'conditionValues.ceiling',
-        'floorcondition': 'conditionValues.floor',
-        'furniturecondition': 'conditionValues.furniture',
-        'overallcondition': 'conditionValues.overall',
-        'smokedetectors': 'safety.smokeDetectors',
-        'maxoccupancy': 'safety.maxOccupancy'
+        'purpose': 'roomPurpose', 'wallstype': 'roomMakeup.walls', 'ceilingtype': 'roomMakeup.ceiling.type',
+        'asbestos': 'roomMakeup.ceiling.asbestosInCeiling', 'floortype': 'roomMakeup.floor.type',
+        'wallscondition': 'conditionValues.walls', 'ceilingcondition': 'conditionValues.ceiling',
+        'floorcondition': 'conditionValues.floor', 'furniturecondition': 'conditionValues.furniture',
+        'overallcondition': 'conditionValues.overall', 'smokedetectors': 'safety.smokeDetectors', 'maxoccupancy': 'safety.maxOccupancy'
     };
     
     function getRoomTextContent(room) {
         let content = [];
-        
         const processValue = (value) => {
             if (value !== undefined && value !== null) { 
                 if (Array.isArray(value)) {
@@ -2382,28 +2351,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         };
-
         const simpleSearchPaths = [
-            'roomIdentifier', 'roomPurpose', 'roomPurposeOther',
-            'roomMakeup.walls', 'roomMakeup.wallsOther',
+            'roomIdentifier', 'roomPurpose', 'roomPurposeOther', 'roomMakeup.walls', 'roomMakeup.wallsOther',
             'roomMakeup.ceiling.type', 'roomMakeup.ceiling.typeOther', 'roomMakeup.ceiling.asbestosInCeiling',
             'roomMakeup.floor.type', 'roomMakeup.floor.typeOther', 'roomMakeup.floor.tileSize', 'roomMakeup.floor.tileSizeOther',
             'conditionValues.walls', 'conditionValues.ceiling', 'conditionValues.floor', 'conditionValues.furniture', 'conditionValues.overall',
             'conditionValues.wallsComment', 'conditionValues.ceilingComment', 'conditionValues.floorComment', 'conditionValues.furnitureComment', 'conditionValues.overallComment',
-            'furniture', 'furnitureSpecialtySpecify', 'furnitureOtherSpecify',
-            'technology', 'technologyOtherSpecify',
-            'heatingCooling', 'heatingCoolingOther',
-            'safety.smokeDetectors', 'safety.maxOccupancy'
+            'furniture', 'furnitureSpecialtySpecify', 'furnitureOtherSpecify', 'technology', 'technologyOtherSpecify',
+            'heatingCooling', 'heatingCoolingOther', 'safety.smokeDetectors', 'safety.maxOccupancy'
         ];
-
-        simpleSearchPaths.forEach(path => {
-            processValue(getProperty(room, path));
-        });
-
+        simpleSearchPaths.forEach(path => { processValue(getProperty(room, path)); });
         room.otherFixtures?.forEach(f => { processValue(f.type); processValue(f.specify); });
         room.lightFixtures?.forEach(f => { processValue(f.type); processValue(f.style); processValue(f.typeOtherSpecify); processValue(f.styleOtherSpecify); });
         room.doors?.forEach(d => { processValue(d.identifier); processValue(d.type); processValue(d.lockType); processValue(d.typeOther); processValue(d.lockTypeOther); });
-        
         return content.filter(s => s && s.trim() !== "").join(' '); 
     }
 
@@ -2411,9 +2371,7 @@ document.addEventListener('DOMContentLoaded', function () {
         condition = condition.trim();
         let [key, ...valueParts] = condition.split(':');
         let value = valueParts.join(':').trim();
-
         if (condition.includes(':') && !value) return false;
-
         if (value) { 
             key = key.trim().toLowerCase().replace(/\s/g, ''); 
             const propertyPath = filterFieldMap[key];
@@ -2432,52 +2390,34 @@ document.addEventListener('DOMContentLoaded', function () {
     
     function evaluateQuery(query, room, precomputedRoomTextContent = null) {
         const roomTextContent = precomputedRoomTextContent || getRoomTextContent(room);
-
         while (query.includes('(')) {
             let startIndex = query.lastIndexOf('(');
             let endIndex = query.indexOf(')', startIndex);
             if (endIndex === -1) { throw new Error("Mismatched parentheses in query."); }
-            
             let subQuery = query.substring(startIndex + 1, endIndex);
             let subQueryResult = evaluateQuery(subQuery, room, roomTextContent); 
             query = query.substring(0, startIndex) + subQueryResult + query.substring(endIndex + 1);
         }
-
         const andParts = query.split(/ AND /i);
         for (const andPart of andParts) {
             if (!andPart.trim()) continue;
-
             const orParts = andPart.split(/ OR /i);
             let orClauseIsTrue = false;
             for (const orPart of orParts) {
                 if (!orPart.trim()) continue;
-                
                 let term = orPart.trim();
                 let negate = false;
-
                 const notMatch = term.match(/^\s*NOT\s+(.+)/i);
                 if (notMatch) {
                     negate = true;
                     term = notMatch[1].trim();
                 }
-                
                 let currentTermResult;
-                if (term === 'true') { 
-                    currentTermResult = true;
-                } else if (term === 'false') { 
-                    currentTermResult = false;
-                } else {
-                    currentTermResult = checkCondition(term, room, roomTextContent);
-                }
-
-                if (negate) {
-                    currentTermResult = !currentTermResult;
-                }
-
-                if (currentTermResult) {
-                    orClauseIsTrue = true;
-                    break; 
-                }
+                if (term === 'true') { currentTermResult = true; } 
+                else if (term === 'false') { currentTermResult = false; } 
+                else { currentTermResult = checkCondition(term, room, roomTextContent); }
+                if (negate) { currentTermResult = !currentTermResult; }
+                if (currentTermResult) { orClauseIsTrue = true; break; }
             }
             if (!orClauseIsTrue) return false; 
         }
@@ -2495,7 +2435,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let filteredRooms = [];
         try {
-            const allRooms = getStoredRooms();
+            const allRooms = getStoredRooms(); // Read from cache
             filteredRooms = allRooms.filter(room => {
                 if (buildingNameFilter && room.buildingName !== buildingNameFilter) return false;
                 if (roomIdentifierFilter && (!room.roomIdentifier || !room.roomIdentifier.toLowerCase().startsWith(roomIdentifierFilter))) return false;
@@ -2516,14 +2456,12 @@ document.addEventListener('DOMContentLoaded', function () {
             filterFeedback.className = 'feedback error';
             filteredRooms = []; 
         }
-        
         renderRoomList(filteredRooms, filterResultsContainer, true);
     }    
     
     if (filterForm) {
         filterForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            applyFilters();
+            event.preventDefault(); applyFilters();
         });
     }
 
@@ -2531,13 +2469,11 @@ document.addEventListener('DOMContentLoaded', function () {
         clearFilterBtn.addEventListener('click', function() {
             if (filterForm) filterForm.reset();
             if (filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
-            if (filterFeedback) {
-                filterFeedback.textContent = '';
-                filterFeedback.className = 'feedback';
-            }
+            if (filterFeedback) { filterFeedback.textContent = ''; filterFeedback.className = 'feedback'; }
         });
     }
-
+    
+    // --- Keyboard Shortcuts and Global Event Handlers ---
     window.onkeydown = eventArgument => {
         if (eventArgument.key==='Escape') {
             if (conflictModal?.style.display==='block' && importConflictResolutionMode === 'manual') {
@@ -2558,12 +2494,17 @@ document.addEventListener('DOMContentLoaded', function () {
             skippedCount++; currentImportIndex++; closeConflictModal(); processImportQueue();
         }
     };
-
-    loadLastInputValues();
-    if (roomForm) {
-        initializeFormConditionalLogic(roomForm);
+    
+    // --- Initial App Load ---
+    function initializeApp() {
+        loadLastInputValues();
+        if (roomForm) {
+            initializeFormConditionalLogic(roomForm);
+        }
+        initializeRealtimeListeners();
+        setActiveView('ViewRoomsView');
+        console.log("App Initial Setup: Complete. Welcome to Roomfolio!");
     }
-    populateBuildingDropdowns();
-    setActiveView('ViewRoomsView');
-    console.log("App Initial Setup: Complete. Welcome to Roomfolio! To get started, go to 'Add Room' to enter new room details or visit 'Data Management' to import existing data.");
+
+    initializeApp();
 });
