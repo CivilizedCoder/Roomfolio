@@ -12,6 +12,37 @@ import {
 document.addEventListener('DOMContentLoaded', function () {
     console.log("App DOMContentLoaded: Initializing with Firebase Auth & Firestore...");
 
+    // --- HAMBURGER MENU LOGIC ---
+    const hamburgerMenu = document.getElementById('hamburger-menu');
+    const navLinksContainer = document.getElementById('nav-links-container');
+    const navLinksForMenu = document.querySelectorAll('#nav-links-container .nav-link');
+
+    if (hamburgerMenu && navLinksContainer) {
+        hamburgerMenu.addEventListener('click', () => {
+            navLinksContainer.classList.toggle('active');
+        });
+    }
+    
+    // Add event listener to each nav link to close the menu on click (for mobile view)
+    navLinksForMenu.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 960 && navLinksContainer.classList.contains('active')) {
+                navLinksContainer.classList.remove('active');
+            }
+        });
+    });
+
+    // Optional: Close menu when clicking outside of it on mobile
+    document.addEventListener('click', (event) => {
+        const isClickInsideNav = navLinksContainer.contains(event.target);
+        const isClickOnHamburger = hamburgerMenu.contains(event.target);
+
+        if (!isClickInsideNav && !isClickOnHamburger && navLinksContainer.classList.contains('active')) {
+            navLinksContainer.classList.remove('active');
+        }
+    });
+
+
     // --- INITIALIZE FIREBASE SERVICES ---
     const app = window.firebaseApp;
     const auth = getAuth(app);
