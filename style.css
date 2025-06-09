@@ -986,13 +986,21 @@ select.remembered-input option {
     .nav-links-container.active {
         display: flex;
     }
+    
+    .nav-links-container ul {
+        flex-direction: column;
+        width: 100%;
+        /* align-items: flex-start; <= This was removed to allow links to stretch full-width */
+    }
 
-    /* Make UL and user status stack vertically */
-    .nav-links-container ul,
     .nav-links-container .user-status {
         flex-direction: column;
         width: 100%;
         align-items: flex-start;
+        gap: 10px;
+        padding: 15px 20px;
+        margin-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     .nav-links-container .nav-link {
@@ -1003,12 +1011,6 @@ select.remembered-input option {
         border-radius: 0;
     }
 
-    .nav-links-container .user-status {
-        gap: 10px;
-        padding: 15px 20px;
-        margin-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.1);
-    }
 }
 
 
