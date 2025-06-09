@@ -86,9 +86,19 @@ body {
     color: var(--accent-color);
 }
 
+/* Container for the right side of the nav (links + user status) */
+.nav-links-container {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Provides space between the UL and the user-status div */
+}
+
 .main-nav ul {
     list-style: none;
     display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 0;
 }
 
 .main-nav .nav-link {
@@ -958,29 +968,34 @@ select.remembered-input option {
         display: block; /* Show hamburger button */
     }
 
-    .main-nav .nav-links-container {
-        display: none; /* Hide the links container by default */
+    /* Hide the nav container by default on mobile */
+    .nav-links-container {
+        display: none;
         position: absolute;
         top: 100%; /* Position below the main nav bar */
         left: 0;
         width: 100%;
         background-color: #2980b9; /* A bit darker for the dropdown */
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        flex-direction: column;
+        flex-direction: column; /* Stack items vertically */
         padding: 10px 0;
+        gap: 0; /* Reset gap for vertical layout */
     }
 
-    .main-nav .nav-links-container.active {
-        display: flex; /* Show the container when menu is open */
+    /* Show the container when menu is open */
+    .nav-links-container.active {
+        display: flex;
     }
 
-    .main-nav .nav-links-container ul {
+    /* Make UL and user status stack vertically */
+    .nav-links-container ul,
+    .nav-links-container .user-status {
         flex-direction: column;
         width: 100%;
         align-items: flex-start;
     }
 
-    .main-nav .nav-links-container .nav-link {
+    .nav-links-container .nav-link {
         width: 100%;
         justify-content: flex-start;
         padding: 12px 20px;
@@ -988,11 +1003,8 @@ select.remembered-input option {
         border-radius: 0;
     }
 
-    .main-nav .nav-links-container .user-status {
-        flex-direction: column;
-        align-items: flex-start;
+    .nav-links-container .user-status {
         gap: 10px;
-        width: 100%;
         padding: 15px 20px;
         margin-top: 10px;
         border-top: 1px solid rgba(255,255,255,0.1);
@@ -1001,7 +1013,6 @@ select.remembered-input option {
 
 
 @media (max-width: 768px) {
-    /* REMOVED old .main-nav styles as they are replaced by the hamburger menu logic */
     .content-area {
         padding: 15px;
     }
@@ -1113,7 +1124,6 @@ select.remembered-input option {
     .nav-logo {
         font-size: 1.3rem;
     }
-    /* main-nav .nav-link styles are now handled by the 960px hamburger menu logic */
     .view-header h1 {
         font-size: 1.3rem;
     }
