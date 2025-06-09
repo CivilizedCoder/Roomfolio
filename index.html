@@ -11,7 +11,6 @@
 </head>
 <body>
 
-    <!-- Login View - Shown when user is logged out -->
     <div id="LoginView" class="view-section active-view">
         <div class="login-container">
             <header class="view-header" style="text-align: center; border-bottom: none; margin-bottom: 20px;">
@@ -29,12 +28,34 @@
                 </div>
                 <button type="submit" class="action-button primary-button" style="width: 100%;">Sign In</button>
                 <p id="loginFeedback" class="feedback"></p>
+                <p style="text-align:center; margin-top:15px;"><a href="#" id="switchToRegister">Need an account? Request Access</a></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="RegisterView" class="view-section" style="display: none;">
+        <div class="login-container">
+            <header class="view-header" style="text-align: center; border-bottom: none; margin-bottom: 20px;">
+                <h1><i class="fas fa-user-plus"></i> Request an Account</h1>
+            </header>
+            <form id="registerForm">
+                <p class="data-management-description" style="text-align: center;">An account is required. All requests must be approved by an administrator.</p>
+                <div class="input-group">
+                    <label for="registerEmail">Email (must be @muskingum.edu):</label>
+                    <input type="email" id="registerEmail" name="registerEmail" required>
+                </div>
+                <div class="input-group">
+                    <label for="registerPassword">Password:</label>
+                    <input type="password" id="registerPassword" name="registerPassword" required>
+                </div>
+                <button type="submit" class="action-button primary-button" style="width: 100%;">Submit Request</button>
+                <p id="registerFeedback" class="feedback"></p>
+                <p style="text-align:center; margin-top:15px;"><a href="#" id="switchToLogin">Already have an account? Sign In</a></p>
             </form>
         </div>
     </div>
 
 
-    <!-- Main App Container - Shown when user is logged in -->
     <div class="app-container" id="AppContainer" style="display: none;">
         <nav class="main-nav">
             <div class="nav-logo">
@@ -45,6 +66,7 @@
                 <li><a href="#" id="navAddRoom" class="nav-link"><i class="fas fa-plus-circle"></i> Add Room</a></li>
                 <li><a href="#" id="navFilter" class="nav-link"><i class="fas fa-filter"></i> Filter Rooms</a></li>
                 <li><a href="#" id="navData" class="nav-link"><i class="fas fa-database"></i> Data Management</a></li>
+                <li><a href="#" id="navAdmin" class="nav-link" style="display: none;"><i class="fas fa-user-shield"></i> Admin</a></li>
             </ul>
              <div class="user-status">
                 <span id="userEmailDisplay"></span>
@@ -61,7 +83,6 @@
                     <input type="hidden" id="editingRoomId" name="editingRoomId">
                     <input type="hidden" id="isResolvingAttemptedData" name="isResolvingAttemptedData" value="false">
                     
-                    <!-- Section 1: Identification -->
                     <section class="form-section">
                         <h2><i class="fas fa-id-card"></i> 1. Identification</h2>
                         <div class="input-group">
@@ -91,7 +112,6 @@
                         </div>
                     </section>
 
-                    <!-- Section 2: Structural Components -->
                     <section class="form-section">
                         <h2><i class="fas fa-ruler-combined"></i> 2. Structural Components</h2>
                         <div class="input-group">
@@ -188,7 +208,6 @@
                         <button type="button" id="addDoorBtn" class="action-button secondary-button"><i class="fas fa-plus"></i> Add Door</button>
                     </section>
 
-                    <!-- Section 3: Systems & Utilities -->
                     <section class="form-section">
                         <h2><i class="fas fa-cogs"></i> 3. Systems & Utilities</h2>
                         <fieldset class="input-group">
@@ -240,7 +259,6 @@
                         </fieldset>
                     </section>
 
-                    <!-- Section 4: Furnishings & Equipment -->
                     <section class="form-section">
                         <h2><i class="fas fa-couch"></i> 4. Furnishings & Equipment</h2>
                         <fieldset class="input-group">
@@ -277,7 +295,6 @@
                         </div>
                     </section>
                     
-                    <!-- Section 5: Safety & Compliance -->
                     <section class="form-section">
                         <h2><i class="fas fa-shield-alt"></i> 5. Safety & Compliance</h2>
                         <div class="input-group">
@@ -300,7 +317,6 @@
                        </div>
                     </section>
 
-                    <!-- Section 6: Overall Room Condition -->
                     <section class="form-section">
                         <h2><i class="fas fa-clipboard-check"></i> 6. Overall Room Condition</h2>
                         <div class="input-group">
@@ -332,8 +348,7 @@
                     <h1><i class="fas fa-eye"></i> View Saved Rooms</h1>
                 </header>
                 <div id="roomListContainer">
-                    <!-- Real-time room list will be rendered here -->
-                </div>
+                    </div>
             </div>
 
             <div id="FilterView" class="view-section">
@@ -362,10 +377,17 @@
                     <p id="filterFeedback" class="feedback"></p>
                 </form>
                 <div id="filterResultsContainer">
-                    <!-- Filtered room list will be rendered here -->
-                </div>
+                    </div>
             </div>
 
+            <div id="AdminView" class="view-section">
+                <header class="view-header">
+                    <h1><i class="fas fa-user-shield"></i> Admin Panel: Pending Approvals</h1>
+                </header>
+                <div id="pendingUsersContainer">
+                    </div>
+                <p id="adminFeedback" class="feedback"></p>
+            </div>
 
             <div id="DataView" class="view-section">
                 <header class="view-header">
@@ -544,7 +566,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -564,11 +585,9 @@
         window.firebaseApp = app;
     </script>
 
-    <!-- Firestore & Auth SDKs -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
     
-    <!-- Your App's Script (as a module) -->
     <script src="script.js" type="module"></script>
     
     <script>
@@ -630,3 +649,4 @@
     </script>
 </body>
 </html>
+console.log("This errer is without the scope of standard application access. If the issue persists, please repartition your program using a defrac software.")

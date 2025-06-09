@@ -1,11 +1,11 @@
 // Import Firestore functions using the modern initialization for persistence
 import {
-    initializeFirestore, persistentLocalCache, collection, doc, setDoc, addDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, writeBatch
+    initializeFirestore, persistentLocalCache, collection, doc, setDoc, addDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, writeBatch, updateDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // Import Authentication functions
 import {
-    getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 
@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const appContainer = document.getElementById('AppContainer');
     const loginForm = document.getElementById('loginForm');
     const loginFeedback = document.getElementById('loginFeedback');
+    const registerView = document.getElementById('RegisterView');
+    const registerForm = document.getElementById('registerForm');
+    const registerFeedback = document.getElementById('registerFeedback');
+    const switchToRegister = document.getElementById('switchToRegister');
+    const switchToLogin = document.getElementById('switchToLogin');
     
     // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
@@ -33,6 +38,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const addEditRoomTitle = document.getElementById('addEditRoomTitle');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
     const signOutBtn = document.getElementById('signOutBtn');
+    const navAdmin = document.getElementById('navAdmin');
+    const pendingUsersContainer = document.getElementById('pendingUsersContainer');
+    const adminFeedback = document.getElementById('adminFeedback');
+
 
     // Room Form elements
     const roomForm = document.getElementById('roomForm');
@@ -118,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Firestore Collection Names
     const ROOMS_COLLECTION = 'rooms';
     const BUILDINGS_DOC = 'buildings/buildingList'; // Storing buildings as a single document
+    const USERS_COLLECTION = 'users';
 
     // --- STATE VARIABLES ---
     let allRoomsCache = []; 
@@ -154,33 +164,60 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // --- AUTHENTICATION LOGIC ---
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // User is signed in
-            console.log("Auth state changed: User is signed in.", user.email);
-            loginView.style.display = 'none';
-            loginView.classList.remove('active-view');
-            appContainer.style.display = 'flex';
-            appContainer.classList.add('active-view');
-            
-            userEmailDisplay.textContent = user.email;
-            signOutBtn.style.display = 'inline-flex';
+            // User is signed in, now check their status in Firestore
+            const userDocRef = doc(db, USERS_COLLECTION, user.uid);
+            const userDocSnap = await getDoc(userDocRef);
 
-            // Start the app's main functionality now that we have a user
-            initializeAppLogic();
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                if (userData.status === 'approved') {
+                    // User is approved, let them in
+                    loginView.style.display = 'none';
+                    loginView.classList.remove('active-view');
+                    registerView.style.display = 'none';
+                    registerView.classList.remove('active-view');
+                    appContainer.style.display = 'flex';
+                    appContainer.classList.add('active-view');
+                    
+                    userEmailDisplay.textContent = user.email;
+                    signOutBtn.style.display = 'inline-flex';
 
+                    // Check if the user is an admin
+                    if (userData.role === 'admin') {
+                        navAdmin.style.display = 'list-item';
+                        listenForPendingUsers();
+                    } else {
+                        navAdmin.style.display = 'none';
+                    }
+
+                    initializeAppLogic(); // Your existing function
+                } else {
+                    // User is pending or another status
+                    loginFeedback.textContent = 'Your account is awaiting approval. Please check back later.';
+                    loginFeedback.className = 'feedback info';
+                    signOut(auth); // Log them out
+                }
+            } else {
+                // User exists in Auth but not in our users collection (edge case)
+                loginFeedback.textContent = 'Your account is not fully configured. Please contact an administrator.';
+                loginFeedback.className = 'feedback error';
+                signOut(auth);
+            }
         } else {
             // User is signed out
-            console.log("Auth state changed: User is signed out.");
             appContainer.style.display = 'none';
             appContainer.classList.remove('active-view');
+            registerView.style.display = 'none';
+            registerView.classList.remove('active-view');
             loginView.style.display = 'flex';
             loginView.classList.add('active-view');
+            navAdmin.style.display = 'none';
 
             userEmailDisplay.textContent = '';
             signOutBtn.style.display = 'none';
 
-            // Stop listening to data changes to prevent permission errors
             if (unsubscribeRooms) unsubscribeRooms();
             if (unsubscribeBuildings) unsubscribeBuildings();
         }
@@ -196,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    // Signed in
+                    // Signed in - onAuthStateChanged will handle the rest
                     console.log("Login successful for:", userCredential.user.email);
                 })
                 .catch((error) => {
@@ -212,6 +249,128 @@ document.addEventListener('DOMContentLoaded', function () {
             signOut(auth).catch(error => {
                 console.error("Sign out error", error);
             });
+        });
+    }
+
+    // --- View Switching for Login/Register ---
+    if (switchToRegister) {
+        switchToRegister.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginView.style.display = 'none';
+            registerView.style.display = 'flex';
+            registerView.classList.add('active-view');
+            loginView.classList.remove('active-view');
+        });
+    }
+
+    if (switchToLogin) {
+        switchToLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerView.style.display = 'none';
+            loginView.style.display = 'flex';
+            loginView.classList.add('active-view');
+            registerView.classList.remove('active-view');
+        });
+    }
+
+    // --- New Registration Logic ---
+    if (registerForm) {
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = registerForm.registerEmail.value;
+            const password = registerForm.registerPassword.value;
+            registerFeedback.textContent = '';
+            registerFeedback.className = 'feedback';
+
+            if (!email.endsWith('@muskingum.edu')) {
+                registerFeedback.textContent = 'Error: Email must be a valid @muskingum.edu address.';
+                registerFeedback.className = 'feedback error';
+                return;
+            }
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(async (userCredential) => {
+                    const user = userCredential.user;
+                    // Now, create a document in the 'users' collection
+                    const userDocRef = doc(db, USERS_COLLECTION, user.uid);
+                    await setDoc(userDocRef, {
+                        email: user.email,
+                        status: 'pending',
+                        role: 'pending',
+                        requestedAt: new Date().toISOString()
+                    });
+
+                    registerFeedback.textContent = 'Success! Your request has been submitted and is awaiting approval.';
+                    registerFeedback.className = 'feedback success';
+                    registerForm.reset();
+                    signOut(auth); // Sign the user out immediately after they request an account
+                })
+                .catch((error) => {
+                    if (error.code === 'auth/email-already-in-use') {
+                        registerFeedback.textContent = 'This email address has already been registered or requested.';
+                    } else if (error.code === 'auth/weak-password') {
+                        registerFeedback.textContent = 'Password should be at least 6 characters.';
+                    }
+                    else {
+                        registerFeedback.textContent = 'An error occurred during registration.';
+                    }
+                    registerFeedback.className = 'feedback error';
+                    console.error("Registration error:", error);
+                });
+        });
+    }
+
+    // --- Admin Panel Functions ---
+    function listenForPendingUsers() {
+        const q = query(collection(db, USERS_COLLECTION), where("status", "==", "pending"));
+        onSnapshot(q, (querySnapshot) => {
+            if (!pendingUsersContainer) return;
+            pendingUsersContainer.innerHTML = ''; // Clear previous list
+            if (querySnapshot.empty) {
+                pendingUsersContainer.innerHTML = '<p class="empty-list-message">No pending user requests.</p>';
+                return;
+            }
+            querySnapshot.forEach((docSnap) => {
+                const userData = docSnap.data();
+                const userDiv = document.createElement('div');
+                userDiv.classList.add('room-card'); // Reuse existing style
+                userDiv.innerHTML = `
+                    <h3>${escapeHtml(userData.email)}</h3>
+                    <p><small>Requested: ${new Date(userData.requestedAt).toLocaleString()}</small></p>
+                    <div class="actions">
+                        <button class="action-button primary-button approve-user-btn" data-uid="${docSnap.id}">Approve</button>
+                    </div>
+                `;
+                pendingUsersContainer.appendChild(userDiv);
+            });
+        });
+    }
+
+    // Add event listener for the approve button
+    if (pendingUsersContainer) {
+        pendingUsersContainer.addEventListener('click', async (e) => {
+            const approveButton = e.target.closest('.approve-user-btn');
+            if (approveButton) {
+                const uidToApprove = approveButton.dataset.uid;
+                const userToUpdateRef = doc(db, USERS_COLLECTION, uidToApprove);
+                
+                try {
+                    await updateDoc(userToUpdateRef, {
+                        status: 'approved',
+                        role: 'member' // Assign a general member role
+                    });
+                    if (adminFeedback) {
+                        adminFeedback.textContent = 'User approved successfully.';
+                        adminFeedback.className = 'feedback success';
+                    }
+                } catch (error) {
+                    if (adminFeedback) {
+                        adminFeedback.textContent = 'Error approving user.';
+                        adminFeedback.className = 'feedback error';
+                    }
+                    console.error("Approval error: ", error);
+                }
+            }
         });
     }
 
