@@ -33,7 +33,7 @@ body {
 }
 
 /* --- Login & Register Views --- */
-#LoginView, #RegisterView {
+#LoginView, #RegisterView, #PasswordResetView {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -49,7 +49,7 @@ body {
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
 }
-#loginForm .input-group, #registerForm .input-group {
+#loginForm .input-group, #registerForm .input-group, #passwordResetForm .input-group {
     margin-bottom: 25px;
 }
 

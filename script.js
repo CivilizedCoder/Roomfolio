@@ -759,9 +759,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (overallConditionSelect) overallConditionSelect.value = '';
 
         refreshConditionalFormUI(roomForm);
-
-        const currentAddRoomView = document.getElementById('AddRoomView');
-        if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+        
+        // Scroll to the top of the page to make filling a new form efficient.
+        window.scrollTo(0, 0);
     }
 
     navLinks.forEach(link => {
