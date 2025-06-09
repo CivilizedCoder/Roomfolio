@@ -32,8 +32,8 @@ body {
     overscroll-behavior-y: contain;
 }
 
-/* --- Login View --- */
-#LoginView {
+/* --- Login & Register Views --- */
+#LoginView, #RegisterView {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -49,7 +49,7 @@ body {
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
 }
-#loginForm .input-group {
+#loginForm .input-group, #registerForm .input-group {
     margin-bottom: 25px;
 }
 
@@ -147,8 +147,9 @@ body {
 }
 
 .view-section.active-view {
-    display: block; /* CORRECTED: Removed !important */
+    display: block;
 }
+
 
 /* For the app container itself */
 .app-container.active-view {
