@@ -5,7 +5,7 @@ import {
 
 // Import Authentication functions
 import {
-    getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, sendPasswordResetEmail
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 
@@ -60,8 +60,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const registerView = document.getElementById('RegisterView');
     const registerForm = document.getElementById('registerForm');
     const registerFeedback = document.getElementById('registerFeedback');
+    const passwordResetView = document.getElementById('PasswordResetView');
+    const passwordResetForm = document.getElementById('passwordResetForm');
+    const resetFeedback = document.getElementById('resetFeedback');
     const switchToRegister = document.getElementById('switchToRegister');
     const switchToLogin = document.getElementById('switchToLogin');
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    const backToLoginFromReset = document.getElementById('backToLoginFromReset');
     
     // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
@@ -69,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const addEditRoomTitle = document.getElementById('addEditRoomTitle');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
     const signOutBtn = document.getElementById('signOutBtn');
-    const navAdmin = document.getElementById('navAdmin');
+    const adminNavLi = document.getElementById('adminNavLi');
     const pendingUsersContainer = document.getElementById('pendingUsersContainer');
     const adminFeedback = document.getElementById('adminFeedback');
 
@@ -209,6 +214,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     loginView.classList.remove('active-view');
                     registerView.style.display = 'none';
                     registerView.classList.remove('active-view');
+                    passwordResetView.style.display = 'none';
+                    passwordResetView.classList.remove('active-view');
                     appContainer.style.display = 'flex';
                     appContainer.classList.add('active-view');
                     
@@ -217,10 +224,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Check if the user is an admin
                     if (userData.role === 'admin') {
-                        navAdmin.style.display = 'list-item';
+                        adminNavLi.style.display = 'list-item';
                         listenForPendingUsers();
                     } else {
-                        navAdmin.style.display = 'none';
+                        adminNavLi.style.display = 'none';
                     }
 
                     initializeAppLogic(); // Your existing function
@@ -242,9 +249,11 @@ document.addEventListener('DOMContentLoaded', function () {
             appContainer.classList.remove('active-view');
             registerView.style.display = 'none';
             registerView.classList.remove('active-view');
+            passwordResetView.style.display = 'none';
+            passwordResetView.classList.remove('active-view');
             loginView.style.display = 'flex';
             loginView.classList.add('active-view');
-            navAdmin.style.display = 'none';
+            adminNavLi.style.display = 'none';
 
             userEmailDisplay.textContent = '';
             signOutBtn.style.display = 'none';
@@ -283,24 +292,68 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- View Switching for Login/Register ---
+    // --- View Switching for Login/Register/Reset ---
     if (switchToRegister) {
         switchToRegister.addEventListener('click', (e) => {
             e.preventDefault();
             loginView.style.display = 'none';
+            passwordResetView.style.display = 'none';
             registerView.style.display = 'flex';
             registerView.classList.add('active-view');
             loginView.classList.remove('active-view');
+            passwordResetView.classList.remove('active-view');
         });
     }
 
+    const showLoginView = (e) => {
+        if(e) e.preventDefault();
+        registerView.style.display = 'none';
+        passwordResetView.style.display = 'none';
+        loginView.style.display = 'flex';
+        loginView.classList.add('active-view');
+        registerView.classList.remove('active-view');
+        passwordResetView.classList.remove('active-view');
+    };
+
     if (switchToLogin) {
-        switchToLogin.addEventListener('click', (e) => {
+        switchToLogin.addEventListener('click', showLoginView);
+    }
+    if (backToLoginFromReset) {
+        backToLoginFromReset.addEventListener('click', showLoginView);
+    }
+    
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
             e.preventDefault();
+            loginView.style.display = 'none';
             registerView.style.display = 'none';
-            loginView.style.display = 'flex';
-            loginView.classList.add('active-view');
+            passwordResetView.style.display = 'flex';
+            passwordResetView.classList.add('active-view');
+            loginView.classList.remove('active-view');
             registerView.classList.remove('active-view');
+        });
+    }
+
+    // --- Password Reset Logic ---
+    if (passwordResetForm) {
+        passwordResetForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = passwordResetForm.resetEmail.value;
+            resetFeedback.textContent = '';
+            resetFeedback.className = 'feedback';
+
+            sendPasswordResetEmail(auth, email)
+                .then(() => {
+                    resetFeedback.textContent = 'Success! If an account exists for this email, a password reset link has been sent.';
+                    resetFeedback.className = 'feedback success';
+                    passwordResetForm.reset();
+                })
+                .catch((error) => {
+                    console.error("Password reset error:", error);
+                    // We show a generic message for security reasons (don't reveal which emails are registered)
+                    resetFeedback.textContent = 'Success! If an account exists for this email, a password reset link has been sent.';
+                    resetFeedback.className = 'feedback success';
+                });
         });
     }
 
