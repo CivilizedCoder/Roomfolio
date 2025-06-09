@@ -990,7 +990,11 @@ select.remembered-input option {
     .nav-links-container ul {
         flex-direction: column;
         width: 100%;
-        /* align-items: flex-start; <= This was removed to allow links to stretch full-width */
+    }
+
+    .nav-links-container ul li {
+        display: flex;
+        width: 100%;
     }
 
     .nav-links-container .user-status {
@@ -1004,7 +1008,7 @@ select.remembered-input option {
     }
 
     .nav-links-container .nav-link {
-        width: 100%;
+        flex-grow: 1; /* Make the link fill the entire list item */
         justify-content: flex-start;
         padding: 12px 20px;
         margin: 0;
