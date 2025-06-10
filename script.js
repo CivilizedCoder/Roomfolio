@@ -2001,35 +2001,48 @@ document.addEventListener('DOMContentLoaded', function () {
         if(closeModalBtn) closeModalBtn.focus();
     }
 
-    async function deleteRoom(roomId, fromConflictResolution = false) {
-        const room = findRoomById(roomId);
-        try {
-            const roomRef = doc(db, ROOMS_COLLECTION, roomId);
-            await deleteDoc(roomRef);
+    
+async function deleteRoom(roomId, fromConflictResolution = false) {
+    const room = findRoomById(roomId);
+    if (!room) {
+        console.error("Delete failed: Room not found in cache for ID:", roomId);
+        const feedback = fromConflictResolution ? duplicateResolutionFeedback : feedbackMessage;
+        if (feedback) {
+            feedback.textContent = "Error: Could not find room to delete.";
+            feedback.className = 'feedback error';
+        }
+        return;
+    }
 
-            if (fromConflictResolution) {
-                if(duplicateResolutionFeedback) {
-                    duplicateResolutionFeedback.textContent = `Room "${escapeHtml(room?.buildingName)} - ${escapeHtml(room?.roomIdentifier)}" deleted successfully.`;
-                    duplicateResolutionFeedback.className = 'feedback success';
-                }
-                 setTimeout(() => {
-                    setActiveView('ViewRoomsView');
-                }, 1500);
+    try {
+        // Correctly reference the document using its full path
+        const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+        await deleteDoc(roomRef);
 
-            } else {
-                 if (roomDetailModal?.style.display === 'block') closeModal();
-                 const firstBuildingHeader = roomListContainer?.querySelector('.building-header');
-                 if (firstBuildingHeader) firstBuildingHeader.focus(); else navLinks[0]?.focus();
+        if (fromConflictResolution) {
+            if (duplicateResolutionFeedback) {
+                duplicateResolutionFeedback.textContent = `Room "${escapeHtml(room?.buildingName)} - ${escapeHtml(room?.roomIdentifier)}" deleted successfully.`;
+                duplicateResolutionFeedback.className = 'feedback success';
             }
-        } catch (error) {
-            console.error("Firestore: Error deleting room", error);
-            const feedback = fromConflictResolution ? duplicateResolutionFeedback : feedbackMessage;
-            if (feedback) {
-                feedback.textContent = "Error deleting room from the database.";
-                feedback.className = 'feedback error';
-            }
+            setTimeout(() => {
+                setActiveView('ViewRoomsView');
+            }, 1500);
+
+        } else {
+            if (roomDetailModal?.style.display === 'block') closeModal();
+            const firstBuildingHeader = roomListContainer?.querySelector('.building-header');
+            if (firstBuildingHeader) firstBuildingHeader.focus();
+            else navLinks[0]?.focus();
+        }
+    } catch (error) {
+        console.error("Firestore: Error deleting room", error);
+        const feedback = fromConflictResolution ? duplicateResolutionFeedback : feedbackMessage;
+        if (feedback) {
+            feedback.textContent = "Error deleting room from the database.";
+            feedback.className = 'feedback error';
         }
     }
+}
 
     function closeModal() {
         if(roomDetailModal) roomDetailModal.style.display = 'none';
