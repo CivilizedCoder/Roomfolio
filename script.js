@@ -2001,23 +2001,27 @@ document.addEventListener('DOMContentLoaded', function () {
         if(closeModalBtn) closeModalBtn.focus();
     }
 
-    
-async function deleteRoom(roomId, fromConflictResolution = false) {
-    const room = findRoomById(roomId);
-    if (!room) {
-        console.error("Delete failed: Room not found in cache for ID:", roomId);
+  async function deleteRoom(roomId, fromConflictResolution = false) {
+    console.log("[Delete Room] Attempting to delete with ID:", roomId); // DEBUG LOG 1
+
+    // Validate the roomId before proceeding
+    if (!roomId || typeof roomId !== 'string' || roomId.trim() === '') {
+        console.error("[Delete Room] Aborting: Invalid or empty roomId provided.");
         const feedback = fromConflictResolution ? duplicateResolutionFeedback : feedbackMessage;
         if (feedback) {
-            feedback.textContent = "Error: Could not find room to delete.";
+            feedback.textContent = "Error: Cannot delete room due to an invalid ID.";
             feedback.className = 'feedback error';
         }
         return;
     }
 
+    const room = findRoomById(roomId);
     try {
-        // Correctly reference the document using its full path
         const roomRef = doc(db, ROOMS_COLLECTION, roomId);
+        console.log("[Delete Room] Generated document reference path:", roomRef.path); // DEBUG LOG 2
+
         await deleteDoc(roomRef);
+        console.log("[Delete Room] Successfully deleted document from Firestore.");
 
         if (fromConflictResolution) {
             if (duplicateResolutionFeedback) {
@@ -2031,14 +2035,18 @@ async function deleteRoom(roomId, fromConflictResolution = false) {
         } else {
             if (roomDetailModal?.style.display === 'block') closeModal();
             const firstBuildingHeader = roomListContainer?.querySelector('.building-header');
-            if (firstBuildingHeader) firstBuildingHeader.focus();
-            else navLinks[0]?.focus();
+            if (firstBuildingHeader) {
+                firstBuildingHeader.focus();
+            } else {
+                navLinks[0]?.focus();
+            }
         }
     } catch (error) {
+        // Log the specific error from Firestore
         console.error("Firestore: Error deleting room", error);
         const feedback = fromConflictResolution ? duplicateResolutionFeedback : feedbackMessage;
         if (feedback) {
-            feedback.textContent = "Error deleting room from the database.";
+            feedback.textContent = "Error deleting room from the database. See console for details.";
             feedback.className = 'feedback error';
         }
     }
