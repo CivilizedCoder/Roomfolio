@@ -2070,21 +2070,22 @@ document.addEventListener('DOMContentLoaded', function () {
         closeModalBtn.onkeydown = eventArgument => { if (eventArgument.key==='Enter'||eventArgument.key===' ') {eventArgument.preventDefault();closeModal();}};
     }
     
-    function presentDuplicateRoomResolution(attemptedData, existingRoom) {
-        currentAttemptedSaveData = attemptedData;
-        currentAttemptedSaveData.id = existingRoom.id;
-        currentExistingRoomForSaveConflict = existingRoom;
+function presentDuplicateRoomResolution(attemptedData, existingRoom) {
+    currentAttemptedSaveData = attemptedData;
+    // Security bug patch
+    // currentAttemptedSaveData.id = existingRoom.id; 
+    currentExistingRoomForSaveConflict = existingRoom;
 
-        if (attemptedDataPreview) attemptedDataPreview.innerHTML = formatRoomDataForPreview(attemptedData);
-        const existingDataPreviewElem = document.querySelector('#duplicateResolutionView #existingDataPreview');
-        if (existingDataPreviewElem) existingDataPreviewElem.innerHTML = formatRoomDataForPreview(existingRoom);
+    if (attemptedDataPreview) attemptedDataPreview.innerHTML = formatRoomDataForPreview(attemptedData);
+    const existingDataPreviewElem = document.querySelector('#duplicateResolutionView #existingDataPreview');
+    if (existingDataPreviewElem) existingDataPreviewElem.innerHTML = formatRoomDataForPreview(existingRoom);
 
-        if(duplicateResolutionFeedback) {
-            duplicateResolutionFeedback.textContent = '';
-            duplicateResolutionFeedback.className = 'feedback';
-        }
-        setActiveView('duplicateResolutionView');
+    if(duplicateResolutionFeedback) {
+        duplicateResolutionFeedback.textContent = '';
+        duplicateResolutionFeedback.className = 'feedback';
     }
+    setActiveView('duplicateResolutionView');
+}
 
     if (editAttemptedBtn) {
         editAttemptedBtn.addEventListener('click', () => {
