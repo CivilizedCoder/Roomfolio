@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const saveRoomBtn = document.getElementById('saveRoomBtn');
     const copyCurrentRoomJsonBtn = document.getElementById('copyCurrentRoomJsonBtn');
     const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const backToFilterBtn = document.getElementById('backToFilterBtn'); // New button
     const lightFixturesContainer = document.getElementById('lightFixturesContainer');
     const addLightFixtureBtn = document.getElementById('addLightFixtureBtn');
     const otherFixturesCheckboxes = document.querySelectorAll('.fixture-present-checkbox');
@@ -180,6 +181,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentAttemptedSaveData = null;
     let currentExistingRoomForSaveConflict = null;
     let cameFromDuplicateResolutionView = false;
+    let cameFromFilterView = false; // New state for filter workflow
+    let lastFilterState = { building: '', identifier: '', global: '' }; // New state for filter workflow
     let focusedButtonBeforeModal = null;
     let unsubscribeRooms = null; // To hold the rooms listener detachment function
     let unsubscribeBuildings = null; // To hold the buildings listener detachment function
@@ -1037,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (doorLockTypeSelect && doorLockTypeOtherInput) {
             const shouldShow = doorLockTypeSelect.value === 'Other';
             doorLockTypeOtherInput.style.display = shouldShow ? 'block' : 'none';
-            if (shouldShow) doorLockTypeOtherInput.value = doorData.lockTypeOther || ''; else doorLockTypeOtherInput.value = '';
+            if (shouldShow) doorLockTypeOtherInput.value = doorData.lockTypeOther || ''; else doorTypeOtherInput.value = '';
         }
 
         doorsContainer.appendChild(div);
@@ -1407,14 +1410,11 @@ document.addEventListener('DOMContentLoaded', function () {
         return null;
     }
     
-    // --- UPDATED SUBMIT LISTENER ---
     if (roomForm) {
-        // Make the event listener synchronous by removing 'async'
         roomForm.addEventListener('submit', function (event) {
             event.preventDefault();
-            console.log("[RoomFormSubmit] Form submission initiated (New Logic).");
+            console.log("[RoomFormSubmit] Form submission initiated.");
 
-            // --- 1. Perform all validations and data gathering first ---
             const currentAddRoomView = document.getElementById('AddRoomView');
             if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
 
@@ -1450,7 +1450,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // --- 2. Perform IMMEDIATE UI updates ---
             const isOffline = !navigator.onLine;
             const isEditing = !!currentRoomId;
 
@@ -1461,27 +1460,34 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             feedbackMessage.className = 'feedback success';
             
-            // This resets the form and scrolls the window to the top immediately.
-            resetRoomFormToDefault();
+            // For a new room, reset the form immediately for quick entry of the next room.
+            // For an edit, we will navigate away shortly.
+            if (!isEditing) {
+                resetRoomFormToDefault();
+            }
 
-            // --- 3. Defer the data operations so they don't block the UI ---
             addRoomToFirestore(newRoomDataFromForm, currentRoomId)
                 .then(() => {
-                    console.log(`[RoomFormSubmit] Firestore operation successful for ${newRoomDataFromForm.buildingName} - ${newRoomDataFromForm.roomIdentifier}.`);
-                    // These operations are safe to do after the fact.
+                    console.log(`[RoomFormSubmit] Firestore operation successful.`);
                     setLastUsedBuilding(newRoomDataFromForm.buildingName);
                     saveLastInputValues();
-                    // Only switch views automatically if online and editing.
-                    if (isEditing && !isOffline) {
+                    
+                    if (isEditing) {
                         setTimeout(() => {
-                            setActiveView('ViewRoomsView');
+                            resetRoomFormToDefault(); // Clear form data
+                            // Navigate back to the correct view
+                            if (cameFromFilterView) {
+                                navigateToFilterView();
+                            } else {
+                                setActiveView('ViewRoomsView');
+                            }
                         }, 1500);
                     }
                 })
                 .catch((error) => {
                     console.error('[RoomFormSubmit] CRITICAL ERROR during room save process:', error);
-                    // The form is already cleared. Alert the user directly about the critical failure.
-                    alert('A critical error occurred. The last room entry may not have been saved correctly. Please verify when you are back online.');
+                    feedbackMessage.textContent = 'A critical error occurred. The entry may not have been saved correctly.';
+                    feedbackMessage.className = 'feedback error';
                 });
         });
     }
@@ -1552,25 +1558,27 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.removeChild(textArea);
     }
 
-
-    if(cancelEditBtn) {
-        cancelEditBtn.addEventListener('click', () => {
-            if (confirm("Are you sure you want to cancel editing? Any unsaved changes will be lost.")) {
-                const returnToConflictView = cameFromDuplicateResolutionView;
-
-                editingRoomIdInput.value = '';
-                resetRoomFormToDefault();
-
-                if (returnToConflictView) {
-                    cameFromDuplicateResolutionView = false;
-                    setActiveView('duplicateResolutionView', { preserveScroll: true });
-                } else {
-                    cameFromDuplicateResolutionView = false;
-                    setActiveView('ViewRoomsView');
-                }
+    function handleNavigateBack() {
+        if (confirm("Are you sure you want to go back? Any unsaved changes will be lost.")) {
+            resetRoomFormToDefault(); // Clear form data
+            if (cameFromFilterView) {
+                navigateToFilterView();
+            } else if (cameFromDuplicateResolutionView) {
+                setActiveView('duplicateResolutionView', { preserveScroll: true });
+            } else {
+                setActiveView('ViewRoomsView');
             }
-        });
+        }
     }
+    
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', handleNavigateBack);
+    }
+
+    if (backToFilterBtn) {
+        backToFilterBtn.addEventListener('click', handleNavigateBack);
+    }
+
 
     async function addRoomToFirestore(roomData, existingId = null) {
         roomData.savedAt = new Date().toISOString();
@@ -1617,6 +1625,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if(addEditRoomTitle) addEditRoomTitle.innerHTML = `<i class="fas fa-pencil-alt"></i> Edit Data for New Room`;
             if(saveRoomBtn) saveRoomBtn.innerHTML = '<i class="fas fa-save"></i> Save Room Information';
             if(cancelEditBtn) cancelEditBtn.style.display = 'inline-flex';
+        }
+
+        // Show/hide the "Back to Filter" button
+        if (backToFilterBtn) {
+            backToFilterBtn.style.display = cameFromFilterView ? 'inline-flex' : 'none';
         }
 
         populateBuildingDropdowns(room.buildingName);
@@ -1887,11 +1900,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const targetButton = event.target.closest('button.action-button');
         if (!targetButton) return;
         const roomId = targetButton.dataset.roomId;
-        if (targetButton.classList.contains('view-details-btn')) {
+
+        if (targetButton.classList.contains('edit-room-btn')) {
+            // Determine if the edit came from the filter view or the main list view
+            cameFromFilterView = !!event.target.closest('#filterResultsContainer');
+            populateFormForEditing(roomId);
+        } 
+        else if (targetButton.classList.contains('view-details-btn')) {
             focusedButtonBeforeModal = targetButton;
             displayRoomDetails(roomId);
-        } else if (targetButton.classList.contains('edit-room-btn')) {
-            populateFormForEditing(roomId);
         } else if (targetButton.classList.contains('delete-room-btn')) {
             const room = findRoomById(roomId);
             if (confirm(`Are you sure you want to delete room: ${escapeHtml(room?.roomIdentifier)} in ${escapeHtml(room?.buildingName)}? This action cannot be undone.`)) {
@@ -2143,11 +2160,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (deleteExistingConflictBtn) {
-        deleteExistingConflictBtn.addEventListener('click', () => { // No longer async
+        deleteExistingConflictBtn.addEventListener('click', () => { 
             if (currentExistingRoomForSaveConflict && currentAttemptedSaveData) {
                 if (confirm(`Are you sure you want to DELETE the existing room and REPLACE it with your new data? This action cannot be undone.`)) {
                     
-                    // 1. Give immediate feedback to the user.
                     if (duplicateResolutionFeedback) {
                         const isOffline = !navigator.onLine;
                         duplicateResolutionFeedback.textContent = isOffline 
@@ -2156,17 +2172,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         duplicateResolutionFeedback.className = 'feedback success';
                     }
                     
-                    // 2. Schedule the navigation away from the conflict screen.
                     setTimeout(() => {
                         setActiveView('ViewRoomsView');
                         resetRoomFormToDefault();
                     }, 1500);
 
-                    // 3. Perform the database operation in the background.
                     addRoomToFirestore(currentAttemptedSaveData, currentExistingRoomForSaveConflict.id)
                         .then(() => {
                             console.log("Background replacement of room succeeded.");
-                            // Reset state variables after the operation is truly queued.
                             currentAttemptedSaveData = null;
                             currentExistingRoomForSaveConflict = null;
                             cameFromDuplicateResolutionView = false;
@@ -2696,8 +2709,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return content.filter(s => s && s.trim() !== "").join(' '); 
     }
 
-    // --- MODIFIED FUNCTION ---
-    // This function now handles numeric searches for condition fields.
     function checkCondition(condition, room, roomTextContent) {
         condition = condition.trim();
         let [key, ...valueParts] = condition.split(':');
@@ -2705,7 +2716,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
         if (condition.includes(':') && !value) return false;
     
-        if (value) { // This is a key:value search
+        if (value) {
             key = key.trim().toLowerCase().replace(/\s/g, '');
             const propertyPath = filterFieldMap[key];
     
@@ -2713,7 +2724,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const roomValue = getProperty(room, propertyPath);
                 if (roomValue === undefined || roomValue === null) return false;
     
-                // New logic: Handle numeric search for condition fields
                 const conditionKeys = ['wallscondition', 'ceilingcondition', 'floorcondition', 'furniturecondition', 'overallcondition'];
                 const userValueAsNumber = parseInt(value, 10);
     
@@ -2721,15 +2731,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     const roomConditionAsNumber = conditionStringToValue(roomValue);
                     return roomConditionAsNumber === userValueAsNumber;
                 }
-                // End new logic
     
-                // Fallback to original string search for other fields or non-numeric searches
                 const searchTerm = value.replace(/^"|"$/g, '').toLowerCase();
                 return String(roomValue).toLowerCase().includes(searchTerm);
             }
             return false;
         }
-        else { // This is a global text search
+        else { 
             const term = key.replace(/^"|"$/g, '').toLowerCase();
             return roomTextContent.includes(term);
         }
@@ -2776,9 +2784,16 @@ document.addEventListener('DOMContentLoaded', function () {
         filterFeedback.textContent = '';
         filterFeedback.className = 'feedback';
 
-        const buildingNameFilter = filterBuildingNameInput.value;
-        const roomIdentifierFilter = filterRoomIdentifierInput.value.trim().toLowerCase();
-        const globalQuery = globalQueryInput.value.trim();
+        // Save the current filter state
+        lastFilterState = {
+            building: filterBuildingNameInput.value,
+            identifier: filterRoomIdentifierInput.value,
+            global: globalQueryInput.value
+        };
+
+        const buildingNameFilter = lastFilterState.building;
+        const roomIdentifierFilter = lastFilterState.identifier.trim().toLowerCase();
+        const globalQuery = lastFilterState.global.trim();
 
         let filteredRooms = [];
         try {
@@ -2806,6 +2821,17 @@ document.addEventListener('DOMContentLoaded', function () {
         renderRoomList(filteredRooms, filterResultsContainer, true);
     }    
     
+    // This new function handles restoring the filter view
+    function navigateToFilterView() {
+        setActiveView('FilterView');
+        // Restore filter inputs from saved state
+        filterBuildingNameInput.value = lastFilterState.building;
+        filterRoomIdentifierInput.value = lastFilterState.identifier;
+        globalQueryInput.value = lastFilterState.global;
+        // Re-run the search
+        applyFilters();
+    }
+    
     if (filterForm) {
         filterForm.addEventListener('submit', function(event) {
             event.preventDefault(); applyFilters();
@@ -2815,6 +2841,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (clearFilterBtn) {
         clearFilterBtn.addEventListener('click', function() {
             if (filterForm) filterForm.reset();
+            // Clear the saved filter state as well
+            lastFilterState = { building: '', identifier: '', global: '' };
             if (filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
             if (filterFeedback) { filterFeedback.textContent = ''; filterFeedback.className = 'feedback'; }
         });
@@ -2822,7 +2850,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
     window.addEventListener('online', () => {
         const banner = document.createElement('div');
-        banner.innerHTML = '<i class="fas fa-wifi"></i> Connection restored. Syncing offline changes...';
+        banner.innerHTML = '<i class="fas fa-wifi"></i> Connected. Syncing offline changes...';
         // Basic styling for the banner
         banner.style.position = 'fixed';
         banner.style.bottom = '20px';
@@ -2846,7 +2874,7 @@ document.addEventListener('DOMContentLoaded', function () {
             banner.style.transition = 'opacity 0.5s ease';
             banner.style.opacity = '0';
             setTimeout(() => banner.remove(), 500);
-        }, 4000);
+        }, 3000);
     });
 
     window.onkeydown = eventArgument => {
@@ -2859,7 +2887,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 cameFromDuplicateResolutionView = false;
                 setActiveView('ViewRoomsView');
             } else if (editingRoomIdInput.value && document.getElementById('AddRoomView')?.classList.contains('active-view')) {
-                if(cancelEditBtn) cancelEditBtn.click(); 
+                handleNavigateBack(); 
             }
         }
     };
