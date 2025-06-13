@@ -267,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function () {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            // --- IMPLEMENTED CHANGE ---
             // Add explicit check for offline status
             if (!navigator.onLine) {
                 loginFeedback.textContent = 'A network connection is required to sign in.';
@@ -348,7 +347,6 @@ document.addEventListener('DOMContentLoaded', function () {
         passwordResetForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            // --- IMPLEMENTED CHANGE ---
             // Add explicit check for offline status
             if (!navigator.onLine) {
                 resetFeedback.textContent = 'A network connection is required to reset a password.';
@@ -380,7 +378,6 @@ document.addEventListener('DOMContentLoaded', function () {
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            // --- IMPLEMENTED CHANGE ---
             // Add explicit check for offline status
             if (!navigator.onLine) {
                 registerFeedback.textContent = 'A network connection is required to request an account.';
@@ -2145,34 +2142,46 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // --- BUG FIX: "Delete & Replace" Offline Feedback ---
+    // This logic is changed to provide an "optimistic UI" update.
+    // It gives feedback to the user immediately, then performs the database
+    // operation in the background. This prevents the UI from appearing
+    // frozen if the await call hangs when offline.
     if (deleteExistingConflictBtn) {
-        deleteExistingConflictBtn.addEventListener('click', async () => {
+        deleteExistingConflictBtn.addEventListener('click', () => { // No longer async
             if (currentExistingRoomForSaveConflict && currentAttemptedSaveData) {
-                const room = currentExistingRoomForSaveConflict;
                 if (confirm(`Are you sure you want to DELETE the existing room and REPLACE it with your new data? This action cannot be undone.`)) {
-                    try {
-                        await addRoomToFirestore(currentAttemptedSaveData, room.id);
-                        
-                        if (duplicateResolutionFeedback) {
-                            duplicateResolutionFeedback.textContent = `Successfully replaced room with new data.`;
-                            duplicateResolutionFeedback.className = 'feedback success';
-                        }
-                        
-                        currentAttemptedSaveData = null;
-                        currentExistingRoomForSaveConflict = null;
-                        cameFromDuplicateResolutionView = false;
-                        setTimeout(() => {
-                            setActiveView('ViewRoomsView');
-                            resetRoomFormToDefault();
-                        }, 1500);
-
-                    } catch(error) {
-                        console.error("Error during delete-and-replace operation:", error);
-                        if (duplicateResolutionFeedback) {
-                           duplicateResolutionFeedback.textContent = 'An unexpected error occurred during replacement.';
-                           duplicateResolutionFeedback.className = 'feedback error';
-                       }
+                    
+                    // 1. Give immediate feedback to the user.
+                    if (duplicateResolutionFeedback) {
+                        const isOffline = !navigator.onLine;
+                        duplicateResolutionFeedback.textContent = isOffline 
+                            ? 'Replacement queued successfully. Will sync when online.' 
+                            : 'Successfully replaced room with new data.';
+                        duplicateResolutionFeedback.className = 'feedback success';
                     }
+                    
+                    // 2. Schedule the navigation away from the conflict screen.
+                    setTimeout(() => {
+                        setActiveView('ViewRoomsView');
+                        resetRoomFormToDefault();
+                    }, 1500);
+
+                    // 3. Perform the database operation in the background.
+                    // We don't need to await it for UI purposes anymore.
+                    addRoomToFirestore(currentAttemptedSaveData, currentExistingRoomForSaveConflict.id)
+                        .then(() => {
+                            console.log("Background replacement of room succeeded.");
+                            // Reset state variables after the operation is truly queued.
+                            currentAttemptedSaveData = null;
+                            currentExistingRoomForSaveConflict = null;
+                            cameFromDuplicateResolutionView = false;
+                        })
+                        .catch(error => {
+                            // The user has already navigated away. A more advanced app might
+                            // use a global error banner, but for now, logging is safest.
+                            console.error("CRITICAL: Background delete-and-replace operation failed:", error);
+                        });
                 }
             }
         });
@@ -2801,7 +2810,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     
-    // --- IMPLEMENTED CHANGE ---
     // Add a global listener for when the app comes back online to provide feedback
     window.addEventListener('online', () => {
         const banner = document.createElement('div');

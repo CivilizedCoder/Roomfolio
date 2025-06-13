@@ -9,6 +9,7 @@ const APP_SHELL_URLS = [
   '/Roomfolio/manifest.json',
   '/Roomfolio/icon-192x192.png',
   '/Roomfolio/icon-512x512.png',
+  // High-Priority Fix: Cache Firebase SDKs for true offline reliability
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'
