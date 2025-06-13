@@ -1,5 +1,5 @@
-const APP_CACHE_NAME = 'roomfolio-cache-v2'; // New version for app shell
-const STATIC_ASSETS_CACHE_NAME = 'roomfolio-static-assets-v2'; // New version for external assets
+const APP_CACHE_NAME = 'roomfolio-cache-v3'; // New version for app shell
+const STATIC_ASSETS_CACHE_NAME = 'roomfolio-static-assets-v3'; // New version for external assets
 
 const APP_SHELL_URLS = [
   '/Roomfolio/',
@@ -8,7 +8,10 @@ const APP_SHELL_URLS = [
   '/Roomfolio/script.js',
   '/Roomfolio/manifest.json',
   '/Roomfolio/icon-192x192.png',
-  '/Roomfolio/icon-512x512.png'
+  '/Roomfolio/icon-512x512.png',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'
 ];
 
 const STATIC_ASSET_URLS = [
@@ -56,7 +59,7 @@ self.addEventListener('fetch', (event) => {
             })
         );
     } else {
-        // For the app shell, serve from cache first
+        // For the app shell (including Firebase SDKs now), serve from cache first
         event.respondWith(
             caches.match(event.request).then((response) => {
                 return response || fetch(event.request);

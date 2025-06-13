@@ -266,6 +266,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
+
+            // --- IMPLEMENTED CHANGE ---
+            // Add explicit check for offline status
+            if (!navigator.onLine) {
+                loginFeedback.textContent = 'A network connection is required to sign in.';
+                loginFeedback.className = 'feedback error';
+                return;
+            }
+
             const email = loginForm.loginEmail.value;
             const password = loginForm.loginPassword.value;
             loginFeedback.textContent = '';
@@ -338,6 +347,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (passwordResetForm) {
         passwordResetForm.addEventListener('submit', (e) => {
             e.preventDefault();
+
+            // --- IMPLEMENTED CHANGE ---
+            // Add explicit check for offline status
+            if (!navigator.onLine) {
+                resetFeedback.textContent = 'A network connection is required to reset a password.';
+                resetFeedback.className = 'feedback error';
+                return;
+            }
+
             const email = passwordResetForm.resetEmail.value;
             resetFeedback.textContent = '';
             resetFeedback.className = 'feedback';
@@ -361,6 +379,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
+
+            // --- IMPLEMENTED CHANGE ---
+            // Add explicit check for offline status
+            if (!navigator.onLine) {
+                registerFeedback.textContent = 'A network connection is required to request an account.';
+                registerFeedback.className = 'feedback error';
+                return;
+            }
+
             const email = registerForm.registerEmail.value;
             const password = registerForm.registerPassword.value;
             registerFeedback.textContent = '';
@@ -2774,6 +2801,37 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     
+    // --- IMPLEMENTED CHANGE ---
+    // Add a global listener for when the app comes back online to provide feedback
+    window.addEventListener('online', () => {
+        const banner = document.createElement('div');
+        banner.innerHTML = '<i class="fas fa-wifi"></i> Connection restored. Syncing offline changes...';
+        // Basic styling for the banner
+        banner.style.position = 'fixed';
+        banner.style.bottom = '20px';
+        banner.style.left = '50%';
+        banner.style.transform = 'translateX(-50%)';
+        banner.style.padding = '12px 20px';
+        banner.style.backgroundColor = 'var(--success-color)';
+        banner.style.color = 'white';
+        banner.style.borderRadius = 'var(--border-radius)';
+        banner.style.boxShadow = 'var(--box-shadow)';
+        banner.style.zIndex = '2000';
+        banner.style.fontSize = '0.95rem';
+        banner.style.display = 'flex';
+        banner.style.alignItems = 'center';
+        banner.style.gap = '10px';
+        
+        document.body.appendChild(banner);
+
+        // Remove the banner after a few seconds
+        setTimeout(() => {
+            banner.style.transition = 'opacity 0.5s ease';
+            banner.style.opacity = '0';
+            setTimeout(() => banner.remove(), 500);
+        }, 4000);
+    });
+
     window.onkeydown = eventArgument => {
         if (eventArgument.key==='Escape') {
             if (conflictModal?.style.display==='block' && importConflictResolutionMode === 'manual') {
