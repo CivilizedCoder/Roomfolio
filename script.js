@@ -2142,11 +2142,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- BUG FIX: "Delete & Replace" Offline Feedback ---
-    // This logic is changed to provide an "optimistic UI" update.
-    // It gives feedback to the user immediately, then performs the database
-    // operation in the background. This prevents the UI from appearing
-    // frozen if the await call hangs when offline.
     if (deleteExistingConflictBtn) {
         deleteExistingConflictBtn.addEventListener('click', () => { // No longer async
             if (currentExistingRoomForSaveConflict && currentAttemptedSaveData) {
@@ -2168,7 +2163,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }, 1500);
 
                     // 3. Perform the database operation in the background.
-                    // We don't need to await it for UI purposes anymore.
                     addRoomToFirestore(currentAttemptedSaveData, currentExistingRoomForSaveConflict.id)
                         .then(() => {
                             console.log("Background replacement of room succeeded.");
@@ -2178,8 +2172,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             cameFromDuplicateResolutionView = false;
                         })
                         .catch(error => {
-                            // The user has already navigated away. A more advanced app might
-                            // use a global error banner, but for now, logging is safest.
                             console.error("CRITICAL: Background delete-and-replace operation failed:", error);
                         });
                 }
@@ -2704,23 +2696,41 @@ document.addEventListener('DOMContentLoaded', function () {
         return content.filter(s => s && s.trim() !== "").join(' '); 
     }
 
+    // --- MODIFIED FUNCTION ---
+    // This function now handles numeric searches for condition fields.
     function checkCondition(condition, room, roomTextContent) {
         condition = condition.trim();
         let [key, ...valueParts] = condition.split(':');
         let value = valueParts.join(':').trim();
+    
         if (condition.includes(':') && !value) return false;
-        if (value) { 
-            key = key.trim().toLowerCase().replace(/\s/g, ''); 
+    
+        if (value) { // This is a key:value search
+            key = key.trim().toLowerCase().replace(/\s/g, '');
             const propertyPath = filterFieldMap[key];
+    
             if (propertyPath) {
                 const roomValue = getProperty(room, propertyPath);
-                const searchTerm = value.replace(/^"|"$/g, '').toLowerCase(); 
-                return roomValue !== undefined && String(roomValue).toLowerCase().includes(searchTerm);
+                if (roomValue === undefined || roomValue === null) return false;
+    
+                // New logic: Handle numeric search for condition fields
+                const conditionKeys = ['wallscondition', 'ceilingcondition', 'floorcondition', 'furniturecondition', 'overallcondition'];
+                const userValueAsNumber = parseInt(value, 10);
+    
+                if (conditionKeys.includes(key) && !isNaN(userValueAsNumber) && String(userValueAsNumber) === value) {
+                    const roomConditionAsNumber = conditionStringToValue(roomValue);
+                    return roomConditionAsNumber === userValueAsNumber;
+                }
+                // End new logic
+    
+                // Fallback to original string search for other fields or non-numeric searches
+                const searchTerm = value.replace(/^"|"$/g, '').toLowerCase();
+                return String(roomValue).toLowerCase().includes(searchTerm);
             }
-            return false; 
-        } 
-        else { 
-            const term = key.replace(/^"|"$/g, '').toLowerCase(); 
+            return false;
+        }
+        else { // This is a global text search
+            const term = key.replace(/^"|"$/g, '').toLowerCase();
             return roomTextContent.includes(term);
         }
     }
@@ -2810,7 +2820,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     
-    // Add a global listener for when the app comes back online to provide feedback
     window.addEventListener('online', () => {
         const banner = document.createElement('div');
         banner.innerHTML = '<i class="fas fa-wifi"></i> Connection restored. Syncing offline changes...';
