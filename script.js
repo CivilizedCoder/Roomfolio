@@ -1383,81 +1383,100 @@ document.addEventListener('DOMContentLoaded', function () {
         return null;
     }
     
-    if (roomForm) {
-        roomForm.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            console.log("[RoomFormSubmit] Form submission initiated.");
+   if (roomForm) {
+    roomForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        console.log("[RoomFormSubmit] Form submission initiated.");
 
-            const currentAddRoomView = document.getElementById('AddRoomView');
-            if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
+        const currentAddRoomView = document.getElementById('AddRoomView');
+        if (currentAddRoomView) currentAddRoomView.scrollTop = 0;
 
-            if (feedbackMessage) {
-                feedbackMessage.textContent = '';
-                feedbackMessage.className = 'feedback';
+        if (feedbackMessage) {
+            feedbackMessage.textContent = '';
+            feedbackMessage.className = 'feedback';
+        }
+        
+        // Let the user know we're trying to save, especially if offline
+        if (!navigator.onLine) {
+            feedbackMessage.textContent = 'You are offline. Attempting to save data locally...';
+            feedbackMessage.className = 'feedback info';
+        }
+
+        const buildingNameVal = buildingNameSelect.value;
+        const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim();
+        const currentRoomId = editingRoomIdInput.value;
+
+        if (!buildingNameVal || !roomIdentifierVal) {
+            const msg = 'Building Name and Room Identifier are required.';
+            feedbackMessage.textContent = msg;
+            feedbackMessage.className = 'feedback error';
+            console.error(msg);
+            return;
+        }
+        
+        const validationError = validateConditionalFields();
+        if (validationError) {
+            feedbackMessage.textContent = validationError;
+            feedbackMessage.className = 'feedback error';
+            return;
+        }
+
+        const newRoomDataFromForm = getCurrentRoomDataFromForm();
+        const existingRoomWithSameIdentifiers = findRoom(newRoomDataFromForm.buildingName, newRoomDataFromForm.roomIdentifier);
+
+        if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
+            feedbackMessage.textContent = 'Conflict found. Redirecting to resolve duplicate room...';
+            feedbackMessage.className = 'feedback info';
+            console.warn("[RoomFormSubmit] Duplicate room detected. Presenting resolution options.");
+            setTimeout(() => {
+                presentDuplicateRoomResolution(newRoomDataFromForm, existingRoomWithSameIdentifiers);
+            }, 1000);
+            return;
+        }
+
+        try {
+            console.log("[RoomFormSubmit] Starting save operation for room:", { buildingNameVal, roomIdentifierVal, currentRoomId });
+            await addRoomToFirestore(newRoomDataFromForm, currentRoomId);
+            console.log("[RoomFormSubmit] addRoomToFirestore completed successfully.");
+            setLastUsedBuilding(newRoomDataFromForm.buildingName);
+            saveLastInputValues();
+
+            // --- MODIFIED SECTION ---
+            const isOffline = !navigator.onLine;
+            const isEditing = !!currentRoomId;
+
+            // Provide specific feedback based on connection status
+            if (isOffline) {
+                const message = isEditing ? 'Offline: Room updated locally. Will sync when online.' : 'Offline: Room saved locally. Will sync when online.';
+                feedbackMessage.textContent = message;
+            } else {
+                const message = isEditing ? 'Room information updated successfully!' : 'Room information saved successfully!';
+                feedbackMessage.textContent = message;
             }
-            
-            const buildingNameVal = buildingNameSelect.value;
-            const roomIdentifierVal = roomForm.querySelector('#roomIdentifier').value.trim();
-            const currentRoomId = editingRoomIdInput.value;
+            // Use 'success' class to indicate the local action was successful.
+            feedbackMessage.className = 'feedback success';
 
-            if (!buildingNameVal || !roomIdentifierVal) {
-                const msg = 'Building Name and Room Identifier are required.';
-                feedbackMessage.textContent = msg;
-                feedbackMessage.className = 'feedback error';
-                console.error(msg);
-                return;
-            }
-            
-            const validationError = validateConditionalFields();
-            if (validationError) {
-                feedbackMessage.textContent = validationError;
-                feedbackMessage.className = 'feedback error';
-                return;
-            }
+            // This section now runs for both online and offline saves.
+            editingRoomIdInput.value = '';
+            isResolvingAttemptedDataInput.value = 'false';
+            cameFromDuplicateResolutionView = false;
+            resetRoomFormToDefault(); // This function contains the scroll-to-top logic.
 
-            const newRoomDataFromForm = getCurrentRoomDataFromForm();
-            const existingRoomWithSameIdentifiers = findRoom(newRoomDataFromForm.buildingName, newRoomDataFromForm.roomIdentifier);
-
-            if (existingRoomWithSameIdentifiers && existingRoomWithSameIdentifiers.id !== currentRoomId) {
-                feedbackMessage.textContent = 'Conflict found. Redirecting to resolve duplicate room...';
-                feedbackMessage.className = 'feedback info';
-                console.warn("[RoomFormSubmit] Duplicate room detected. Presenting resolution options.");
+            // Only switch views automatically if the user is online and was editing.
+            if (isEditing && !isOffline) {
                 setTimeout(() => {
-                    presentDuplicateRoomResolution(newRoomDataFromForm, existingRoomWithSameIdentifiers);
-                }, 1000);
-                return;
+                    if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView');
+                }, 1500);
             }
+            // --- END MODIFIED SECTION ---
 
-            try {
-                console.log("[RoomFormSubmit] Starting save operation for room:", { buildingNameVal, roomIdentifierVal, currentRoomId });
-                await addRoomToFirestore(newRoomDataFromForm, currentRoomId);
-                console.log("[RoomFormSubmit] addRoomToFirestore completed successfully.");
-                setLastUsedBuilding(newRoomDataFromForm.buildingName);
-                saveLastInputValues();
-
-                feedbackMessage.textContent = currentRoomId ? 'Room information updated successfully!' : 'Room information saved successfully!';
-                feedbackMessage.className = 'feedback success';
-
-                const isEditing = !!currentRoomId;
-                editingRoomIdInput.value = '';
-                isResolvingAttemptedDataInput.value = 'false';
-                cameFromDuplicateResolutionView = false;
-                resetRoomFormToDefault();
-
-                if (isEditing) {
-                    setTimeout(() => {
-                        if (feedbackMessage?.classList.contains('success')) setActiveView('ViewRoomsView');
-                    }, 1500);
-                }
-
-            } catch (error) {
-                console.error('[RoomFormSubmit] CRITICAL ERROR during room save process:', error);
-                feedbackMessage.textContent = 'Failed to save room to the database. Check console for details.';
-                feedbackMessage.className = 'feedback error';
-            }
-        });
-    }
-
+        } catch (error) {
+            console.error('[RoomFormSubmit] CRITICAL ERROR during room save process:', error);
+            feedbackMessage.textContent = 'Failed to save room to the database. Check console for details.';
+            feedbackMessage.className = 'feedback error';
+        }
+    });
+}
     if (copyCurrentRoomJsonBtn) {
         copyCurrentRoomJsonBtn.addEventListener('click', function() {
             if (feedbackMessage) {
