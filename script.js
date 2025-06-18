@@ -590,6 +590,13 @@ And everyone knows what happened in 1816:
         }
     }
 
+    function getNestedProperty(obj, path) {
+        return path.split('.').reduce((acc, part) => {
+    // Ensure accumulator is not null or undefined before trying to access property
+        return acc && typeof acc === 'object' ? acc[part] : undefined;
+  }, obj);
+}
+
     function applyLastInputsToForm(form) {
         if (!form) return;
         form.querySelectorAll('.remembered-input, .default-value-input').forEach(el => el.classList.remove('remembered-input', 'default-value-input'));
