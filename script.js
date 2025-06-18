@@ -157,6 +157,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterResultsContainer = document.getElementById('filterResultsContainer');
     const filterFeedback = document.getElementById('filterFeedback');
 
+    // --- Mass Edit Elements (NEW) ---
+    const enableMassEditCheckbox = document.getElementById('enableMassEditCheckbox');
+    const massEditFields = document.getElementById('massEditFields');
+    const massEditPropertySelect = document.getElementById('massEditPropertySelect');
+    const previousLabelInput = document.getElementById('previousLabelInput');
+    const newLabelInput = document.getElementById('newLabelInput');
+    const applyMassEditBtn = document.getElementById('applyMassEditBtn');
+    const massEditFeedback = document.getElementById('massEditFeedback');
+
+
     // LocalStorage keys (for non-critical, client-side data)
     const LAST_USED_BUILDING_KEY = 'roomAppData_lastUsedBuilding';
     const LAST_INPUT_VALUES_KEY = 'roomAppData_lastInputValues';
@@ -166,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const BUILDINGS_DOC = 'buildings/buildingList'; // Storing buildings as a single document
     const USERS_COLLECTION = 'users';
 
-    // --- STATE VARIABLES ---
+    // --- STATE VARIABLES --- 
     let allRoomsCache = []; 
     let allBuildingsCache = []; 
     let lastInputValues = {};
@@ -181,11 +191,22 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentAttemptedSaveData = null;
     let currentExistingRoomForSaveConflict = null;
     let cameFromDuplicateResolutionView = false;
-    let cameFromFilterView = false; // New state for filter workflow
-    let lastFilterState = { building: '', identifier: '', global: '' }; // New state for filter workflow
+    let cameFromFilterView = false;
+    let lastFilterState = { building: '', identifier: '', global: '' }; 
     let focusedButtonBeforeModal = null;
-    let unsubscribeRooms = null; // To hold the rooms listener detachment function
-    let unsubscribeBuildings = null; // To hold the buildings listener detachment function
+    let unsubscribeRooms = null; 
+    let unsubscribeBuildings = null;
+    let currentFilteredRooms = []; //Indiana
+
+/*
+If I were to unite these state variables, they would be the united states variables...
+there would be 19 of them, correlating to america in The Year Of Our Lord 1816.
+And everyone knows what happened in 1816:
+    The establishment of the Second Bank of the United States
+    Indiana's admission as the 19th U.S. state
+    And of course it was... THE YEAR WITHOUT A SUMMER
+    
+*/
     
     // Default buildings list - Used to initialize the database if it's empty
     const DEFAULT_BUILDINGS = [
@@ -744,6 +765,14 @@ document.addEventListener('DOMContentLoaded', function () {
              isResolvingAttemptedDataInput.value = 'false';
         } else if (targetViewId === 'FilterView') {
             if(filterForm) filterForm.reset();
+            // Reset mass edit fields when navigating to filter view normally
+            if (enableMassEditCheckbox) enableMassEditCheckbox.checked = false;
+            if (massEditFields) massEditFields.style.display = 'none';
+            if (massEditPropertySelect) massEditPropertySelect.value = '';
+            if (previousLabelInput) previousLabelInput.value = '';
+            if (newLabelInput) newLabelInput.value = '';
+            if (massEditFeedback) { massEditFeedback.textContent = ''; massEditFeedback.className = 'feedback'; }
+
             if(filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
             if(filterFeedback) {filterFeedback.textContent = ''; filterFeedback.className = 'feedback';}
         } else if (targetViewId === 'duplicateResolutionView') {
@@ -1040,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (doorLockTypeSelect && doorLockTypeOtherInput) {
             const shouldShow = doorLockTypeSelect.value === 'Other';
             doorLockTypeOtherInput.style.display = shouldShow ? 'block' : 'none';
-            if (shouldShow) doorLockTypeOtherInput.value = doorData.lockTypeOther || ''; else doorTypeOtherInput.value = '';
+            if (shouldShow) doorLockTypeOtherInput.value = doorData.lockTypeOther || ''; else doorLockTypeOtherInput.value = '';
         }
 
         doorsContainer.appendChild(div);
@@ -2009,7 +2038,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 let entry = `<li>${escapeHtml(of.count)} x ${escapeHtml(of.type)}`;
                 if (of.type === 'Other' && of.specify) entry += ` (${escapeHtml(of.specify)})`;
                 entry += `</li>`;
-                html += entry;
             });
             html += `</ul>`;
         } else html += `<p><strong>Other Fixtures:</strong> N/A</p>`;
@@ -2674,6 +2702,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return path.split('.').reduce((o, key) => (o && o[key] !== undefined && o[key] !== null) ? o[key] : undefined, obj);
     }
 
+    // Helper to set a nested property on an object using a string path
+    function setNestedProperty(obj, path, value) {
+        const parts = path.split('.');
+        let current = obj;
+        for (let i = 0; i < parts.length - 1; i++) {
+            const part = parts[i];
+            if (!current[part] || typeof current[part] !== 'object') {
+                current[part] = {}; // Create nested object if it doesn't exist
+            }
+            current = current[part];
+        }
+        current[parts[parts.length - 1]] = value;
+    }
+
     const filterFieldMap = {
         'purpose': 'roomPurpose', 'wallstype': 'roomMakeup.walls', 'ceilingtype': 'roomMakeup.ceiling.type',
         'asbestos': 'roomMakeup.ceiling.asbestosInCeiling', 'floortype': 'roomMakeup.floor.type',
@@ -2795,18 +2837,18 @@ document.addEventListener('DOMContentLoaded', function () {
         const roomIdentifierFilter = lastFilterState.identifier.trim().toLowerCase();
         const globalQuery = lastFilterState.global.trim();
 
-        let filteredRooms = [];
+        currentFilteredRooms = []; // Clear previous results
         try {
             const allRooms = getStoredRooms(); // Read from cache
-            filteredRooms = allRooms.filter(room => {
+            currentFilteredRooms = allRooms.filter(room => {
                 if (buildingNameFilter && room.buildingName !== buildingNameFilter) return false;
                 if (roomIdentifierFilter && (!room.roomIdentifier || !room.roomIdentifier.toLowerCase().startsWith(roomIdentifierFilter))) return false;
                 if (globalQuery && !evaluateQuery(globalQuery, room)) return false;
                 return true; 
             });
             
-             if (filteredRooms.length > 0) {
-                filterFeedback.textContent = `Found ${filteredRooms.length} room(s) matching your criteria.`;
+             if (currentFilteredRooms.length > 0) {
+                filterFeedback.textContent = `Found ${currentFilteredRooms.length} room(s) matching your criteria.`;
                 filterFeedback.className = 'feedback success';
             } else {
                 filterFeedback.textContent = 'No rooms found matching your criteria.';
@@ -2816,9 +2858,9 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("Filter query parsing error:", e);
             filterFeedback.textContent = `Error in filter query syntax: ${e.message}`;
             filterFeedback.className = 'feedback error';
-            filteredRooms = []; 
+            currentFilteredRooms = []; 
         }
-        renderRoomList(filteredRooms, filterResultsContainer, true);
+        renderRoomList(currentFilteredRooms, filterResultsContainer, true);
     }    
     
     // This new function handles restoring the filter view
@@ -2830,6 +2872,142 @@ document.addEventListener('DOMContentLoaded', function () {
         globalQueryInput.value = lastFilterState.global;
         // Re-run the search
         applyFilters();
+    }
+
+    // --- Mass Edit Logic (NEW FUNCTIONS & LISTENERS) ---
+    if (enableMassEditCheckbox) {
+        enableMassEditCheckbox.addEventListener('change', () => {
+            if (massEditFields) {
+                massEditFields.style.display = enableMassEditCheckbox.checked ? 'block' : 'none';
+                if (!enableMassEditCheckbox.checked) {
+                    massEditPropertySelect.value = '';
+                    previousLabelInput.value = '';
+                    newLabelInput.value = '';
+                    if (massEditFeedback) {
+                        massEditFeedback.textContent = '';
+                        massEditFeedback.className = 'feedback';
+                    }
+                }
+            }
+        });
+    }
+
+    if (applyMassEditBtn) {
+        applyMassEditBtn.addEventListener('click', async () => {
+            if (massEditFeedback) {
+                massEditFeedback.textContent = '';
+                massEditFeedback.className = 'feedback';
+            }
+
+            if (!enableMassEditCheckbox.checked) {
+                massEditFeedback.textContent = 'Please enable Mass Edit first.';
+                massEditFeedback.className = 'feedback error';
+                return;
+            }
+            
+            if (currentFilteredRooms.length === 0) {
+                massEditFeedback.textContent = 'No rooms are currently filtered. Apply filters above before using mass edit.';
+                massEditFeedback.className = 'feedback error';
+                return;
+            }
+
+            const propertyPath = massEditPropertySelect.value;
+            const previousLabel = previousLabelInput.value.trim();
+            const newLabel = newLabelInput.value.trim();
+
+            if (!propertyPath) {
+                massEditFeedback.textContent = 'Please select a property to edit.';
+                massEditFeedback.className = 'feedback error';
+                return;
+            }
+            if (!previousLabel) {
+                massEditFeedback.textContent = 'Please enter the "Previous Label" to replace.';
+                massEditFeedback.className = 'feedback error';
+                return;
+            }
+            // newLabel can be empty if the user wants to clear a field
+
+            if (!navigator.onLine) {
+                massEditFeedback.textContent = 'A network connection is required to perform mass updates.';
+                massEditFeedback.className = 'feedback error';
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to change "${propertyPath}" from "${previousLabel}" to "${newLabel}" for all ${currentFilteredRooms.length} filtered rooms? This action cannot be undone.`)) {
+                massEditFeedback.textContent = 'Mass edit cancelled.';
+                massEditFeedback.className = 'feedback info';
+                return;
+            }
+
+            massEditFeedback.textContent = 'Applying mass edit... Please wait.';
+            massEditFeedback.className = 'feedback info';
+
+            const batch = writeBatch(db);
+            let updatesCount = 0;
+
+            currentFilteredRooms.forEach(room => {
+                const currentValue = getNestedProperty(room, propertyPath);
+                
+                // Special handling for condition strings to match their numerical part for comparison
+                let compareValue = String(currentValue).toLowerCase();
+                let comparePreviousLabel = previousLabel.toLowerCase();
+
+                const conditionRegex = /^(\d+) - /;
+                const currentConditionMatch = String(currentValue).match(conditionRegex);
+                const previousLabelConditionMatch = previousLabel.match(conditionRegex);
+
+                if (currentConditionMatch && previousLabelConditionMatch) {
+                    // Compare only the numerical part if both are condition strings
+                    compareValue = currentConditionMatch[1];
+                    comparePreviousLabel = previousLabelConditionMatch[1];
+                }
+
+                // If a property like 'safety.smokeDetectors' is a number, ensure type consistency
+                if (typeof currentValue === 'number') {
+                    if (Number(currentValue) === Number(previousLabel)) {
+                        setNestedProperty(room, propertyPath, Number(newLabel));
+                        const roomRef = doc(db, ROOMS_COLLECTION, room.id);
+                        batch.update(roomRef, {
+                            [propertyPath.replace(/\./g, '_')]: Number(newLabel), // Flatten the path for Firestore update object
+                            savedAt: new Date().toISOString(),
+                            lastModifiedBy: auth.currentUser ? auth.currentUser.email : 'system (mass edit)'
+                        });
+                        updatesCount++;
+                    }
+                } else if (compareValue === comparePreviousLabel) {
+                    setNestedProperty(room, propertyPath, newLabel);
+                    const roomRef = doc(db, ROOMS_COLLECTION, room.id);
+                    // Firestore needs dot notation for nested fields but it expects object properties.
+                    // This way we build the update object dynamically for nested properties.
+                    let updateObject = {};
+                    setNestedProperty(updateObject, propertyPath, newLabel); // Set the value in a temporary object
+                    updateObject.savedAt = new Date().toISOString();
+                    updateObject.lastModifiedBy = auth.currentUser ? auth.currentUser.email : 'system (mass edit)';
+                    batch.update(roomRef, updateObject);
+                    updatesCount++;
+                }
+            });
+
+            if (updatesCount === 0) {
+                massEditFeedback.textContent = 'No rooms found with the specified "Previous Label" for the selected property among the filtered rooms. No changes applied.';
+                massEditFeedback.className = 'feedback info';
+                return;
+            }
+
+            try {
+                await batch.commit();
+                massEditFeedback.textContent = `Successfully updated ${updatesCount} room(s).`;
+                massEditFeedback.className = 'feedback success';
+                previousLabelInput.value = '';
+                newLabelInput.value = '';
+                // Re-apply filters to reflect changes
+                applyFilters();
+            } catch (error) {
+                console.error("Firestore: Mass edit batch failed", error);
+                massEditFeedback.textContent = `Error applying mass edit: ${error.message}`;
+                massEditFeedback.className = 'feedback error';
+            }
+        });
     }
     
     if (filterForm) {
@@ -2845,6 +3023,13 @@ document.addEventListener('DOMContentLoaded', function () {
             lastFilterState = { building: '', identifier: '', global: '' };
             if (filterResultsContainer) filterResultsContainer.innerHTML = '<p class="empty-list-message">Enter filter criteria and click "Apply Filters".</p>';
             if (filterFeedback) { filterFeedback.textContent = ''; filterFeedback.className = 'feedback'; }
+            // Reset mass edit fields when filters are cleared
+            if (enableMassEditCheckbox) enableMassEditCheckbox.checked = false;
+            if (massEditFields) massEditFields.style.display = 'none';
+            if (massEditPropertySelect) massEditPropertySelect.value = '';
+            if (previousLabelInput) previousLabelInput.value = '';
+            if (newLabelInput) newLabelInput.value = '';
+            if (massEditFeedback) { massEditFeedback.textContent = ''; massEditFeedback.className = 'feedback'; }
         });
     }
     

@@ -407,6 +407,54 @@
                     <button type="button" id="clearFilterBtn" class="action-button secondary-button"><i class="fas fa-undo"></i> Clear Filters</button>
                     <p id="filterFeedback" class="feedback"></p>
                 </form>
+
+                <section class="form-section data-management-section">
+                    <h2><i class="fas fa-pencil-ruler"></i> Mass Edit Filtered Rooms</h2>
+                    <p class="data-management-description">Apply a bulk change to rooms that match the filters above. Only enabled when filters are applied.</p>
+                    <div class="input-group">
+                        <label for="enableMassEditCheckbox">
+                            <input type="checkbox" id="enableMassEditCheckbox"> Enable Mass Edit
+                        </label>
+                    </div>
+                    <div id="massEditFields" style="display:none;">
+                        <div class="input-group">
+                            <label for="massEditPropertySelect">Property to Edit:</label>
+                            <select id="massEditPropertySelect">
+                                <option value="">-- Select Property --</option>
+                                <option value="roomPurpose">Room Purpose</option>
+                                <option value="roomPurposeOther">Room Purpose (Other Specify)</option>
+                                <option value="roomMakeup.walls">Walls Type</option>
+                                <option value="roomMakeup.wallsOther">Walls Type (Other Specify)</option>
+                                <option value="roomMakeup.ceiling.type">Ceiling Type</option>
+                                <option value="roomMakeup.ceiling.typeOther">Ceiling Type (Other Specify)</option>
+                                <option value="roomMakeup.floor.type">Floor Type</option>
+                                <option value="roomMakeup.floor.typeOther">Floor Type (Other Specify)</option>
+                                <option value="heatingCooling">Heating/Cooling Type</option>
+                                <option value="heatingCoolingOther">Heating/Cooling (Other Specify)</option>
+                                <option value="conditionValues.walls">Walls Condition</option>
+                                <option value="conditionValues.wallsComment">Walls Condition Comment</option>
+                                <option value="conditionValues.floor">Floor Condition</option>
+                                <option value="conditionValues.floorComment">Floor Condition Comment</option>
+                                <option value="conditionValues.ceiling">Ceiling Condition</option>
+                                <option value="conditionValues.ceilingComment">Ceiling Condition Comment</option>
+                                <option value="conditionValues.furniture">Furniture Condition</option>
+                                <option value="conditionValues.furnitureComment">Furniture Condition Comment</option>
+                                <option value="conditionValues.overall">Overall Room Condition</option>
+                                <option value="conditionValues.overallComment">Overall Room Condition Comment</option>
+                                </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="previousLabelInput">Previous Label:</label>
+                            <input type="text" id="previousLabelInput" placeholder="e.g., Plaster">
+                        </div>
+                        <div class="input-group">
+                            <label for="newLabelInput">New Label:</label>
+                            <input type="text" id="newLabelInput" placeholder="e.g., Hard Ceiling">
+                        </div>
+                        <button type="button" id="applyMassEditBtn" class="action-button primary-button"><i class="fas fa-magic"></i> Apply Mass Edit</button>
+                        <p id="massEditFeedback" class="feedback"></p>
+                    </div>
+                </section>
                 <div id="filterResultsContainer">
                     </div>
             </div>
