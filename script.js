@@ -746,7 +746,6 @@ And everyone knows what happened in 1816:
         ];
 
         fieldsToApply.forEach(fieldName => {
-            // Use getNestedProperty to handle paths like 'roomMakeup.walls'
             const value = getNestedProperty(lastInputValues, fieldName);
             if (value !== undefined && value !== null && (typeof value === 'number' || value !== '')) {
                 const element = form.querySelector(`[name="${fieldName}"], #${fieldName}`);
@@ -757,6 +756,10 @@ And everyone knows what happened in 1816:
                     }
                     element.value = value;
                     element.classList.add('remembered-input');
+                    // Explicitly dispatch change event for selects to trigger conditional logic
+                    if (element.tagName === 'SELECT') {
+                        element.dispatchEvent(new Event('change'));
+                    }
                 }
             }
         });
@@ -764,15 +767,26 @@ And everyone knows what happened in 1816:
         // Handle specific nested structures like roomMakeup.ceiling.asbestosInCeiling
         if (lastInputValues.roomMakeup?.ceiling?.asbestosInCeiling) {
             const radio = form.querySelector(`input[name="ceilingAsbestos"][value="${lastInputValues.roomMakeup.ceiling.asbestosInCeiling}"]`);
-            if (radio) radio.checked = true;
+            if (radio) {
+                radio.checked = true;
+                radio.classList.add('remembered-input');
+                radio.dispatchEvent(new Event('change')); // Explicitly dispatch change event for radio
+            }
         }
         // Handle specific nested structures like roomMakeup.floor.tileSize
         if (lastInputValues.roomMakeup?.floor?.tileSize) {
             const radio = form.querySelector(`input[name="floorTileSize"][value="${lastInputValues.roomMakeup.floor.tileSize}"]`);
-            if (radio) radio.checked = true;
+            if (radio) {
+                radio.checked = true;
+                radio.classList.add('remembered-input');
+                radio.dispatchEvent(new Event('change')); // Explicitly dispatch change event for radio
+            }
             if (lastInputValues.roomMakeup.floor.tileSize === 'Other' && lastInputValues.roomMakeup.floor.tileSizeOther) {
                 const otherInput = form.querySelector('#floorTileSizeOther');
-                if (otherInput) otherInput.value = lastInputValues.roomMakeup.floor.tileSizeOther;
+                if (otherInput) {
+                    otherInput.value = lastInputValues.roomMakeup.floor.tileSizeOther;
+                    otherInput.classList.add('remembered-input');
+                }
             }
         }
 
@@ -814,11 +828,17 @@ And everyone knows what happened in 1816:
 
                             if (checkboxValue === "Other") {
                                 const specifyInput = document.getElementById(specifyInputId);
-                                if (specifyInput) specifyInput.value = specifyText || '';
+                                if (specifyInput) {
+                                    specifyInput.value = specifyText || '';
+                                    specifyInput.classList.add('remembered-input');
+                                }
                                 countInputId = 'otherFixturesOtherCount';
                             }
                             const countInput = document.getElementById(countInputId);
-                            if (countInput) countInput.value = count || '1';
+                            if (countInput) {
+                                countInput.value = count || '1';
+                                countInput.classList.add('remembered-input');
+                            }
                         }
                     }
                 });
@@ -826,11 +846,17 @@ And everyone knows what happened in 1816:
                 // Handle specific "Other" text inputs for furniture and technology
                 if (group.specialtySpecifyKey && lastInputValues[group.specialtySpecifyKey]) {
                     const input = form.querySelector('#furnitureSpecialtySpecifyText');
-                    if (input) input.value = lastInputValues[group.specialtySpecifyKey];
+                    if (input) {
+                        input.value = lastInputValues[group.specialtySpecifyKey];
+                        input.classList.add('remembered-input');
+                    }
                 }
                 if (group.otherSpecifyKey && lastInputValues[group.otherSpecifyKey]) {
                     const input = form.querySelector(`#${group.checkboxName}OtherSpecifyText`);
-                    if (input) input.value = lastInputValues[group.otherSpecifyKey];
+                    if (input) {
+                        input.value = lastInputValues[group.otherSpecifyKey];
+                        input.classList.add('remembered-input');
+                    }
                 }
             }
         });
@@ -1897,7 +1923,10 @@ And everyone knows what happened in 1816:
 
         const roomPurposeSelectEl = roomForm.querySelector('#roomPurpose');
         const roomPurposeOtherInputEl = roomForm.querySelector('#roomPurposeOther');
-        if (roomPurposeSelectEl) roomPurposeSelectEl.value = room.roomPurpose || 'Lab';
+        if (roomPurposeSelectEl) {
+            roomPurposeSelectEl.value = room.roomPurpose || 'Lab';
+            roomPurposeSelectEl.dispatchEvent(new Event('change')); // Trigger change
+        }
         if (roomPurposeOtherInputEl && room.roomPurpose === 'Other') {
             roomPurposeOtherInputEl.value = room.roomPurposeOther || '';
         }
@@ -1905,30 +1934,44 @@ And everyone knows what happened in 1816:
          if (room.roomMakeup) {
             const makeup = room.roomMakeup;
             const wallsEl = roomForm.querySelector('#walls');
-            if(wallsEl) wallsEl.value = makeup.walls || 'Drywall';
+            if(wallsEl) {
+                wallsEl.value = makeup.walls || 'Drywall';
+                wallsEl.dispatchEvent(new Event('change')); // Trigger change
+            }
             if (makeup.walls === 'Other') {
                 const wallsOtherEl = roomForm.querySelector('#wallsOther');
                 if(wallsOtherEl) wallsOtherEl.value = makeup.wallsOther || '';
             }
             if (makeup.ceiling) {
                 const ceilingTypeEl = roomForm.querySelector('#ceilingType');
-                if(ceilingTypeEl) ceilingTypeEl.value = makeup.ceiling.type || 'Drop Ceiling';
+                if(ceilingTypeEl) {
+                    ceilingTypeEl.value = makeup.ceiling.type || 'Drop Ceiling';
+                    ceilingTypeEl.dispatchEvent(new Event('change')); // Trigger change
+                }
                 if (makeup.ceiling.type === 'Other') {
                     const ceilingTypeOtherEl = roomForm.querySelector('#ceilingTypeOther');
                     if(ceilingTypeOtherEl) ceilingTypeOtherEl.value = makeup.ceiling.typeOther || '';
                 }
                 if (makeup.ceiling.type === 'Drop Ceiling' && makeup.ceiling.asbestosInCeiling) {
                     const ceilingAsbestosInput = roomForm.querySelector(`input[name="ceilingAsbestos"][value="${makeup.ceiling.asbestosInCeiling}"]`);
-                    if (ceilingAsbestosInput) ceilingAsbestosInput.checked = true;
-                    else {
+                    if (ceilingAsbestosInput) {
+                        ceilingAsbestosInput.checked = true;
+                        ceilingAsbestosInput.dispatchEvent(new Event('change')); // Trigger change
+                    } else {
                         const defaultCeilingAsbestos = roomForm.querySelector(`input[name="ceilingAsbestos"][value="No"]`);
-                        if (defaultCeilingAsbestos) defaultCeilingAsbestos.checked = true;
+                        if (defaultCeilingAsbestos) {
+                            defaultCeilingAsbestos.checked = true;
+                            defaultCeilingAsbestos.dispatchEvent(new Event('change'));
+                        }
                     }
                 }
             }
             if (makeup.floor) {
                 const floorTypeEl = roomForm.querySelector('#floorType');
-                if(floorTypeEl) floorTypeEl.value = makeup.floor.type || 'Carpet';
+                if(floorTypeEl) {
+                    floorTypeEl.value = makeup.floor.type || 'Carpet';
+                    floorTypeEl.dispatchEvent(new Event('change')); // Trigger change
+                }
                 if (makeup.floor.type === 'Other') {
                     const floorTypeOtherEl = roomForm.querySelector('#floorTypeOther');
                     if(floorTypeOtherEl) floorTypeOtherEl.value = makeup.floor.typeOther || '';
@@ -1944,10 +1987,15 @@ And everyone knows what happened in 1816:
                     }
                     if (targetFloorTileSize) {
                         const floorTileSizeRadio = roomForm.querySelector(`input[name="floorTileSize"][value="${targetFloorTileSize}"]`);
-                        if (floorTileSizeRadio) floorTileSizeRadio.checked = true;
-                        else {
+                        if (floorTileSizeRadio) {
+                            floorTileSizeRadio.checked = true;
+                            floorTileSizeRadio.dispatchEvent(new Event('change')); // Trigger change
+                        } else {
                              const defaultFloorTileSize = roomForm.querySelector(`input[name="floorTileSize"][value="12x12"]`);
-                             if(defaultFloorTileSize) defaultFloorTileSize.checked = true;
+                             if(defaultFloorTileSize) {
+                                defaultFloorTileSize.checked = true;
+                                defaultFloorTileSize.dispatchEvent(new Event('change'));
+                             }
                         }
                         if (targetFloorTileSize === 'Other' && targetFloorTileSizeOther) {
                             const floorTileSizeOtherEl = roomForm.querySelector('#floorTileSizeOther');
@@ -1955,7 +2003,10 @@ And everyone knows what happened in 1816:
                         }
                     } else {
                         const defaultFloorTileSize = roomForm.querySelector(`input[name="floorTileSize"][value="12x12"]`);
-                        if(defaultFloorTileSize) defaultFloorTileSize.checked = true;
+                        if(defaultFloorTileSize) {
+                            defaultFloorTileSize.checked = true;
+                            defaultFloorTileSize.dispatchEvent(new Event('change'));
+                        }
                     }
                 }
             }
@@ -2033,7 +2084,10 @@ And everyone knows what happened in 1816:
             }
         }
         const heatingCoolingEl = roomForm.querySelector('#heatingCooling');
-        if(heatingCoolingEl) heatingCoolingEl.value = room.heatingCooling || 'Forced Air';
+        if(heatingCoolingEl) {
+            heatingCoolingEl.value = room.heatingCooling || 'Forced Air';
+            heatingCoolingEl.dispatchEvent(new Event('change')); // Trigger change
+        }
         if (room.heatingCooling === 'Other') {
             const heatingCoolingOtherEl = roomForm.querySelector('#heatingCoolingOther');
             if(heatingCoolingOtherEl) heatingCoolingOtherEl.value = room.heatingCoolingOther || '';
