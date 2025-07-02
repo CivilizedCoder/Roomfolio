@@ -11,7 +11,16 @@
 </head>
 <body>
 
-    <div id="LoginView" class="view-section active-view">
+    <!-- NEW: Loading Overlay - This will be shown initially -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loadingMessage">Checking credentials...</p>
+        </div>
+    </div>
+
+    <!-- Login View - Initially hidden, controlled by script.js -->
+    <div id="LoginView" class="view-section" style="display: none;">
         <div class="login-container">
             <header class="view-header" style="text-align: center; border-bottom: none; margin-bottom: 20px;">
                 <h1><i class="fas fa-building"></i> Welcome to Roomfolio</h1>
@@ -38,6 +47,7 @@
         </div>
     </div>
 
+    <!-- Register View - Initially hidden -->
     <div id="RegisterView" class="view-section" style="display: none;">
         <div class="login-container">
             <header class="view-header" style="text-align: center; border-bottom: none; margin-bottom: 20px;">
@@ -60,6 +70,7 @@
         </div>
     </div>
 
+    <!-- Password Reset View - Initially hidden -->
     <div id="PasswordResetView" class="view-section" style="display: none;">
         <div class="login-container">
             <header class="view-header" style="text-align: center; border-bottom: none; margin-bottom: 20px;">
@@ -78,7 +89,7 @@
         </div>
     </div>
 
-
+    <!-- Main App Container - Initially hidden, controlled by script.js -->
     <div class="app-container" id="AppContainer" style="display: none;">
         <nav class="main-nav">
             <div class="nav-logo">

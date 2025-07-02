@@ -68,6 +68,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     const backToLoginFromReset = document.getElementById('backToLoginFromReset');
     
+    // NEW: Loading Overlay Elements
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+
     // Navigation elements
     const navLinks = document.querySelectorAll('.nav-link');
     const views = document.querySelectorAll('.view-section');
@@ -221,14 +225,28 @@ And everyone knows what happened in 1816:
         "Lakeside 133 (Phi Tau)", "Lakeside 135", "Lakeside 137 (RA Housing)", 'Lakeside 141 (Phi Psi)', "Lakeside 151 (Ulster)"
     ];
 
-    
-    // --- AUTHENTICATION LOGIC ---
+    // Initially hide all main views and ensure loading overlay is visible
+    loginView.style.display = 'none';
+    registerView.style.display = 'none';
+    passwordResetView.style.display = 'none';
+    appContainer.style.display = 'none';
+    if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
+
+    // --- AUTHENTICATION LOGIC ---
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             // User is signed in, now check their status in Firestore
+            // Show a message that credentials are being applied
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden'); // Ensure visible if it was hidden by a quick state change
+                loadingMessage.textContent = 'Credentials found. Applying...';
+            }
+
             const userDocRef = doc(db, USERS_COLLECTION, user.uid);
             const userDocSnap = await getDoc(userDocRef);
+
+            if (loadingOverlay) loadingOverlay.classList.add('hidden'); // Hide after Firestore check
 
             if (userDocSnap.exists()) {
                 const userData = userDocSnap.data();
@@ -260,15 +278,20 @@ And everyone knows what happened in 1816:
                     loginFeedback.textContent = 'Your account is awaiting approval. Please check back later.';
                     loginFeedback.className = 'feedback info';
                     signOut(auth); // Log them out
+                    loginView.style.display = 'flex'; // Show login view after sign out
+                    loginView.classList.add('active-view');
                 }
             } else {
                 // User exists in Auth but not in our users collection (edge case)
                 loginFeedback.textContent = 'Your account is not fully configured. Please contact an administrator.';
                 loginFeedback.className = 'feedback error';
                 signOut(auth);
+                loginView.style.display = 'flex'; // Show login view after sign out
+                loginView.classList.add('active-view');
             }
         } else {
             // User is signed out
+            if (loadingOverlay) loadingOverlay.classList.add('hidden'); // Hide loading overlay
             appContainer.style.display = 'none';
             appContainer.classList.remove('active-view');
             registerView.style.display = 'none';
@@ -571,47 +594,154 @@ And everyone knows what happened in 1816:
         if (stored) {
             lastInputValues = JSON.parse(stored);
         } else {
+            // Default values for a brand new start
             lastInputValues = {
                 roomPurpose: 'Lab',
                 walls: 'Drywall',
                 ceilingType: 'Drop Ceiling',
                 floorType: 'Carpet',
                 heatingCooling: 'Forced Air',
-                lightFixtures: [{ type: 'LED', quantity: 1, style: 'Flat Panel' }]
+                lightFixtures: [{ type: 'LED', quantity: 1, style: 'Flat Panel' }],
+                doors: [{ identifier: 'Main Entry', type: 'Wood', lockType: 'Key' }]
             };
         }
     }
 
     function saveLastInputValues() {
         try {
-            localStorage.setItem(LAST_INPUT_VALUES_KEY, JSON.stringify(lastInputValues));
+            const currentData = getCurrentRoomDataFromForm(); // Get all current form data
+
+            // Create a deep copy to modify for storage
+            const dataToStore = JSON.parse(JSON.stringify(currentData));
+
+            // Exclude specific fields as per user request
+            delete dataToStore.roomIdentifier; // Room number
+            if (dataToStore.conditionValues) {
+                delete dataToStore.conditionValues.ceilingComment;
+                delete dataToStore.conditionValues.wallsComment;
+                delete dataToStore.conditionValues.furnitureComment;
+                delete dataToStore.conditionValues.floorComment;
+                delete dataToStore.conditionValues.overallComment;
+            }
+
+            // Special handling for doors: only remember if it's the default 'Main Entry' and no other doors
+            if (dataToStore.doors && dataToStore.doors.length === 1 &&
+                dataToStore.doors[0].identifier === 'Main Entry' &&
+                dataToStore.doors[0].type === 'Wood' &&
+                dataToStore.doors[0].lockType === 'Key' &&
+                !dataToStore.doors[0].typeOther &&
+                !dataToStore.doors[0].lockTypeOther) {
+                // Keep the default door for remembering
+            } else {
+                // If there are multiple doors or the single door is not the default, clear it for remembering
+                // A new room will then get a fresh default 'Main Entry'
+                dataToStore.doors = [];
+            }
+
+            localStorage.setItem(LAST_INPUT_VALUES_KEY, JSON.stringify(dataToStore));
         } catch (e) {
             console.error("Could not save last input values, storage might be full.", e);
         }
     }
 
+    // Helper to get a nested property from an object using a string path
     function getNestedProperty(obj, path) {
         return path.split('.').reduce((acc, part) => {
-    // Ensure accumulator is not null or undefined before trying to access property
-        return acc && typeof acc === 'object' ? acc[part] : undefined;
-  }, obj);
-}
+            return acc && typeof acc === 'object' ? acc[part] : undefined;
+        }, obj);
+    }
+
+    // Helper to set a nested property on an object using a string path
+    function setNestedProperty(obj, path, value) {
+        const parts = path.split('.');
+        let current = obj;
+        for (let i = 0; i < parts.length - 1; i++) {
+            const part = parts[i];
+            if (!current[part] || typeof current[part] !== 'object') {
+                current[part] = {}; // Create nested object if it doesn't exist
+            }
+            current = current[part];
+        }
+        current[parts[parts.length - 1]] = value;
+    }
+
+    // Recursive function to apply values from a data object to a form
+    function applyValuesToFormElements(data, formElement) {
+        if (!data || typeof data !== 'object' || !formElement) return;
+
+        for (const key in data) {
+            if (!data.hasOwnProperty(key)) continue;
+
+            const value = data[key];
+            const element = formElement.querySelector(`[name="${key}"], #${key}`);
+
+            if (element) {
+                if (element.tagName === 'SELECT' || element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                    // Skip roomIdentifier and comment fields
+                    if (key === 'roomIdentifier' || key.endsWith('Comment')) {
+                        continue;
+                    }
+                    if (element.tagName === 'SELECT') {
+                        const optionExists = Array.from(element.options).some(opt => opt.value === value);
+                        if (!optionExists) continue; // Don't set if option doesn't exist
+                    }
+                    element.value = value;
+                    element.classList.add('remembered-input');
+                } else if (element.type === 'radio') {
+                    // For radio buttons, find the one with the matching value
+                    const radio = formElement.querySelector(`input[name="${key}"][value="${value}"]`);
+                    if (radio) {
+                        radio.checked = true;
+                        radio.classList.add('remembered-input');
+                    }
+                } else if (element.type === 'checkbox') {
+                    // For single checkboxes, check if the value is truthy
+                    if (value) {
+                        element.checked = true;
+                        element.classList.add('remembered-input');
+                    }
+                }
+            } else if (typeof value === 'object' && value !== null) {
+                // Handle nested objects (e.g., roomMakeup, conditionValues, safety)
+                // For nested properties, we need to target elements by their full name or ID path if available
+                // This part requires more specific handling based on your HTML structure
+                // For now, let's assume direct mapping for simple inputs within nested structures
+                // and handle checkboxes/radios for groups.
+
+                // Example for nested properties like roomMakeup.walls
+                // This requires iterating through the nested data and finding elements by their direct name/ID
+                // For simplicity, the current `applyLastInputsToForm` below will handle the top-level fields
+                // and then specific logic for complex parts like otherFixtures, lightFixtures, doors.
+                // A more robust recursive approach would need a way to map data path to DOM elements.
+                // Given the current form structure, explicit handling per section is more practical.
+            }
+        }
+    }
+
 
     function applyLastInputsToForm(form) {
-        if (!form) return;
+        if (!form || !lastInputValues) return;
+
+        // Clear remembered-input class from all elements first
         form.querySelectorAll('.remembered-input, .default-value-input').forEach(el => el.classList.remove('remembered-input', 'default-value-input'));
-        const fieldsToRemember = [
+
+        // Apply values for simple direct inputs and selects
+        const fieldsToApply = [
             'roomPurpose', 'roomPurposeOther',
             'walls', 'wallsOther',
             'ceilingType', 'ceilingTypeOther',
             'floorType', 'floorTypeOther',
-            'heatingCooling', 'heatingCoolingOther'
+            'heatingCooling', 'heatingCoolingOther',
+            'smokeDetectors', 'maxOccupancy',
+            'ceilingCondition', 'wallsCondition', 'furnitureCondition', 'floorCondition', 'overallCondition'
         ];
-        fieldsToRemember.forEach(fieldName => {
-            const element = form.querySelector(`[name="${fieldName}"], #${fieldName}`);
-            if (element && lastInputValues.hasOwnProperty(fieldName)) {
-                const value = lastInputValues[fieldName];
-                if (value !== undefined && value !== null && (typeof value === 'number' || value !== '')) {
+
+        fieldsToApply.forEach(fieldName => {
+            // Use getNestedProperty to handle paths like 'roomMakeup.walls'
+            const value = getNestedProperty(lastInputValues, fieldName);
+            if (value !== undefined && value !== null && (typeof value === 'number' || value !== '')) {
+                const element = form.querySelector(`[name="${fieldName}"], #${fieldName}`);
+                if (element) {
                     if (element.tagName === 'SELECT') {
                         const optionExists = Array.from(element.options).some(opt => opt.value === value);
                         if (!optionExists) return;
@@ -621,36 +751,100 @@ And everyone knows what happened in 1816:
                 }
             }
         });
-        if (lastInputValues.lightFixtures && lastInputValues.lightFixtures.length > 0 && lightFixturesContainer.children.length > 0) {
-            const firstFixtureTemplate = lastInputValues.lightFixtures[0];
-            const firstEntry = lightFixturesContainer.children[0];
-            if (firstEntry) {
-                const typeSelect = firstEntry.querySelector('select[name="lightFixtureType"]');
-                const typeOther = firstEntry.querySelector('input[name="lightFixtureTypeOtherSpecify"]');
-                const styleSelect = firstEntry.querySelector('select[name="lightFixtureStyle"]');
-                const styleOther = firstEntry.querySelector('input[name="lightFixtureStyleOtherSpecify"]');
-                if (typeSelect && firstFixtureTemplate.type) {
-                     if (Array.from(typeSelect.options).some(opt => opt.value === firstFixtureTemplate.type)) {
-                        typeSelect.value = firstFixtureTemplate.type;
-                        typeSelect.classList.add('remembered-input');
-                        if (typeSelect.value === 'Other' && typeOther && firstFixtureTemplate.typeOtherSpecify) {
-                            typeOther.value = firstFixtureTemplate.typeOtherSpecify;
-                            typeOther.classList.add('remembered-input');
-                        }
-                    }
-                }
-                if (styleSelect && firstFixtureTemplate.style) {
-                     if (Array.from(styleSelect.options).some(opt => opt.value === firstFixtureTemplate.style)) {
-                        styleSelect.value = firstFixtureTemplate.style;
-                        styleSelect.classList.add('remembered-input');
-                         if (styleSelect.value === 'Other' && styleOther && firstFixtureTemplate.styleOtherSpecify) {
-                            styleOther.value = firstFixtureTemplate.styleOtherSpecify;
-                            styleOther.classList.add('remembered-input');
-                        }
-                    }
-                }
+
+        // Handle specific nested structures like roomMakeup.ceiling.asbestosInCeiling
+        if (lastInputValues.roomMakeup?.ceiling?.asbestosInCeiling) {
+            const radio = form.querySelector(`input[name="ceilingAsbestos"][value="${lastInputValues.roomMakeup.ceiling.asbestosInCeiling}"]`);
+            if (radio) radio.checked = true;
+        }
+        // Handle specific nested structures like roomMakeup.floor.tileSize
+        if (lastInputValues.roomMakeup?.floor?.tileSize) {
+            const radio = form.querySelector(`input[name="floorTileSize"][value="${lastInputValues.roomMakeup.floor.tileSize}"]`);
+            if (radio) radio.checked = true;
+            if (lastInputValues.roomMakeup.floor.tileSize === 'Other' && lastInputValues.roomMakeup.floor.tileSizeOther) {
+                const otherInput = form.querySelector('#floorTileSizeOther');
+                if (otherInput) otherInput.value = lastInputValues.roomMakeup.floor.tileSizeOther;
             }
         }
+
+        // Handle checkboxes for otherFixtures, furniture, technology
+        const checkboxGroups = [
+            { dataKey: 'otherFixtures', checkboxName: 'otherFixturePresent', specifyKey: 'specify', countKey: 'count', isOtherGroup: true },
+            { dataKey: 'furniture', checkboxName: 'furniture', specifyKey: null, specialtySpecifyKey: 'furnitureSpecialtySpecify', otherSpecifyKey: 'furnitureOtherSpecify' },
+            { dataKey: 'technology', checkboxName: 'technology', specifyKey: null, otherSpecifyKey: 'technologyOtherSpecify' }
+        ];
+
+        checkboxGroups.forEach(group => {
+            if (lastInputValues[group.dataKey] && Array.isArray(lastInputValues[group.dataKey])) {
+                // Uncheck all related checkboxes first
+                form.querySelectorAll(`input[name="${group.checkboxName}"]`).forEach(cb => cb.checked = false);
+
+                lastInputValues[group.dataKey].forEach(item => {
+                    let checkboxValue;
+                    let count = 1;
+                    let specifyText = '';
+
+                    if (group.isOtherGroup) { // For otherFixtures
+                        checkboxValue = item.type;
+                        count = item.count;
+                        specifyText = item.specify;
+                    } else { // For furniture, technology (simple string arrays)
+                        checkboxValue = item;
+                    }
+
+                    const checkbox = form.querySelector(`input[name="${group.checkboxName}"][value="${checkboxValue}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        checkbox.classList.add('remembered-input');
+
+                        if (group.isOtherGroup) {
+                            // Handle count and specify for otherFixtures
+                            const idSuffix = checkboxValue.replace(/[^a-zA-Z0-9]/g, '');
+                            let countInputId = `otherFixture${idSuffix}Count`;
+                            let specifyInputId = `otherFixturesSpecifyText`; // Only for 'Other' type
+
+                            if (checkboxValue === "Other") {
+                                const specifyInput = document.getElementById(specifyInputId);
+                                if (specifyInput) specifyInput.value = specifyText || '';
+                                countInputId = 'otherFixturesOtherCount';
+                            }
+                            const countInput = document.getElementById(countInputId);
+                            if (countInput) countInput.value = count || '1';
+                        }
+                    }
+                });
+
+                // Handle specific "Other" text inputs for furniture and technology
+                if (group.specialtySpecifyKey && lastInputValues[group.specialtySpecifyKey]) {
+                    const input = form.querySelector('#furnitureSpecialtySpecifyText');
+                    if (input) input.value = lastInputValues[group.specialtySpecifyKey];
+                }
+                if (group.otherSpecifyKey && lastInputValues[group.otherSpecifyKey]) {
+                    const input = form.querySelector(`#${group.checkboxName}OtherSpecifyText`);
+                    if (input) input.value = lastInputValues[group.otherSpecifyKey];
+                }
+            }
+        });
+
+        // Trigger change events for checkboxes to update conditional displays
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.dispatchEvent(new Event('change')));
+        
+        // Handle lightFixtures: clear existing and append the remembered one
+        if (lightFixturesContainer) lightFixturesContainer.innerHTML = '';
+        if (lastInputValues.lightFixtures && lastInputValues.lightFixtures.length > 0) {
+            appendNewLightFixtureEntry(lastInputValues.lightFixtures[0], true);
+        } else {
+            appendNewLightFixtureEntry({}, false); // Add a default if none remembered
+        }
+
+        // Handle doors: clear existing and append the remembered one or default
+        if (doorsContainer) doorsContainer.innerHTML = '';
+        if (lastInputValues.doors && lastInputValues.doors.length > 0) {
+            appendNewDoorEntry(lastInputValues.doors[0], true); // Only remember the first door
+        } else {
+            appendNewDoorEntry({ identifier: 'Main Entry' }, true); // Add a default if none remembered
+        }
+
         refreshConditionalFormUI(form);
     }
 
@@ -805,21 +999,31 @@ And everyone knows what happened in 1816:
             feedbackMessage.className = 'feedback';
         }
 
-        populateBuildingDropdowns();
+        populateBuildingDropdowns(); // Populates with last used building
 
-        if (lightFixturesContainer && lightFixturesContainer.children.length === 0) {
-            const rememberedFixtureTemplate = (lastInputValues.lightFixtures && lastInputValues.lightFixtures.length > 0) ? lastInputValues.lightFixtures[0] : {};
-            appendNewLightFixtureEntry(rememberedFixtureTemplate, !!(lastInputValues.lightFixtures && lastInputValues.lightFixtures.length > 0));
-        }
+        // Apply all remembered inputs
+        applyLastInputsToForm(roomForm);
 
+        // Ensure roomIdentifier and comments are always clear for a new room
+        const roomIdentifierEl = roomForm.querySelector('#roomIdentifier');
+        if(roomIdentifierEl) roomIdentifierEl.value = '';
+        
+        const commentFields = ['ceilingConditionComment', 'wallsConditionComment', 'furnitureConditionComment', 'floorConditionComment', 'overallConditionComment'];
+        commentFields.forEach(id => {
+            const textarea = document.getElementById(id);
+            if (textarea) textarea.value = '';
+        });
+
+        // Ensure default door and light fixture are present if not remembered
         if (doorsContainer && doorsContainer.children.length === 0) {
             appendNewDoorEntry({ identifier: 'Main Entry' }, true);
         }
-
-        applyLastInputsToForm(roomForm);
+        if (lightFixturesContainer && lightFixturesContainer.children.length === 0) {
+            appendNewLightFixtureEntry({}, false);
+        }
 
         const overallConditionSelect = document.getElementById('overallCondition');
-        if (overallConditionSelect) overallConditionSelect.value = '';
+        if (overallConditionSelect) overallConditionSelect.value = ''; // Always reset overall condition to N/A for new entry
 
         refreshConditionalFormUI(roomForm);
         
@@ -855,6 +1059,8 @@ And everyone knows what happened in 1816:
                 }
             };
             selectElement.addEventListener('change', update);
+            // Initial call to set correct display based on current value
+            update();
         }
     }
 
@@ -883,6 +1089,8 @@ And everyone knows what happened in 1816:
                 if (!shouldBeVisible) otherTextInput.value = '';
             };
             specificCheckbox.addEventListener('change', updateVisibility);
+            // Initial call to set correct display based on current value
+            updateVisibility();
         }
     }
 
@@ -901,6 +1109,7 @@ And everyone knows what happened in 1816:
                  }
             }
             ceilingTypeSelect.addEventListener('change', updateCeilingOptions);
+            updateCeilingOptions(); // Initial call
         }
 
         const floorTypeSelect = formElement.querySelector('#floorType');
@@ -928,6 +1137,7 @@ And everyone knows what happened in 1816:
                 }
             };
             floorTypeSelect.addEventListener('change', updateFloorOptionsVisibility);
+            updateFloorOptionsVisibility(); // Initial call
 
             const floorTileSizeRadios = formElement.querySelectorAll('input[name="floorTileSize"]');
             const floorTileSizeOtherInput = formElement.querySelector('#floorTileSizeOther');
@@ -939,6 +1149,7 @@ And everyone knows what happened in 1816:
                     if (!showOtherInput) floorTileSizeOtherInput.value = '';
                 };
                 floorTileSizeRadios.forEach(radio => radio.addEventListener('change', updateFloorTileSizeOtherTextVisibility));
+                updateFloorTileSizeOtherTextVisibility(); // Initial call
             }
         }
 
@@ -1185,6 +1396,8 @@ And everyone knows what happened in 1816:
                 else if (!this.checked) countInput.value = '';
             }
         });
+        // Initial call to set correct display based on current value (for remembered inputs)
+        checkbox.dispatchEvent(new Event('change'));
     });
 
     function getStoredRooms() { return allRoomsCache; }
@@ -1499,6 +1712,7 @@ And everyone knows what happened in 1816:
             // For a new room, reset the form immediately for quick entry of the next room.
             // For an edit, we will navigate away shortly.
             if (!isEditing) {
+                saveLastInputValues(); // Save current form state before resetting for next entry
                 resetRoomFormToDefault();
             }
 
@@ -1506,7 +1720,6 @@ And everyone knows what happened in 1816:
                 .then(() => {
                     console.log(`[RoomFormSubmit] Firestore operation successful.`);
                     setLastUsedBuilding(newRoomDataFromForm.buildingName);
-                    saveLastInputValues();
                     
                     if (isEditing) {
                         setTimeout(() => {
