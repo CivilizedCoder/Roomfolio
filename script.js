@@ -616,6 +616,7 @@ And everyone knows what happened in 1816:
 
             // Exclude specific fields as per user request
             delete dataToStore.roomIdentifier; // Room number
+            // Exclude comment fields
             if (dataToStore.conditionValues) {
                 delete dataToStore.conditionValues.ceilingComment;
                 delete dataToStore.conditionValues.wallsComment;
@@ -637,6 +638,14 @@ And everyone knows what happened in 1816:
                 // A new room will then get a fresh default 'Main Entry'
                 dataToStore.doors = [];
             }
+
+            // Light fixtures: only remember the first one
+            if (dataToStore.lightFixtures && dataToStore.lightFixtures.length > 0) {
+                dataToStore.lightFixtures = [dataToStore.lightFixtures[0]];
+            } else {
+                dataToStore.lightFixtures = [];
+            }
+
 
             localStorage.setItem(LAST_INPUT_VALUES_KEY, JSON.stringify(dataToStore));
         } catch (e) {
@@ -730,10 +739,10 @@ And everyone knows what happened in 1816:
             'roomPurpose', 'roomPurposeOther',
             'walls', 'wallsOther',
             'ceilingType', 'ceilingTypeOther',
-            'floorType', 'floorTypeOther',
             'heatingCooling', 'heatingCoolingOther',
             'smokeDetectors', 'maxOccupancy',
-            'ceilingCondition', 'wallsCondition', 'furnitureCondition', 'floorCondition', 'overallCondition'
+            'ceilingCondition', 'wallsCondition', 'furnitureCondition', 'floorCondition', 'overallCondition',
+            'floorType', 'floorTypeOther' // Added floorType and its other
         ];
 
         fieldsToApply.forEach(fieldName => {
@@ -769,9 +778,9 @@ And everyone knows what happened in 1816:
 
         // Handle checkboxes for otherFixtures, furniture, technology
         const checkboxGroups = [
-            { dataKey: 'otherFixtures', checkboxName: 'otherFixturePresent', specifyKey: 'specify', countKey: 'count', isOtherGroup: true },
-            { dataKey: 'furniture', checkboxName: 'furniture', specifyKey: null, specialtySpecifyKey: 'furnitureSpecialtySpecify', otherSpecifyKey: 'furnitureOtherSpecify' },
-            { dataKey: 'technology', checkboxName: 'technology', specifyKey: null, otherSpecifyKey: 'technologyOtherSpecify' }
+            { dataKey: 'otherFixtures', checkboxName: 'otherFixturePresent', isOtherGroup: true },
+            { dataKey: 'furniture', checkboxName: 'furniture', specialtySpecifyKey: 'furnitureSpecialtySpecify', otherSpecifyKey: 'furnitureOtherSpecify' },
+            { dataKey: 'technology', checkboxName: 'technology', otherSpecifyKey: 'technologyOtherSpecify' }
         ];
 
         checkboxGroups.forEach(group => {
