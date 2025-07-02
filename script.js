@@ -1395,7 +1395,11 @@ And everyone knows what happened in 1816:
         }
 
         const quantityInputEl = div.querySelector(`#lightQuantity-${id}`);
-        if (isRememberedSource && fixtureData.quantity) quantityInputEl.classList.add('remembered-input');
+        if (isRememberedSource && fixtureData.quantity) {
+            quantityInputEl.classList.add('remembered-input');
+            // Explicitly dispatch change event for the quantity input to ensure UI updates
+            quantityInputEl.dispatchEvent(new Event('change')); 
+        }
 
         lightFixturesContainer.appendChild(div);
         div.querySelector('.remove-light-fixture-btn').addEventListener('click', () => div.remove());
@@ -2311,7 +2315,6 @@ And everyone knows what happened in 1816:
                 entry += ` - Style: ${escapeHtml(lf.style)}`;
                 if (lf.style === 'Other' && lf.styleOtherSpecify) entry += ` (${escapeHtml(lf.styleOtherSpecify)})`;
                 entry += `</li>`;
-                html += entry;
             });
             html += `</ul>`;
         } else html += `<p><strong>Light Fixtures:</strong> N/A</p>`;
@@ -2843,7 +2846,6 @@ And everyone knows what happened in 1816:
         if (currentExistingRoom) {
             if (importConflictResolutionMode === 'replaceAll') {
                 try {
-                    console.log(`[ImportQueue] Mass Replacing: ${roomToImport.buildingName} - ${roomToImport.roomIdentifier}`);
                     tryMigrateRoomTileData(roomToImport); 
                     await addRoomToFirestore(roomToImport, currentExistingRoom.id);
                     replacedCount++; currentImportIndex++;
@@ -2863,7 +2865,8 @@ And everyone knows what happened in 1816:
                 await addRoomToFirestore(roomToImport);
                 successfullyImportedCount++; currentImportIndex++;
                 processImportQueue();
-            } catch(e) {
+            }
+            catch(e) {
                 importFeedback.textContent = `Import stopped due to an error.`;
                 importFeedback.className = 'feedback error'; return;
             }
