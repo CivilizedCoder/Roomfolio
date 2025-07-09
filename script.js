@@ -125,6 +125,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const renameNewBuildingNameInput = document.getElementById('renameNewBuildingNameInput');
     const renameBuildingBtn = document.getElementById('renameBuildingBtn');
     const buildingManagementFeedback = document.getElementById('buildingManagementFeedback');
+    // NEW: Building Deletion Elements
+    const deleteBuildingNameSelect = document.getElementById('deleteBuildingNameSelect');
+    const deleteBuildingBtn = document.getElementById('deleteBuildingBtn');
+
 
     // Import Conflict Modal elements
     const conflictModal = document.getElementById('conflictModal');
@@ -161,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterResultsContainer = document.getElementById('filterResultsContainer');
     const filterFeedback = document.getElementById('filterFeedback');
 
-    // --- Mass Edit Elements (NEW) ---
+    // --- Mass Edit Logic (NEW) ---
     const enableMassEditCheckbox = document.getElementById('enableMassEditCheckbox');
     const massEditFields = document.getElementById('massEditFields');
     const massEditPropertySelect = document.getElementById('massEditPropertySelect');
@@ -930,6 +934,7 @@ And everyone knows what happened in 1816:
             { el: buildingNameSelect, defaultOpt: "-- Select Building --", selectedVal: selectedBuildingForForm || lastUsed || (lastInputValues ? lastInputValues.buildingName : null) },
             { el: massUpdateOldBuildingNameSelect, defaultOpt: "-- Select Building to Reassign From --" },
             { el: renameOldBuildingNameSelect, defaultOpt: "-- Select Building to Rename --" },
+            { el: deleteBuildingNameSelect, defaultOpt: "-- Select Building --" }, // NEW: Added for delete building dropdown
             { el: filterBuildingNameInput, defaultOpt: "-- Any Building --" }
         ];
         selectsToUpdate.forEach(item => {
@@ -994,6 +999,7 @@ And everyone knows what happened in 1816:
             if(massUpdateNewBuildingNameInput) massUpdateNewBuildingNameInput.value = '';
             if(newBuildingNameInput) newBuildingNameInput.value = '';
             if(renameNewBuildingNameInput) renameNewBuildingNameInput.value = '';
+            if(deleteBuildingNameSelect) deleteBuildingNameSelect.value = ''; // Clear delete dropdown
         } else if (targetViewId === 'AddRoomView') {
             if (!editingRoomIdInput.value && isResolvingAttemptedDataInput.value !== 'true') {
                 resetRoomFormToDefault();
@@ -2609,6 +2615,52 @@ And everyone knows what happened in 1816:
             }
         });
     }
+
+    // NEW: Delete Building Logic
+    if (deleteBuildingBtn) {
+        deleteBuildingBtn.addEventListener('click', async () => {
+            if (buildingManagementFeedback) { buildingManagementFeedback.textContent = ''; buildingManagementFeedback.className = 'feedback'; }
+            const buildingToDelete = deleteBuildingNameSelect.value;
+
+            if (!buildingToDelete) {
+                buildingManagementFeedback.textContent = 'Please select a building to delete.';
+                buildingManagementFeedback.className = 'feedback error';
+                return;
+            }
+
+            // Check if there are any rooms associated with this building
+            const roomsInBuildingQuery = query(collection(db, ROOMS_COLLECTION), where("buildingName", "==", buildingToDelete));
+            const querySnapshot = await getDocs(roomsInBuildingQuery);
+
+            if (!querySnapshot.empty) {
+                buildingManagementFeedback.textContent = `Cannot delete "${escapeHtml(buildingToDelete)}". It still contains ${querySnapshot.size} room(s). Please reassign or delete all rooms in this building first.`;
+                buildingManagementFeedback.className = 'feedback error';
+                return;
+            }
+
+            if (confirm(`Are you sure you want to permanently delete the building "${escapeHtml(buildingToDelete)}"? This action cannot be undone.`)) {
+                try {
+                    let buildings = getStoredBuildings();
+                    const updatedBuildings = buildings.filter(b => b !== buildingToDelete);
+                    await storeBuildings(updatedBuildings);
+                    
+                    deleteBuildingNameSelect.value = ''; // Clear selection
+                    buildingManagementFeedback.textContent = `Building "${escapeHtml(buildingToDelete)}" deleted successfully.`;
+                    buildingManagementFeedback.className = 'feedback success';
+
+                    // If the deleted building was the last used, clear that setting
+                    if (getLastUsedBuilding() === buildingToDelete) {
+                        setLastUsedBuilding('');
+                    }
+                } catch (error) {
+                    console.error("Firestore: Error deleting building", error);
+                    buildingManagementFeedback.textContent = 'An unexpected error occurred during building deletion.';
+                    buildingManagementFeedback.className = 'feedback error';
+                }
+            }
+        });
+    }
+
 
     if (massUpdateBuildingNameBtn) {
         massUpdateBuildingNameBtn.addEventListener('click', async () => {

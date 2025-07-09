@@ -510,6 +510,19 @@
                         </div>
                         <button id="renameBuildingBtn" class="action-button secondary-button"><i class="fas fa-save"></i> Rename Building</button>
                     </div>
+                    <hr class="data-section-divider">
+                    <!-- NEW: Delete Existing Building Section -->
+                    <div class="import-method-container">
+                        <h3 class="data-sub-heading"><i class="fas fa-trash-alt"></i> Delete Existing Building</h3>
+                        <p class="data-management-description">Permanently delete a building. This action is only possible if there are no rooms associated with the building.</p>
+                        <div class="input-group">
+                            <label for="deleteBuildingNameSelect">Select Building to Delete:</label>
+                            <select id="deleteBuildingNameSelect" name="deleteBuildingNameSelect">
+                                <option value="">-- Select Building --</option>
+                            </select>
+                        </div>
+                        <button id="deleteBuildingBtn" class="action-button danger-button"><i class="fas fa-trash-alt"></i> Delete Building</button>
+                    </div>
                     <p id="buildingManagementFeedback" class="feedback"></p>
                 </section>
 
@@ -726,7 +739,7 @@
       <script>
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/Roomfolio/service-worker.js') // Ensure this path is correct for your deployment
+            navigator.serviceWorker.register('/Roomfolio/service-worker.js') //service worker is not necessary.
               .then((registration) => {
                 console.log('Service Worker registered with scope:', registration.scope);
               })
