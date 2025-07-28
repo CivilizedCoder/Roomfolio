@@ -14,12 +14,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- HAMBURGER MENU LOGIC ---
     const hamburgerMenu = document.getElementById('hamburger-menu');
-    const navLinksContainer = document.getElementById('nav-links-container');
+    const navLinksContainer = document.getElementById('nav-links-container');//This will need changed on some devices, however it will be somewhat operational wherever you use it.
     const navLinksForMenu = document.querySelectorAll('#nav-links-container .nav-link');
 
     if (hamburgerMenu && navLinksContainer) {
         hamburgerMenu.addEventListener('click', () => {
             navLinksContainer.classList.toggle('active');
+            
         });
     }
     
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Optional: Close menu when clicking outside of it on mobile
+    // Optional: Close menu when clicking outside of it on mobile. This woudn't be a waste when performing a similar action on PC, but this is the standard system.
     document.addEventListener('click', (event) => {
         const isClickInsideNav = navLinksContainer.contains(event.target);
         const isClickOnHamburger = hamburgerMenu.contains(event.target);
@@ -114,6 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const jsonDisplayArea = document.getElementById('jsonDisplayArea');
     const copyJsonBtn = document.getElementById('copyJsonBtn');
     const exportAllBtn = document.getElementById('exportAllBtn');
+    const exportAllCsvBtn = document.getElementById('exportAllCsvBtn'); // New CSV Export Button
     const exportFeedback = document.getElementById('exportFeedback');
     const massUpdateOldBuildingNameSelect = document.getElementById('massUpdateOldBuildingNameSelect');
     const massUpdateNewBuildingNameInput = document.getElementById('massUpdateNewBuildingNameInput');
@@ -2761,6 +2763,123 @@ And everyone knows what happened in 1816:
         });
     }
 
+    // --- NEW: CSV Export Logic ---
+    if (exportAllCsvBtn) {
+        exportAllCsvBtn.addEventListener('click', async function() {
+            if (!exportFeedback) return;
+            const rooms = getStoredRooms();
+            if (rooms.length === 0) {
+                exportFeedback.textContent = 'No data to export.';
+                exportFeedback.className = 'feedback error';
+                return;
+            }
+
+            try {
+                const csvData = convertToCSV(rooms);
+                const filename = `room_data_export_${new Date().toISOString().slice(0,10)}.csv`;
+
+                if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem) {
+                    const { Filesystem, Directory, Encoding } = window.Capacitor.Plugins;
+                    await Filesystem.writeFile({
+                        path: filename,
+                        data: csvData,
+                        directory: Directory.Documents,
+                        encoding: Encoding.UTF8,
+                    });
+                    exportFeedback.textContent = `Data exported to ${filename} in Documents.`;
+                    exportFeedback.className = 'feedback success';
+                } else {
+                    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    exportFeedback.textContent = 'CSV data export started for web.';
+                    exportFeedback.className = 'feedback success';
+                }
+            } catch (error) {
+                console.error('CSV Export error:', error);
+                exportFeedback.textContent = `CSV Export failed: ${error.message || 'Unknown error'}`;
+                exportFeedback.className = 'feedback error';
+            }
+        });
+    }
+
+    function convertToCSV(data) {
+        const headers = [
+            'id', 'buildingName', 'roomIdentifier', 'roomPurpose', 'roomPurposeOther',
+            'walls', 'wallsOther', 'ceilingType', 'ceilingTypeOther', 'asbestosInCeiling',
+            'floorType', 'floorTypeOther', 'tileSize', 'tileSizeOther',
+            'ceilingCondition', 'ceilingComment', 'wallsCondition', 'wallsComment',
+            'furnitureCondition', 'furnitureComment', 'floorCondition', 'floorComment',
+            'overallCondition', 'overallComment', 'lightFixtures_JSON', 'otherFixtures_JSON',
+            'furniture_JSON', 'furnitureSpecialtySpecify', 'furnitureOtherSpecify',
+            'heatingCooling', 'heatingCoolingOther', 'smokeDetectors', 'maxOccupancy',
+            'doors_JSON', 'technology_JSON', 'technologyOtherSpecify',
+            'lastModifiedBy', 'savedAt'
+        ];
+
+        const escapeCSV = (str) => {
+            if (str === null || str === undefined) return '';
+            const string = String(str);
+            if (string.includes('"') || string.includes(',') || string.includes('\n')) {
+                return `"${string.replace(/"/g, '""')}"`;
+            }
+            return string;
+        };
+        
+        const rows = data.map(room => {
+            const row = {
+                id: room.id || '',
+                buildingName: room.buildingName || '',
+                roomIdentifier: room.roomIdentifier || '',
+                roomPurpose: room.roomPurpose || '',
+                roomPurposeOther: room.roomPurposeOther || '',
+                walls: room.roomMakeup?.walls || '',
+                wallsOther: room.roomMakeup?.wallsOther || '',
+                ceilingType: room.roomMakeup?.ceiling?.type || '',
+                ceilingTypeOther: room.roomMakeup?.ceiling?.typeOther || '',
+                asbestosInCeiling: room.roomMakeup?.ceiling?.asbestosInCeiling || '',
+                floorType: room.roomMakeup?.floor?.type || '',
+                floorTypeOther: room.roomMakeup?.floor?.typeOther || '',
+                tileSize: room.roomMakeup?.floor?.tileSize || '',
+                tileSizeOther: room.roomMakeup?.floor?.tileSizeOther || '',
+                ceilingCondition: room.conditionValues?.ceiling || '',
+                ceilingComment: room.conditionValues?.ceilingComment || '',
+                wallsCondition: room.conditionValues?.walls || '',
+                wallsComment: room.conditionValues?.wallsComment || '',
+                furnitureCondition: room.conditionValues?.furniture || '',
+                furnitureComment: room.conditionValues?.furnitureComment || '',
+                floorCondition: room.conditionValues?.floor || '',
+                floorComment: room.conditionValues?.floorComment || '',
+                overallCondition: room.conditionValues?.overall || '',
+                overallComment: room.conditionValues?.overallComment || '',
+                lightFixtures_JSON: JSON.stringify(room.lightFixtures || []),
+                otherFixtures_JSON: JSON.stringify(room.otherFixtures || []),
+                furniture_JSON: JSON.stringify(room.furniture || []),
+                furnitureSpecialtySpecify: room.furnitureSpecialtySpecify || '',
+                furnitureOtherSpecify: room.furnitureOtherSpecify || '',
+                heatingCooling: room.heatingCooling || '',
+                heatingCoolingOther: room.heatingCoolingOther || '',
+                smokeDetectors: room.safety?.smokeDetectors ?? '',
+                maxOccupancy: room.safety?.maxOccupancy ?? '',
+                doors_JSON: JSON.stringify(room.doors || []),
+                technology_JSON: JSON.stringify(room.technology || []),
+                technologyOtherSpecify: room.technologyOtherSpecify || '',
+                lastModifiedBy: room.lastModifiedBy || '',
+                savedAt: room.savedAt || ''
+            };
+            return headers.map(header => escapeCSV(row[header])).join(',');
+        });
+
+        return [headers.join(','), ...rows].join('\n');
+    }
+
+
     if (copyJsonBtn) {
         copyJsonBtn.addEventListener('click', function() {
             if (!jsonDisplayArea || !exportFeedback) return;
@@ -3391,8 +3510,6 @@ And everyone knows what happened in 1816:
         banner.style.gap = '10px';
         
         document.body.appendChild(banner);
-
-        // Remove the banner after a few seconds
         setTimeout(() => {
             banner.style.transition = 'opacity 0.5s ease';
             banner.style.opacity = '0';

@@ -511,7 +511,7 @@
                         <button id="renameBuildingBtn" class="action-button secondary-button"><i class="fas fa-save"></i> Rename Building</button>
                     </div>
                     <hr class="data-section-divider">
-                    <!-- NEW: Delete Existing Building Section -->
+                    <!-- NEW: Delete Existing Building Section Should probably end up in the same div as the create and rename -->
                     <div class="import-method-container">
                         <h3 class="data-sub-heading"><i class="fas fa-trash-alt"></i> Delete Existing Building</h3>
                         <p class="data-management-description">Permanently delete a building. This action is only possible if there are no rooms associated with the building.</p>
@@ -568,11 +568,12 @@
 
                 <section class="form-section data-management-section">
                     <h2><i class="fas fa-file-export"></i> Export All Room Data</h2>
-                     <p class="data-management-description">All saved room information can be exported as a JSON file or copied to your clipboard.</p>
+                     <p class="data-management-description">All saved room information can be exported as a JSON or CSV file, or copied to your clipboard.</p>
                     <textarea id="jsonDisplayArea" readonly aria-label="JSON data of all rooms"></textarea>
                     <div class="export-buttons-wrapper">
                         <button id="copyJsonBtn" class="action-button secondary-button"><i class="fas fa-copy"></i> Copy JSON</button>
                         <button id="exportAllBtn" class="action-button primary-button"><i class="fas fa-file-download"></i> Download JSON File</button>
+                        <button id="exportAllCsvBtn" class="action-button primary-button" style="background-color: var(--secondary-color);"><i class="fas fa-file-csv"></i> Download CSV File</button>
                     </div>
                     <p id="exportFeedback" class="feedback"></p>
                 </section>
