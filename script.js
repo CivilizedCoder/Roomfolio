@@ -99,6 +99,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const lightFixturesContainer = document.getElementById('lightFixturesContainer');
     const addLightFixtureBtn = document.getElementById('addLightFixtureBtn');
     const otherFixturesCheckboxes = document.querySelectorAll('.fixture-present-checkbox');
+    // New: Asbestos radio buttons
+    const asbestosInRoomRadios = document.querySelectorAll('input[name="asbestosInRoom"]');
 
     // View Rooms elements
     const roomListContainer = document.getElementById('roomListContainer');
@@ -608,7 +610,8 @@ And everyone knows what happened in 1816:
                 floorType: 'Carpet',
                 heatingCooling: 'Forced Air',
                 lightFixtures: [{ type: 'LED', quantity: 1, style: 'Flat Panel' }],
-                doors: [{ identifier: 'Main Entry', type: 'Wood', lockType: 'Key' }]
+                doors: [{ identifier: 'Main Entry', type: 'Wood', lockType: 'Key' }],
+                asbestosInRoom: 'No' // Default for new independent asbestos field
             };
         }
     }
@@ -770,15 +773,16 @@ And everyone knows what happened in 1816:
             }
         });
 
-        // Handle specific nested structures like roomMakeup.ceiling.asbestosInCeiling
-        if (lastInputValues.roomMakeup?.ceiling?.asbestosInCeiling) {
-            const radio = form.querySelector(`input[name="ceilingAsbestos"][value="${lastInputValues.roomMakeup.ceiling.asbestosInCeiling}"]`);
+        // Handle independent asbestosInRoom
+        if (lastInputValues.asbestosInRoom) {
+            const radio = form.querySelector(`input[name="asbestosInRoom"][value="${lastInputValues.asbestosInRoom}"]`);
             if (radio) {
                 radio.checked = true;
                 radio.classList.add('remembered-input');
                 radio.dispatchEvent(new Event('change')); // Explicitly dispatch change event for radio
             }
         }
+
         // Handle specific nested structures like roomMakeup.floor.tileSize
         if (lastInputValues.roomMakeup?.floor?.tileSize) {
             const radio = form.querySelector(`input[name="floorTileSize"][value="${lastInputValues.roomMakeup.floor.tileSize}"]`);
@@ -830,10 +834,8 @@ And everyone knows what happened in 1816:
                             // Handle count and specify for otherFixtures
                             const idSuffix = checkboxValue.replace(/[^a-zA-Z0-9]/g, '');
                             let countInputId = `otherFixture${idSuffix}Count`;
-                            let specifyInputId = `otherFixturesSpecifyText`; // Only for 'Other' type
-
                             if (checkboxValue === "Other") {
-                                const specifyInput = document.getElementById(specifyInputId);
+                                const specifyInput = document.getElementById('otherFixturesSpecifyText');
                                 if (specifyInput) {
                                     specifyInput.value = specifyText || '';
                                     specifyInput.classList.add('remembered-input');
@@ -1068,6 +1070,13 @@ And everyone knows what happened in 1816:
         const overallConditionSelect = document.getElementById('overallCondition');
         if (overallConditionSelect) overallConditionSelect.value = ''; // Always reset overall condition to N/A for new entry
 
+        // Set default for asbestos to "No" for new rooms
+        const defaultAsbestosRadio = roomForm.querySelector('input[name="asbestosInRoom"][value="No"]');
+        if (defaultAsbestosRadio) {
+            defaultAsbestosRadio.checked = true;
+            defaultAsbestosRadio.classList.add('default-value-input'); // Add a class for default styling
+        }
+
         refreshConditionalFormUI(roomForm);
         
         // Scroll to the top of the page to make filling a new form efficient.
@@ -1141,19 +1150,20 @@ And everyone knows what happened in 1816:
         if (!formElement) return;
         initializeGeneralConditionalLogic(formElement);
 
-        const ceilingTypeSelect = formElement.querySelector('#ceilingType');
-        const dropCeilingOptionsDiv = formElement.querySelector('#dropCeilingOptions');
-        if (ceilingTypeSelect && dropCeilingOptionsDiv) {
-            const updateCeilingOptions = () => {
-                const show = ceilingTypeSelect.value === 'Drop Ceiling';
-                 dropCeilingOptionsDiv.style.display = show ? 'block' : 'none';
-                 if (!show) {
-                    formElement.querySelectorAll('input[name="ceilingAsbestos"]').forEach(radio => radio.checked = false);
-                 }
-            }
-            ceilingTypeSelect.addEventListener('change', updateCeilingOptions);
-            updateCeilingOptions(); // Initial call
-        }
+        // Asbestos is now independent, so no conditional logic for it based on ceiling type.
+        // const ceilingTypeSelect = formElement.querySelector('#ceilingType');
+        // const dropCeilingOptionsDiv = formElement.querySelector('#dropCeilingOptions');
+        // if (ceilingTypeSelect && dropCeilingOptionsDiv) {
+        //     const updateCeilingOptions = () => {
+        //         const show = ceilingTypeSelect.value === 'Drop Ceiling';
+        //          dropCeilingOptionsDiv.style.display = show ? 'block' : 'none';
+        //          if (!show) {
+        //             formElement.querySelectorAll('input[name="ceilingAsbestos"]').forEach(radio => radio.checked = false);
+        //          }
+        //     }
+        //     ceilingTypeSelect.addEventListener('change', updateCeilingOptions);
+        //     updateCeilingOptions(); // Initial call
+        // }
 
         const floorTypeSelect = formElement.querySelector('#floorType');
         const floorTileOptionsDiv = formElement.querySelector('#floorTileOptions');
@@ -1218,15 +1228,16 @@ And everyone knows what happened in 1816:
             }
         }
 
-        const ceilingTypeSelect = formElement.querySelector('#ceilingType');
-        const dropCeilingOptionsDiv = formElement.querySelector('#dropCeilingOptions');
-        if (ceilingTypeSelect && dropCeilingOptionsDiv) {
-            const show = ceilingTypeSelect.value === 'Drop Ceiling';
-            dropCeilingOptionsDiv.style.display = show ? 'block' : 'none';
-            if (!show) {
-                formElement.querySelectorAll('input[name="ceilingAsbestos"]').forEach(radio => radio.checked = false);
-            }
-        }
+        // Asbestos is now independent, no conditional refresh needed based on ceiling type.
+        // const ceilingTypeSelect = formElement.querySelector('#ceilingType');
+        // const dropCeilingOptionsDiv = formElement.querySelector('#dropCeilingOptions');
+        // if (ceilingTypeSelect && dropCeilingOptionsDiv) {
+        //     const show = ceilingTypeSelect.value === 'Drop Ceiling';
+        //     dropCeilingOptionsDiv.style.display = show ? 'block' : 'none';
+        //     if (!show) {
+        //         formElement.querySelectorAll('input[name="ceilingAsbestos"]').forEach(radio => radio.checked = false);
+        //     }
+        // }
 
         const floorTypeSelect = formElement.querySelector('#floorType');
         const floorTileOptionsDiv = formElement.querySelector('#floorTileOptions');
@@ -1475,6 +1486,9 @@ And everyone knows what happened in 1816:
             floorTileSizeOtherInput.style.display = 'none';
         }
         form.querySelectorAll('input[name="floorTileSize"]').forEach(radio => radio.checked = false);
+        // Asbestos radio buttons are now independent, so clear them directly
+        form.querySelectorAll('input[name="asbestosInRoom"]').forEach(radio => radio.checked = false);
+
         ['ceilingConditionComment', 'wallsConditionComment', 'furnitureConditionComment', 'floorConditionComment', 'overallConditionComment'].forEach(id => {
             const textarea = document.getElementById(id);
             if (textarea) textarea.value = '';
@@ -1527,9 +1541,9 @@ And everyone knows what happened in 1816:
                 typeOther: formData.get('floorType') === 'Other' ? formData.get('floorTypeOther').trim() : ''
             }
         };
-        if (formData.get('ceilingType') === 'Drop Ceiling') {
-            newRoomData.roomMakeup.ceiling.asbestosInCeiling = formData.get('ceilingAsbestos');
-        }
+        // Asbestos is now an independent field, not tied to ceiling type
+        newRoomData.asbestosInRoom = formData.get('asbestosInRoom');
+        
         if (newRoomData.roomMakeup.floor.type === 'Tile') {
             newRoomData.roomMakeup.floor.tileSize = formData.get('floorTileSize');
             if (formData.get('floorTileSize') === 'Other') {
@@ -1964,19 +1978,20 @@ And everyone knows what happened in 1816:
                     const ceilingTypeOtherEl = roomForm.querySelector('#ceilingTypeOther');
                     if(ceilingTypeOtherEl) ceilingTypeOtherEl.value = makeup.ceiling.typeOther || '';
                 }
-                if (makeup.ceiling.type === 'Drop Ceiling' && makeup.ceiling.asbestosInCeiling) {
-                    const ceilingAsbestosInput = roomForm.querySelector(`input[name="ceilingAsbestos"][value="${makeup.ceiling.asbestosInCeiling}"]`);
-                    if (ceilingAsbestosInput) {
-                        ceilingAsbestosInput.checked = true;
-                        ceilingAsbestosInput.dispatchEvent(new Event('change')); // Trigger change
-                    } else {
-                        const defaultCeilingAsbestos = roomForm.querySelector(`input[name="ceilingAsbestos"][value="No"]`);
-                        if (defaultCeilingAsbestos) {
-                            defaultCeilingAsbestos.checked = true;
-                            defaultCeilingAsbestos.dispatchEvent(new Event('change'));
-                        }
-                    }
-                }
+                // Asbestos is now independent, remove conditional check for ceiling type
+                // if (makeup.ceiling.type === 'Drop Ceiling' && makeup.ceiling.asbestosInCeiling) {
+                //     const ceilingAsbestosInput = roomForm.querySelector(`input[name="ceilingAsbestos"][value="${makeup.ceiling.asbestosInCeiling}"]`);
+                //     if (ceilingAsbestosInput) {
+                //         ceilingAsbestosInput.checked = true;
+                //         ceilingAsbestosInput.dispatchEvent(new Event('change')); // Trigger change
+                //     } else {
+                //         const defaultCeilingAsbestos = roomForm.querySelector(`input[name="ceilingAsbestos"][value="No"]`);
+                //         if (defaultCeilingAsbestos) {
+                //             defaultCeilingAsbestos.checked = true;
+                //             defaultCeilingAsbestos.dispatchEvent(new Event('change'));
+                //         }
+                //     }
+                // }
             }
             if (makeup.floor) {
                 const floorTypeEl = roomForm.querySelector('#floorType');
@@ -2023,6 +2038,22 @@ And everyone knows what happened in 1816:
                 }
             }
         }
+        // Populate independent asbestos field
+        if (room.asbestosInRoom) {
+            const asbestosRadio = roomForm.querySelector(`input[name="asbestosInRoom"][value="${room.asbestosInRoom}"]`);
+            if (asbestosRadio) {
+                asbestosRadio.checked = true;
+                asbestosRadio.dispatchEvent(new Event('change'));
+            }
+        } else {
+            // Default to 'No' if not present in data
+            const defaultAsbestosRadio = roomForm.querySelector(`input[name="asbestosInRoom"][value="No"]`);
+            if (defaultAsbestosRadio) {
+                defaultAsbestosRadio.checked = true;
+                defaultAsbestosRadio.dispatchEvent(new Event('change'));
+            }
+        }
+
 
         if (room.conditionValues) {
             const cv = room.conditionValues;
@@ -2256,6 +2287,9 @@ And everyone knows what happened in 1816:
             html += `<p><strong>Smoke Detectors:</strong> ${escapeHtml(room.safety.smokeDetectors ?? 'N/A')}</p>`;
             html += `<p><strong>Max Occupancy:</strong> ${escapeHtml(room.safety.maxOccupancy ?? 'N/A')}</p>`;
         }
+        // Always display asbestos status
+        html += `<p><strong>Asbestos in Room:</strong> ${escapeHtml(room.asbestosInRoom || 'Unknown')}</p>`;
+
         if (room.savedAt) {
             const date = new Date(room.savedAt);
             if (!isNaN(date)) {
@@ -2355,9 +2389,8 @@ And everyone knows what happened in 1816:
             html += `<p><strong>Smoke Detectors:</strong> ${escapeHtml(room.safety.smokeDetectors ?? 'N/A')}</p>`;
             html += `<p><strong>Max Occupancy:</strong> ${escapeHtml(room.safety.maxOccupancy ?? 'N/A')}</p>`;
         }
-        if (room.roomMakeup?.ceiling?.type === 'Drop Ceiling') {
-            html += `<p><strong>Asbestos in Ceiling:</strong> ${escapeHtml(room.roomMakeup.ceiling.asbestosInCeiling||'Unknown')}</p>`;
-        }
+        // Always display asbestos status, now from top-level `asbestosInRoom`
+        html += `<p><strong>Asbestos in Room:</strong> ${escapeHtml(room.asbestosInRoom || 'Unknown')}</p>`;
         
         html += `<h3><i class="fas fa-clipboard-check"></i> Overall Room Condition</h3>`;
         html += `<p><strong>Overall:</strong> ${escapeHtml(room.conditionValues?.overall) || 'N/A (Not Set/Calculated)'}</p>`;
@@ -2526,7 +2559,16 @@ And everyone knows what happened in 1816:
     function displayFullJsonForExport() {
         if (!jsonDisplayArea) return;
         const rooms = getStoredRooms();
-        const dataToExport = rooms.map(({ id, ...rest }) => rest);
+        // When exporting, if the old `asbestosInCeiling` exists, migrate it to `asbestosInRoom`
+        const dataToExport = rooms.map(({ id, ...rest }) => {
+            const roomData = { ...rest };
+            if (roomData.roomMakeup?.ceiling?.asbestosInCeiling && !roomData.asbestosInRoom) {
+                roomData.asbestosInRoom = roomData.roomMakeup.ceiling.asbestosInCeiling;
+                // Optionally delete the old field if you want to clean up the export
+                // delete roomData.roomMakeup.ceiling.asbestosInCeiling; 
+            }
+            return roomData;
+        });
         jsonDisplayArea.value = dataToExport.length > 0 ? JSON.stringify(dataToExport, null, 4) : 'No data to display.';
         if (exportFeedback) {exportFeedback.className = 'feedback'; exportFeedback.textContent = '';}
     }
@@ -2812,7 +2854,7 @@ And everyone knows what happened in 1816:
     function convertToCSV(data) {
         const headers = [
             'id', 'buildingName', 'roomIdentifier', 'roomPurpose', 'roomPurposeOther',
-            'walls', 'wallsOther', 'ceilingType', 'ceilingTypeOther', 'asbestosInCeiling',
+            'walls', 'wallsOther', 'ceilingType', 'ceilingTypeOther', 'asbestosInRoom', // Changed from asbestosInCeiling
             'floorType', 'floorTypeOther', 'tileSize', 'tileSizeOther',
             'ceilingCondition', 'ceilingComment', 'wallsCondition', 'wallsComment',
             'furnitureCondition', 'furnitureComment', 'floorCondition', 'floorComment',
@@ -2843,7 +2885,8 @@ And everyone knows what happened in 1816:
                 wallsOther: room.roomMakeup?.wallsOther || '',
                 ceilingType: room.roomMakeup?.ceiling?.type || '',
                 ceilingTypeOther: room.roomMakeup?.ceiling?.typeOther || '',
-                asbestosInCeiling: room.roomMakeup?.ceiling?.asbestosInCeiling || '',
+                // Prioritize new asbestosInRoom, fallback to old asbestosInCeiling if it exists
+                asbestosInRoom: room.asbestosInRoom || room.roomMakeup?.ceiling?.asbestosInCeiling || '',
                 floorType: room.roomMakeup?.floor?.type || '',
                 floorTypeOther: room.roomMakeup?.floor?.typeOther || '',
                 tileSize: room.roomMakeup?.floor?.tileSize || '',
@@ -2971,6 +3014,12 @@ And everyone knows what happened in 1816:
                         newBuildings.add(room.buildingName);
                     }
                     tryMigrateRoomTileData(room); 
+                    // Migrate old asbestosInCeiling to new asbestosInRoom if it exists and new field doesn't
+                    if (room.roomMakeup?.ceiling?.asbestosInCeiling && room.asbestosInRoom === undefined) {
+                        room.asbestosInRoom = room.roomMakeup.ceiling.asbestosInCeiling;
+                        // Optionally remove the old field from the imported object
+                        // delete room.roomMakeup.ceiling.asbestosInCeiling;
+                    }
                 }
             });
 
@@ -3175,7 +3224,8 @@ And everyone knows what happened in 1816:
 
     const filterFieldMap = {
         'purpose': 'roomPurpose', 'wallstype': 'roomMakeup.walls', 'ceilingtype': 'roomMakeup.ceiling.type',
-        'asbestos': 'roomMakeup.ceiling.asbestosInCeiling', 'floortype': 'roomMakeup.floor.type',
+        'asbestos': 'asbestosInRoom', // Changed path for asbestos
+        'floortype': 'roomMakeup.floor.type',
         'wallscondition': 'conditionValues.walls', 'ceilingcondition': 'conditionValues.ceiling',
         'floorcondition': 'conditionValues.floor', 'furniturecondition': 'conditionValues.furniture',
         'overallcondition': 'conditionValues.overall', 'smokedetectors': 'safety.smokeDetectors', 'maxoccupancy': 'safety.maxOccupancy'
@@ -3194,7 +3244,7 @@ And everyone knows what happened in 1816:
         };
         const simpleSearchPaths = [
             'roomIdentifier', 'roomPurpose', 'roomPurposeOther', 'roomMakeup.walls', 'roomMakeup.wallsOther',
-            'roomMakeup.ceiling.type', 'roomMakeup.ceiling.typeOther', 'roomMakeup.ceiling.asbestosInCeiling',
+            'roomMakeup.ceiling.type', 'roomMakeup.ceiling.typeOther', 'asbestosInRoom', // Changed from roomMakeup.ceiling.asbestosInCeiling
             'roomMakeup.floor.type', 'roomMakeup.floor.typeOther', 'roomMakeup.floor.tileSize', 'roomMakeup.floor.tileSizeOther',
             'conditionValues.walls', 'conditionValues.ceiling', 'conditionValues.floor', 'conditionValues.furniture', 'conditionValues.overall',
             'conditionValues.wallsComment', 'conditionValues.ceilingComment', 'conditionValues.floorComment', 'conditionValues.furnitureComment', 'conditionValues.overallComment',

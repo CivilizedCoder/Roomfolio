@@ -345,16 +345,15 @@
                             <label for="maxOccupancy">Maximum Room Occupancy:</label>
                             <input type="number" id="maxOccupancy" name="maxOccupancy" min="0" placeholder="e.g., 25">
                         </div>
-                        <div id="dropCeilingOptions" class="conditional-section">
-                            <fieldset class="sub-group">
-                               <legend class="group-label" id="ceilingAsbestosLabel">Asbestos in Ceiling? (for Drop Ceiling)</legend>
-                               <div class="radio-group" role="radiogroup" aria-labelledby="ceilingAsbestosLabel">
-                                   <label><input type="radio" name="ceilingAsbestos" value="Yes"> Yes</label>
-                                   <label><input type="radio" name="ceilingAsbestos" value="No" checked> No</label>
-                                   <label><input type="radio" name="ceilingAsbestos" value="Unknown"> Unknown</label>
-                               </div>
-                           </fieldset>
-                       </div>
+                        <!-- NEW: Independent Asbestos in Room field -->
+                        <fieldset class="input-group">
+                            <legend class="group-label" id="asbestosInRoomLabel">Asbestos in Room?</legend>
+                            <div class="radio-group" role="radiogroup" aria-labelledby="asbestosInRoomLabel">
+                                <label><input type="radio" name="asbestosInRoom" value="Yes"> Yes</label>
+                                <label><input type="radio" name="asbestosInRoom" value="No" checked> No</label>
+                                <label><input type="radio" name="asbestosInRoom" value="Unknown"> Unknown</label>
+                            </div>
+                        </fieldset>
                     </section>
 
                     <section class="form-section">
@@ -438,6 +437,7 @@
                                 <option value="roomMakeup.wallsOther">Walls Type (Other Specify)</option>
                                 <option value="roomMakeup.ceiling.type">Ceiling Type</option>
                                 <option value="roomMakeup.ceiling.typeOther">Ceiling Type (Other Specify)</option>
+                                <option value="asbestosInRoom">Asbestos in Room</option>
                                 <option value="roomMakeup.floor.type">Floor Type</option>
                                 <option value="roomMakeup.floor.typeOther">Floor Type (Other Specify)</option>
                                 <option value="heatingCooling">Heating/Cooling Type</option>
