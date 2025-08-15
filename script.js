@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const signOutBtn = document.getElementById('signOutBtn');
     const adminNavLi = document.getElementById('adminNavLi');
     const pendingUsersContainer = document.getElementById('pendingUsersContainer');
+    const allUsersContainer = document.getElementById('allUsersContainer'); // MODIFIED: For all user management
     const adminFeedback = document.getElementById('adminFeedback');
 
 
@@ -276,6 +277,7 @@ And everyone knows what happened in 1816:
                     if (userData.role === 'admin') {
                         adminNavLi.style.display = 'list-item';
                         listenForPendingUsers();
+                        listenForAllUsers(); // MODIFIED: Call new function for admins
                     } else {
                         adminNavLi.style.display = 'none';
                     }
@@ -509,6 +511,57 @@ And everyone knows what happened in 1816:
         });
     }
 
+    // MODIFIED: New function to listen for all approved users
+    function listenForAllUsers() {
+        // Query for all users that are approved
+        const q = query(collection(db, USERS_COLLECTION), where("status", "==", "approved"));
+        onSnapshot(q, (querySnapshot) => {
+            if (!allUsersContainer) return;
+            allUsersContainer.innerHTML = ''; // Clear previous list
+            const currentUserUID = auth.currentUser ? auth.currentUser.uid : null;
+
+            if (querySnapshot.empty) {
+                allUsersContainer.innerHTML = '<p class="empty-list-message">No approved users found.</p>';
+                return;
+            }
+
+            const users = [];
+            querySnapshot.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+
+            // Sort users alphabetically by email
+            users.sort((a, b) => a.email.localeCompare(b.email));
+
+            users.forEach((userData) => {
+                const userDiv = document.createElement('div');
+                userDiv.classList.add('room-card'); // Reuse existing style
+                userDiv.dataset.uid = userData.id;
+
+                // Prevent admins from editing their own role or deleting themselves
+                const isCurrentUser = userData.id === currentUserUID;
+                const disabledAttribute = isCurrentUser ? 'disabled' : '';
+
+                userDiv.innerHTML = `
+                    <h3>${escapeHtml(userData.email)}</h3>
+                    <div class="input-group" style="margin-bottom: 10px;">
+                        <label for="role-${userData.id}" style="font-size: 0.9em; margin-bottom: 5px;">Role:</label>
+                        <select id="role-${userData.id}" class="user-role-select" data-uid="${userData.id}" ${disabledAttribute}>
+                            <option value="member" ${userData.role === 'member' ? 'selected' : ''}>Member</option>
+                            <option value="admin" ${userData.role === 'admin' ? 'selected' : ''}>Admin</option>
+                        </select>
+                    </div>
+                    <div class="actions">
+                        <button class="action-button danger-button delete-user-btn" data-uid="${userData.id}" ${disabledAttribute}>
+                            <i class="fas fa-trash-alt"></i> Delete User
+                        </button>
+                    </div>
+                    ${isCurrentUser ? '<p style="font-size: 0.8em; color: var(--muted-text-color); margin-top: 10px;"><i>You cannot edit your own role or delete your own account.</i></p>' : ''}
+                `;
+                allUsersContainer.appendChild(userDiv);
+            });
+        });
+    }
+
+
     // Add event listener for the approve button
     if (pendingUsersContainer) {
         pendingUsersContainer.addEventListener('click', async (e) => {
@@ -532,6 +585,60 @@ And everyone knows what happened in 1816:
                         adminFeedback.className = 'feedback error';
                     }
                     console.error("Approval error: ", error);
+                }
+            }
+        });
+    }
+
+    // MODIFIED: New event listeners for the allUsersContainer
+    if (allUsersContainer) {
+        allUsersContainer.addEventListener('click', async (e) => {
+            const deleteButton = e.target.closest('.delete-user-btn');
+            if (deleteButton && !deleteButton.disabled) {
+                const uidToDelete = deleteButton.dataset.uid;
+                const userCard = deleteButton.closest('.room-card');
+                const userEmail = userCard.querySelector('h3').textContent;
+
+                if (confirm(`Are you sure you want to delete the user "${userEmail}"? This will revoke their access immediately.`)) {
+                    const userToDeleteRef = doc(db, USERS_COLLECTION, uidToDelete);
+                    try {
+                        await deleteDoc(userToDeleteRef);
+                        if (adminFeedback) {
+                            adminFeedback.textContent = 'User deleted successfully.';
+                            adminFeedback.className = 'feedback success';
+                        }
+                    } catch (error) {
+                        if (adminFeedback) {
+                            adminFeedback.textContent = 'Error deleting user.';
+                            adminFeedback.className = 'feedback error';
+                        }
+                        console.error("User deletion error: ", error);
+                    }
+                }
+            }
+        });
+
+        allUsersContainer.addEventListener('change', async (e) => {
+            const roleSelect = e.target.closest('.user-role-select');
+            if (roleSelect && !roleSelect.disabled) {
+                const uidToUpdate = roleSelect.dataset.uid;
+                const newRole = roleSelect.value;
+                const userToUpdateRef = doc(db, USERS_COLLECTION, uidToUpdate);
+
+                try {
+                    await updateDoc(userToUpdateRef, {
+                        role: newRole
+                    });
+                    if (adminFeedback) {
+                        adminFeedback.textContent = 'User role updated successfully.';
+                        adminFeedback.className = 'feedback success';
+                    }
+                } catch (error) {
+                    if (adminFeedback) {
+                        adminFeedback.textContent = 'Error updating user role.';
+                        adminFeedback.className = 'feedback error';
+                    }
+                    console.error("Role update error: ", error);
                 }
             }
         });

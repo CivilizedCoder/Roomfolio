@@ -472,10 +472,22 @@
 
             <div id="AdminView" class="view-section">
                 <header class="view-header">
-                    <h1><i class="fas fa-user-shield"></i> Admin Panel: Pending Approvals</h1>
+                    <h1><i class="fas fa-user-shield"></i> Admin Panel</h1>
                 </header>
-                <div id="pendingUsersContainer">
+                <section class="form-section data-management-section">
+                    <h2><i class="fas fa-user-clock"></i> Pending Approvals</h2>
+                    <div id="pendingUsersContainer">
+                        <!-- Pending users will be populated by script.js -->
                     </div>
+                </section>
+            
+                <section class="form-section data-management-section">
+                    <h2><i class="fas fa-users-cog"></i> User Management</h2>
+                    <p class="data-management-description">Manage roles and access for approved users. Deleting a user will revoke their access immediately.</p>
+                    <div id="allUsersContainer">
+                        <!-- All approved users will be populated by script.js -->
+                    </div>
+                </section>
                 <p id="adminFeedback" class="feedback"></p>
             </div>
 
